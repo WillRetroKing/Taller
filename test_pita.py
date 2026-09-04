@@ -73,7 +73,7 @@ class TestPersistencia(unittest.TestCase):
             capture_output=True, check=False,
         )
         self.assertEqual(resultado.returncode, 0)
-        self.assertIn("PITA finalizado", resultado.stdout)
+        self.assertIn("¡Gracias por usar PITA!", resultado.stdout)
 
 
 class TestAcademico(unittest.TestCase):
@@ -173,6 +173,7 @@ class TestContratosParametrosNomina(unittest.TestCase):
             factorSalarialSMMLV=Decimal("2"),
             horasIncumplidas=Decimal("2"),
             valorHoraIncumplida=Decimal("10"),
+            horasSemanalesAsignadas=Decimal("24"),  # Añadido: requiere validación horas incumplidas
             estado="ACTIVO",
         )
         periodo = PeriodoNomina(1, salarioMinimoVigente=Decimal("1000"), diasBaseLiquidacion=30)
