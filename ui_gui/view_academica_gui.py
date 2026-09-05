@@ -7,6 +7,7 @@ from decimal import Decimal
 import customtkinter as ctk
 from typing import TYPE_CHECKING
 
+from ui_gui.theme import Colors, Fonts, create_styled_tabview
 from ui_gui.components import PITAGridTable, create_badge
 from modelo_datos import (
     Calificacion,
@@ -42,23 +43,23 @@ class AcademicaViewGUI(ctk.CTkFrame):
         ctk.CTkLabel(
             header,
             text="🎓 Gestión Académica, Matrícula y Alertas EBRA",
-            font=ctk.CTkFont(size=20, weight="bold"),
-            text_color="#F8FAFC",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
         ).pack(side="left")
 
         btn_nuevo_curso = ctk.CTkButton(
             header,
             text="➕ Crear Nuevo Curso",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#10B981",
-            hover_color="#059669",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#0067C0",
+            hover_color="#005FB8",
             corner_radius=8,
             command=self._abrir_modal_nuevo_curso,
         )
         btn_nuevo_curso.pack(side="right")
 
         # Pestañas
-        self.tabview = ctk.CTkTabview(self, fg_color="transparent")
+        self.tabview = create_styled_tabview(self)
         self.tabview.pack(fill="both", expand=True, padx=10, pady=5)
 
         self.tab_oferta = self.tabview.add("📚 Cursos & Oferta")

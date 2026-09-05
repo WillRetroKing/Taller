@@ -1,6 +1,6 @@
-"""Componentes visuales reutilizables para la GUI PITA.
+"""Componentes visuales reutilizables para la GUI PITA con diseño Clean Windows 11 Light UI (Filas Compactas).
 
-Incluye la tabla basada en Grid con alineación perfecta, insignias de estado (badges)
+Incluye la tabla basada en Grid con alineación perfecta, insignias de estado (badges compactas)
 y tarjetas de métricas KPI estilizadas.
 """
 
@@ -9,26 +9,28 @@ from __future__ import annotations
 import customtkinter as ctk
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
+from ui_gui.theme import Colors, Fonts
+
 
 def create_badge(
     parent: Optional[ctk.CTkFrame],
     text: str,
     badge_type: str = "success",
 ) -> ctk.CTkFrame:
-    """Crea una insignia estilizada (Status Badge Pill) con bordes suaves."""
+    """Crea una insignia estilizada compacta (Status Badge Pill) estilo Windows Fluent."""
     styles = {
-        "success": {"bg": "#064E3B", "text": "#34D399", "border": "#059669"},
-        "active": {"bg": "#064E3B", "text": "#34D399", "border": "#059669"},
-        "liquidado": {"bg": "#064E3B", "text": "#34D399", "border": "#059669"},
-        "danger": {"bg": "#451A1D", "text": "#F87171", "border": "#7F1D1D"},
-        "ebra": {"bg": "#451A1D", "text": "#F87171", "border": "#7F1D1D"},
-        "cancelado": {"bg": "#451A1D", "text": "#F87171", "border": "#7F1D1D"},
-        "warning": {"bg": "#451E03", "text": "#FBBF24", "border": "#D97706"},
-        "info": {"bg": "#1E1B4B", "text": "#A5B4FC", "border": "#4338CA"},
-        "planta": {"bg": "#1E1B4B", "text": "#A5B4FC", "border": "#4338CA"},
-        "ocasional": {"bg": "#083344", "text": "#67E8F9", "border": "#0891B2"},
-        "catedra": {"bg": "#2E1065", "text": "#DDD6FE", "border": "#7C3AED"},
-        "neutral": {"bg": "#1E293B", "text": "#94A3B8", "border": "#334155"},
+        "success": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
+        "active": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
+        "liquidado": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
+        "danger": {"bg": Colors.BADGE_EBRA_BG, "text": Colors.BADGE_EBRA_TXT, "border": Colors.BADGE_EBRA_BORDER},
+        "ebra": {"bg": Colors.BADGE_EBRA_BG, "text": Colors.BADGE_EBRA_TXT, "border": Colors.BADGE_EBRA_BORDER},
+        "cancelado": {"bg": Colors.BADGE_EBRA_BG, "text": Colors.BADGE_EBRA_TXT, "border": Colors.BADGE_EBRA_BORDER},
+        "warning": {"bg": "#FEF3C7", "text": "#D97706", "border": "#FCD34D"},
+        "info": {"bg": Colors.BADGE_INFO_BG, "text": Colors.BADGE_INFO_TXT, "border": Colors.BADGE_INFO_BORDER},
+        "planta": {"bg": Colors.BADGE_INFO_BG, "text": Colors.BADGE_INFO_TXT, "border": Colors.BADGE_INFO_BORDER},
+        "ocasional": {"bg": "#E0F2FE", "text": "#0369A1", "border": "#7DD3FC"},
+        "catedra": {"bg": "#F3E8FF", "text": "#7E22CE", "border": "#D8B4FE"},
+        "neutral": {"bg": "#F1F5F9", "text": Colors.TEXT_MUTED, "border": Colors.BORDER_SUBTLE},
     }
 
     style = styles.get(badge_type.lower(), styles["neutral"])
@@ -36,7 +38,7 @@ def create_badge(
     pill = ctk.CTkFrame(
         parent,
         fg_color=style["bg"],
-        corner_radius=12,
+        corner_radius=6,
         border_width=1,
         border_color=style["border"],
     )
@@ -44,10 +46,10 @@ def create_badge(
     label = ctk.CTkLabel(
         pill,
         text=text,
-        font=ctk.CTkFont(size=11, weight="bold"),
+        font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
         text_color=style["text"],
     )
-    label.pack(padx=10, pady=3)
+    label.pack(padx=6, pady=1)
     return pill
 
 
@@ -57,16 +59,16 @@ def create_stat_card(
     col: int,
     title: str,
     value: str,
-    accent_color: str = "#10B981",
+    accent_color: str = Colors.WIN_BLUE,
     subtitle: str = "",
 ) -> ctk.CTkFrame:
-    """Crea una tarjeta KPI elevada con barra superior de color y tipografía limpia."""
+    """Crea una tarjeta KPI limpia elevada en blanco puro."""
     card = ctk.CTkFrame(
         parent,
         corner_radius=10,
-        fg_color="#0F172A",
+        fg_color=Colors.BG_CARD,
         border_width=1,
-        border_color="#334155",
+        border_color=Colors.BORDER_SUBTLE,
     )
     card.grid(row=row, column=col, sticky="nsew", padx=6, pady=6)
 
@@ -80,16 +82,16 @@ def create_stat_card(
     ctk.CTkLabel(
         content,
         text=title,
-        font=ctk.CTkFont(size=12, weight="bold"),
-        text_color="#94A3B8",
+        font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+        text_color=Colors.TEXT_MUTED,
         anchor="w",
     ).pack(anchor="w")
 
     ctk.CTkLabel(
         content,
         text=value,
-        font=ctk.CTkFont(size=26, weight="bold"),
-        text_color="#F8FAFC",
+        font=ctk.CTkFont(family="Segoe UI", size=26, weight="bold"),
+        text_color=Colors.TEXT_MAIN,
         anchor="w",
     ).pack(anchor="w", pady=(4, 2))
 
@@ -97,16 +99,18 @@ def create_stat_card(
         ctk.CTkLabel(
             content,
             text=subtitle,
-            font=ctk.CTkFont(size=11),
-            text_color="#64748B",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=Colors.TEXT_MUTED,
             anchor="w",
         ).pack(anchor="w")
 
     return card
 
 
-class PITAGridTable(ctk.CTkScrollableFrame):
-    """Tabla de datos estilizada con alineación estricta por columnas, zebra striping y headers."""
+class PITATreeviewTable(ctk.CTkFrame):
+    """Tabla de datos limpia y nativa basada en ttk.Treeview con estilo Windows 11 Light,
+    encabezados fijos, selección de fila nativa, scrollbar fluido y soporte completo de acciones.
+    """
 
     def __init__(
         self,
@@ -116,146 +120,219 @@ class PITAGridTable(ctk.CTkScrollableFrame):
         col_mins: Optional[List[int]] = None,
         **kwargs,
     ) -> None:
-        super().__init__(parent, fg_color="transparent", **kwargs)
+        super().__init__(
+            parent,
+            fg_color=Colors.BG_CARD,
+            border_width=1,
+            border_color=Colors.BORDER_SUBTLE,
+            corner_radius=8,
+            **kwargs,
+        )
 
         self.headers = headers
         self.num_cols = len(headers)
         self.col_weights = col_weights or [1] * self.num_cols
-        self.col_mins = col_mins or [80] * self.num_cols
+        self.col_mins = col_mins or [90] * self.num_cols
         self.row_counter = 0
+        self.row_actions = {}  # Map row_id -> list of action tuples: (label, callback)
 
-        self._crear_header()
+        # Configurar Estilos de ttk.Treeview
+        self._setup_style()
 
-    def _crear_header(self) -> None:
-        """Construye la fila fijada de cabecera."""
-        h_frame = ctk.CTkFrame(
-            self,
-            fg_color="#0F172A",
-            corner_radius=8,
-            border_width=1,
-            border_color="#334155",
+        # Generar identificadores de columna
+        self.col_ids = [f"col_{i}" for i in range(self.num_cols)]
+
+        # Contenedor para Treeview + Scrollbars
+        self.tree_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.tree_frame.pack(fill="both", expand=True, padx=4, pady=4)
+
+        # Scrollbars
+        import tkinter as tk
+        from tkinter import ttk
+
+        self.vsb = ttk.Scrollbar(self.tree_frame, orient="vertical")
+        self.hsb = ttk.Scrollbar(self.tree_frame, orient="horizontal")
+
+        self.tree = ttk.Treeview(
+            self.tree_frame,
+            columns=self.col_ids,
+            show="headings",
+            style="PITA.Treeview",
+            selectmode="browse",
+            yscrollcommand=self.vsb.set,
+            xscrollcommand=self.hsb.set,
         )
-        h_frame.pack(fill="x", pady=(0, 6))
 
-        for col_idx, (text, w, m) in enumerate(zip(self.headers, self.col_weights, self.col_mins)):
-            h_frame.grid_columnconfigure(col_idx, weight=w, minsize=m)
-            lbl = ctk.CTkLabel(
-                h_frame,
-                text=text.upper(),
-                font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#94A3B8",
-                anchor="w",
+        self.vsb.config(command=self.tree.yview)
+        self.hsb.config(command=self.tree.xview)
+
+        # Empaquetado
+        self.vsb.pack(side="right", fill="y")
+        self.hsb.pack(side="bottom", fill="x")
+        self.tree.pack(side="left", fill="both", expand=True)
+
+        # Configurar columnas y encabezados
+        for i, (col_id, text, min_w, w_ratio) in enumerate(
+            zip(self.col_ids, self.headers, self.col_mins, self.col_weights)
+        ):
+            anchor = (
+                "center"
+                if text.lower() in ("acciones", "acción", "estado", "código", "id", "semestre", "créditos", "unidad")
+                else "w"
             )
-            lbl.grid(row=0, column=col_idx, padx=12, pady=10, sticky="ew")
+            self.tree.heading(col_id, text=text, anchor=anchor)
+            calc_w = max(min_w, min_w * w_ratio // 2)
+            self.tree.column(col_id, width=calc_w, minwidth=min_w, stretch=True, anchor=anchor)
+
+        # Configurar Tags para alternancia de filas (Zebra Striping)
+        self.tree.tag_configure("even", background="#FFFFFF")
+        self.tree.tag_configure("odd", background="#F8FAFC")
+        self.tree.tag_configure("highlight", background="#FEF2F2")
+
+        # Bindings para doble clic y clic en celda
+        self.tree.bind("<Double-1>", self._on_double_click)
+        self.tree.bind("<ButtonRelease-1>", self._on_click)
+
+    def _setup_style(self) -> None:
+        import tkinter as tk
+        from tkinter import ttk
+
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+
+        style.configure(
+            "PITA.Treeview",
+            background="#FFFFFF",
+            fieldbackground="#FFFFFF",
+            foreground=Colors.TEXT_MAIN,
+            rowheight=32,
+            font=("Segoe UI", 10),
+            bordercolor=Colors.BORDER_SUBTLE,
+            borderwidth=1,
+        )
+        style.configure(
+            "PITA.Treeview.Heading",
+            background="#F1F5F9",
+            foreground=Colors.TEXT_MAIN,
+            font=("Segoe UI", 10, "bold"),
+            relief="flat",
+            padding=(8, 6),
+        )
+        style.map(
+            "PITA.Treeview.Heading",
+            background=[("active", "#E2E8F0")],
+        )
+        style.map(
+            "PITA.Treeview",
+            background=[("selected", Colors.WIN_BLUE)],
+            foreground=[("selected", "#FFFFFF")],
+        )
 
     def add_row_items(
         self,
         cells: List[Union[str, Tuple[str, ...], ctk.CTkButton, ctk.CTkFrame, ctk.CTkLabel]],
         is_highlighted: bool = False,
         custom_bg: Optional[str] = None,
-    ) -> ctk.CTkFrame:
-        """Añade una fila con alineación estricta y alternado de color (zebra striping).
-
-        Soporta:
-        - Cadenas directas: "Texto"
-        - Tuplas con color: ("Texto", "#10B981")
-        - Tuplas badge: ("badge", "Texto", "active")
-        - Tuplas botón: ("button", "Texto", comando_fn, "#EF4444", "#DC2626")
-        - Widgets (CTkButton, CTkFrame, CTkLabel)
-        """
+    ) -> str:
+        """Añade una fila a la Treeview procesando celdas simples, badges y acciones."""
         self.row_counter += 1
-        if custom_bg:
-            bg_color = custom_bg
-        elif is_highlighted:
-            bg_color = "#2D1A1E"
-        else:
-            bg_color = "#1E293B" if self.row_counter % 2 == 0 else "#141E2E"
+        row_id = str(self.row_counter)
 
-        row_frame = ctk.CTkFrame(
-            self,
-            fg_color=bg_color,
-            corner_radius=6,
-            border_width=1,
-            border_color="#1E293B" if bg_color == "#141E2E" else "#334155",
-        )
-        row_frame.pack(fill="x", pady=2)
+        row_values = []
+        row_action_list = []
 
-        for col_idx, (item, w, m) in enumerate(zip(cells, self.col_weights, self.col_mins)):
-            row_frame.grid_columnconfigure(col_idx, weight=w, minsize=m)
-
+        for item in cells:
             if isinstance(item, tuple) and len(item) >= 2 and item[0] == "badge":
                 b_text = item[1]
                 b_type = item[2] if len(item) > 2 else "neutral"
-                badge_w = create_badge(row_frame, b_text, b_type)
-                badge_w.grid(row=0, column=col_idx, padx=8, pady=6, sticky="w")
-            elif isinstance(item, tuple) and len(item) >= 3 and item[0] == "button":
-                b_text = item[1]
-                b_cmd = item[2]
-                fg = item[3] if len(item) > 3 else "#334155"
-                hvr = item[4] if len(item) > 4 else "#475569"
-                w_val = item[5] if len(item) > 5 else 84
-                h_val = item[6] if len(item) > 6 else 28
-                btn = ctk.CTkButton(
-                    row_frame,
-                    text=b_text,
-                    command=b_cmd,
-                    fg_color=fg,
-                    hover_color=hvr,
-                    width=w_val,
-                    height=h_val,
-                    font=ctk.CTkFont(size=10, weight="bold"),
-                )
-                btn.grid(row=0, column=col_idx, padx=8, pady=6, sticky="w")
+                prefix = {
+                    "success": "🟢 ",
+                    "active": "🟢 ",
+                    "liquidado": "🟢 ",
+                    "danger": "🔴 ",
+                    "ebra": "🔴 ",
+                    "cancelado": "🔴 ",
+                    "warning": "⚠️ ",
+                    "info": "🔵 ",
+                    "planta": "🔵 ",
+                    "ocasional": "🟣 ",
+                    "catedra": "🟣 ",
+                }.get(b_type.lower(), "")
+                row_values.append(f"{prefix}{b_text}")
             elif isinstance(item, tuple) and item[0] == "actions":
-                action_container = ctk.CTkFrame(row_frame, fg_color="transparent")
-                for btn_spec in item[1]:
-                    b_text = btn_spec[0]
-                    b_cmd = btn_spec[1]
-                    fg = btn_spec[2] if len(btn_spec) > 2 else "#334155"
-                    hvr = btn_spec[3] if len(btn_spec) > 3 else "#475569"
-                    w_val = btn_spec[4] if len(btn_spec) > 4 else 32
-                    h_val = btn_spec[5] if len(btn_spec) > 5 else 28
-                    b_font_sz = btn_spec[6] if len(btn_spec) > 6 else 10
-                    btn = ctk.CTkButton(
-                        action_container,
-                        text=b_text,
-                        command=b_cmd,
-                        fg_color=fg,
-                        hover_color=hvr,
-                        width=w_val,
-                        height=h_val,
-                        font=ctk.CTkFont(size=b_font_sz, weight="bold"),
-                    )
-                    btn.pack(side="left", padx=2)
-                action_container.grid(row=0, column=col_idx, padx=8, pady=6, sticky="w")
+                action_strs = []
+                for spec in item[1]:
+                    btn_text = spec[0]
+                    btn_cmd = spec[1]
+                    action_strs.append(btn_text)
+                    row_action_list.append((btn_text, btn_cmd))
+                row_values.append("  ".join(action_strs))
+            elif isinstance(item, tuple) and len(item) >= 3 and item[0] == "button":
+                btn_text, btn_cmd = item[1], item[2]
+                row_values.append(btn_text)
+                row_action_list.append((btn_text, btn_cmd))
             elif isinstance(item, tuple):
-                text, color = item[0], item[1]
-                lbl = ctk.CTkLabel(
-                    row_frame,
-                    text=str(text),
-                    font=ctk.CTkFont(size=11, weight="bold"),
-                    text_color=color,
-                    anchor="w",
-                )
-                lbl.grid(row=0, column=col_idx, padx=12, pady=8, sticky="ew")
-            elif isinstance(item, (ctk.CTkButton, ctk.CTkFrame, ctk.CTkLabel)):
-                # Si el widget ya fue creado con parent=row_frame o sin parent, lo posicionamos con grid
-                item.grid(row=0, column=col_idx, padx=8, pady=6, sticky="w")
+                row_values.append(str(item[0]))
             else:
-                lbl = ctk.CTkLabel(
-                    row_frame,
-                    text=str(item),
-                    font=ctk.CTkFont(size=11),
-                    text_color="#E2E8F0",
-                    anchor="w",
-                )
-                lbl.grid(row=0, column=col_idx, padx=12, pady=8, sticky="ew")
+                row_values.append(str(item))
 
-        return row_frame
+        tag = "highlight" if is_highlighted else ("even" if self.row_counter % 2 == 0 else "odd")
+        self.tree.insert("", "end", iid=row_id, values=row_values, tags=(tag,))
+
+        if row_action_list:
+            self.row_actions[row_id] = row_action_list
+
+        return row_id
+
+    def _on_double_click(self, event) -> None:
+        """Al hacer doble clic en una fila, ejecuta la primera acción asociada si existe."""
+        item_id = self.tree.focus()
+        if item_id in self.row_actions and self.row_actions[item_id]:
+            first_action_cmd = self.row_actions[item_id][0][1]
+            if callable(first_action_cmd):
+                first_action_cmd()
+
+    def _on_click(self, event) -> None:
+        """Al hacer clic en una celda de acción, activa el comando correspondiente."""
+        import tkinter as tk
+
+        region = self.tree.identify_region(event.x, event.y)
+        if region == "cell":
+            col = self.tree.identify_column(event.x)
+            try:
+                col_index = int(col.replace("#", "")) - 1
+            except ValueError:
+                return
+
+            if 0 <= col_index < len(self.headers):
+                header_name = self.headers[col_index].lower()
+                if "acción" in header_name or "acciones" in header_name:
+                    item_id = self.tree.identify_row(event.y)
+                    if item_id in self.row_actions:
+                        actions = self.row_actions[item_id]
+                        if len(actions) == 1:
+                            if callable(actions[0][1]):
+                                actions[0][1]()
+                        elif len(actions) > 1:
+                            menu = tk.Menu(self, tearoff=0)
+                            for label, cmd in actions:
+                                menu.add_command(label=label, command=cmd)
+                            try:
+                                menu.tk_popup(event.x_root, event.y_root)
+                            finally:
+                                menu.grab_release()
 
     def clear_rows(self) -> None:
-        """Limpia las filas manteniendo el header."""
-        for child in self.winfo_children():
-            if child.winfo_class() == "Frame" and child != self.winfo_children()[0]:
-                child.destroy()
+        """Limpia todas las filas de la tabla."""
+        for item in self.tree.get_children():
+            self.tree.delete(item)
         self.row_counter = 0
+        self.row_actions.clear()
+
+
+# Alias de compatibilidad
+PITAGridTable = PITATreeviewTable
+

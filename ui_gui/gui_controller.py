@@ -134,6 +134,51 @@ class PITAController:
             except Exception as e:
                 print(f"Advertencia al cargar persistencia: {e}")
 
+        if not self.facultades:
+            # Fallback a cargar entidad individual
+            try:
+                self.facultades = self.gestor_persistencia.cargar_entidad(Facultad)
+                self.programas = self.gestor_persistencia.cargar_entidad(ProgramaAcademico)
+            except Exception:
+                pass
+
+        # Si aún no hay facultades o programas, sembrar datos de inicio de forma segura
+        if not self.facultades or not self.programas:
+            try:
+                from scratch.generar_datos_iniciales import generar
+                generar()
+                datos = self.gestor_persistencia.cargar_todos_los_datos()
+                self.facultades = datos.get(Facultad, [])
+                self.programas = datos.get(ProgramaAcademico, [])
+                self.planes = datos.get(PlanEstudio, [])
+                self.detalles_plan = datos.get(DetallePlanEstudio, [])
+                self.cursos = datos.get(Curso, [])
+                self.prerrequisitos = datos.get(Prerrequisito, [])
+                self.periodos_academicos = datos.get(PeriodoAcademico, [])
+                self.personas = datos.get(Persona, [])
+                self.estudiantes = datos.get(Estudiante, [])
+                self.profesores = datos.get(Profesor, [])
+                self.administrativos = datos.get(Administrativo, [])
+                self.ofertas = datos.get(OfertaCurso, [])
+                self.asignaciones = datos.get(AsignacionDocente, [])
+                self.horarios = datos.get(Horario, [])
+                self.matriculas = datos.get(MatriculaAcademica, [])
+                self.detalles_matricula = datos.get(DetalleMatricula, [])
+                self.evaluaciones = datos.get(Evaluacion, [])
+                self.calificaciones = datos.get(Calificacion, [])
+                self.alertas = datos.get(AlertaAcademica, [])
+                self.contratos = datos.get(Contrato, [])
+                self.categorias = datos.get(CategoriaDocente, [])
+                self.factores = datos.get(FactorSalarial, [])
+                self.producciones = datos.get(ProduccionAcademica, [])
+                self.periodos_nomina = datos.get(PeriodoNomina, [])
+                self.liquidaciones = datos.get(LiquidacionNomina, [])
+                self.conceptos = datos.get(ConceptoNomina, [])
+                self.detalles_liquidacion = datos.get(DetalleLiquidacion, [])
+                self.parametros = datos.get(ParametroNormativo, [])
+            except Exception as ex:
+                print(f"Error al sembrar datos iniciales: {ex}")
+
         # Si no hay parámetros normativos, generar los por defecto
         if not self.parametros:
             self._crear_parametros_por_defecto()

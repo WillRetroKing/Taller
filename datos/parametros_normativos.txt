@@ -1,10 +1,18 @@
-1|SALARIO_MINIMO|Salario Mínimo Legal Vigente|SMMLV Colombia 2026|MONETARIO|1423500|COP|Acuerdo 027|Art. 1|2026-01-01|2026-12-31|TODOS|ACTIVO
-2|VALOR_PUNTO_SALARIAL|Valor Punto Salarial|Punto Salarial Dec. 1279|MONETARIO|19850|COP|Decreto 1279 de 2002|Art. 27|2026-01-01|2026-12-31|PLANTA|ACTIVO
-3|VALOR_AUXILIO_TRANSPORTE_VIGENTE|Auxilio Transporte|Auxilio legal transporte|MONETARIO|162000|COP|Acuerdo 027|Art. 23|2026-01-01|2026-12-31|TODOS|ACTIVO
-4|VALOR_HORA_CATEDRA|Valor Hora Cátedra|Valor hora catedrático|MONETARIO|38500|COP|Resolución Rectoral|Art. 4|2026-01-01|2026-12-31|CATEDRATICO|ACTIVO
-5|PORCENTAJE_SALUD_TRABAJADOR|Salud Trabajador %|Descuento Salud 4%|PORCENTUAL|0.04|%|Ley 100 de 1993|Art. 204|2026-01-01|2026-12-31|TODOS|ACTIVO
-6|PORCENTAJE_PENSION_TRABAJADOR|Pensión Trabajador %|Descuento Pensión 4%|PORCENTUAL|0.04|%|Ley 100 de 1993|Art. 20|2026-01-01|2026-12-31|TODOS|ACTIVO
-7|PORCENTAJE_FONDO_SOLIDARIDAD|Fondo Solidaridad %|FSP para IBC >= 4 SMMLV|PORCENTUAL|0.01|%|Ley 797 de 2003|Art. 8|2026-01-01|2026-12-31|TODOS|ACTIVO
-8|NOTA_MINIMA_APROBATORIA|Nota Mínima Aprobatoria|Nota mínima aprobar|DECIMAL|3.0|puntos|Reglamento Estudiantil|Art. 45|2026-01-01|2026-12-31|ESTUDIANTES|ACTIVO
-9|PROMEDIO_MINIMO_EBRA|Promedio Mínimo EBRA|Umbral de riesgo EBRA|DECIMAL|3.0|puntos|Reglamento Estudiantil|Art. 52|2026-01-01|2026-12-31|ESTUDIANTES|ACTIVO
-10|TOPE_BONIFICACION_SERVICIOS|Tope Bonificación Servicios|Tope Decreto 1279|MONETARIO|756411|COP|Decreto 1279 de 2002|Art. 41|2026-01-01|2026-12-31|PLANTA|ACTIVO
+1|SALARIO_MINIMO|Salario Mínimo Mensual Legal Vigente|SMMLV vigente para cálculos de nómina y beneficios|MONETARIO|1000000|COP|Acuerdo 027|Art. 1|2026-01-01|2027-12-31|TODOS|ACTIVO
+2|VALOR_PUNTO_SALARIAL|Valor Punto Salarial Vigente|Valor del punto salarial para cálculo de sueldo de planta|MONETARIO|50000|COP|Decreto 1279 de 2002|Art. 27|2026-01-01|2027-12-31|PLANTA|ACTIVO
+3|VALOR_AUXILIO_TRANSPORTE_VIGENTE|Valor Auxilio Transporte Vigente|Auxilio transporte mensual vigente|MONETARIO|140606|COP|Acuerdo 027|Art. 23|2026-01-01|2027-12-31|TODOS|ACTIVO
+4|VALOR_HORA_CATEDRA|Valor Hora Cátedra Vigente|Valor hora cátedra para profesores catedráticos|MONETARIO|25000|COP|Resolución Rectoral|Res. Rectoral|2026-01-01|2027-12-31|CATEDRATICO|ACTIVO
+5|TOPE_BONIFICACION_SERVICIOS|Tope Bonificación Servicios|Tope para bonificación por servicios prestados (Decree 1279)|MONETARIO|756411|COP|Decreto 1279 de 2002|Art. 41|2026-01-01|2027-12-31|PLANTA|ACTIVO
+6|PORCENTAJE_SALUD_TRABAJADOR|Porcentaje Salud Trabajador|Descuento obligatorio para salud del trabajador|PORCENTUAL|0.04||Ley 100 de 1993|Art. 2|2026-01-01|2027-12-31|TODOS|ACTIVO
+7|PORCENTAJE_PENSION_TRABAJADOR|Porcentaje Pensión Trabajador|Descuento obligatorio para pensión del trabajador|PORCENTUAL|0.04||Ley 100 de 1993|Art. 2|2026-01-01|2027-12-31|TODOS|ACTIVO
+8|PORCENTAJE_SALUD_EMPLEADOR|Porcentaje Salud Empleador|Aporte patronal a salud|PORCENTUAL|0.085||Ley 100 de 1993|Art. 2|2026-01-01|2027-12-31|EMPLEADOR|ACTIVO
+9|PORCENTAJE_PENSION_EMPLEADOR|Porcentaje Pensión Empleador|Aporte patronal a pensión|PORCENTUAL|0.12||Ley 100 de 1993|Art. 2|2026-01-01|2027-12-31|EMPLEADOR|ACTIVO
+10|PORCENTAJE_SENA|Porcentaje SENA|Aporte patronal SENA|PORCENTUAL|0.02||Ley 1819 de 2016|Art. 65|2026-01-01|2027-12-31|EMPLEADOR|ACTIVO
+11|PORCENTAJE_ICBF|Porcentaje ICBF|Aporte patronal ICBF|PORCENTUAL|0.03||Ley 1819 de 2016|Art. 65|2026-01-01|2027-12-31|EMPLEADOR|ACTIVO
+12|PORCENTAJE_ARL_CLASE_I|Porcentaje ARL Clase I|Aporte ARL para clase de riesgo I|PORCENTUAL|0.00522||Decreto 1298 de 1993|Art. 1|2026-01-01|2027-12-31|EMPLEADOR|ACTIVO
+13|PORCENTAJE_CAJA_COMPENSACION|Porcentaje Caja Compensación|Aporte patronal a caja de compensación|PORCENTUAL|0.04||Ley 1819 de 2016|Art. 65|2026-01-01|2027-12-31|EMPLEADOR|ACTIVO
+14|PORCENTAJE_FONDO_SOLIDARIDAD|Porcentaje Fondo Solidaridad Pensional|Fondo solidaridad pensional (se aplica si IBC >= 4 SMMLV)|PORCENTUAL|0.01||Decreto 1279|Art. 33|2026-01-01|2027-12-31|EMPLEADOR|ACTIVO
+15|PORCENTAJE_RETENCION_FUENTE|Porcentaje Retención Fuente|Retención en la fuente sobre la nómina|PORCENTUAL|0.00||Decreto 1625 de 2012|Art. 1|2026-01-01|2027-12-31|TODOS|ACTIVO
+16|NOTA_MINIMA_APROBATORIA|Nota Mínima Aprobatoria|Nota mínima para aprobar un curso|MONETARIO|3.0||Acuerdo Institucional|Acad. 01|2026-01-01|2027-12-31|ESTUDIANTES|ACTIVO
+17|PROMEDIO_MINIMO_EBRA|Promedio Mínimo EBRA|Promedio acumulado mínimo para alerta EBRA|MONETARIO|3.0||Manual Calculadora Mintrabajo|Manual|2026-01-01|2027-12-31|ESTUDIANTES|ACTIVO
+18|MAXIMO_CREDITOS_PERIODO|Máximo Créditos Por Periodo|Créditos máximo que puede matricular un estudiante por periodo|ENTERO|21|créditos|Reglamento Académico|Art. 78|2026-01-01|2027-12-31|ESTUDIANTES|ACTIVO

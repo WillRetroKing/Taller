@@ -6,6 +6,7 @@ from datetime import date
 import customtkinter as ctk
 from typing import TYPE_CHECKING
 
+from ui_gui.theme import Colors, Fonts, create_styled_tabview
 from ui_gui.components import PITAGridTable, create_badge
 from modelo_datos import Facultad, ProgramaAcademico
 
@@ -29,8 +30,8 @@ class FacultadesViewGUI(ctk.CTkFrame):
         ctk.CTkLabel(
             header,
             text="🏛️ Gestión de Facultades & Programas Académicos",
-            font=ctk.CTkFont(size=22, weight="bold"),
-            text_color="#F8FAFC",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
         ).pack(side="left")
 
         h_btns = ctk.CTkFrame(header, fg_color="transparent")
@@ -39,9 +40,9 @@ class FacultadesViewGUI(ctk.CTkFrame):
         btn_fac = ctk.CTkButton(
             h_btns,
             text="➕ Nueva Facultad",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#10B981",
-            hover_color="#059669",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#0067C0",
+            hover_color="#005FB8",
             height=36,
             corner_radius=8,
             command=self._abrir_modal_nueva_facultad,
@@ -51,9 +52,9 @@ class FacultadesViewGUI(ctk.CTkFrame):
         btn_prog = ctk.CTkButton(
             h_btns,
             text="➕ Nuevo Programa",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#6366F1",
-            hover_color="#4F46E5",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
             height=36,
             corner_radius=8,
             command=self._abrir_modal_nuevo_programa,
@@ -61,7 +62,7 @@ class FacultadesViewGUI(ctk.CTkFrame):
         btn_prog.pack(side="left", padx=5)
 
         # Tabs
-        self.tabview = ctk.CTkTabview(self, fg_color="transparent")
+        self.tabview = create_styled_tabview(self)
         self.tabview.pack(fill="both", expand=True, padx=15, pady=5)
 
         self.tab_facultades = self.tabview.add("🏛️ Facultades Instucional")

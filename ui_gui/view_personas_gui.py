@@ -6,6 +6,7 @@ from datetime import date
 import customtkinter as ctk
 from typing import TYPE_CHECKING
 
+from ui_gui.theme import Colors, create_styled_tabview
 from ui_gui.components import PITAGridTable, create_badge
 from modelo_datos import (
     Administrativo,
@@ -40,36 +41,65 @@ class PersonasViewGUI(ctk.CTkFrame):
         ctk.CTkLabel(
             header,
             text="👥 Gestión de Personas e Identificación",
-            font=ctk.CTkFont(size=22, weight="bold"),
-            text_color="#F8FAFC",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
         ).pack(side="left")
 
         btn_nueva = ctk.CTkButton(
             header,
             text="➕ Registrar Persona / Asignar Rol",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#059669",
-            hover_color="#047857",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#0067C0",
+            hover_color="#005FB8",
             height=36,
             corner_radius=8,
             command=self._abrir_modal_nueva_persona,
         )
         btn_nueva.pack(side="right")
 
-        # Barra de Búsqueda
-        search_frame = ctk.CTkFrame(self, fg_color="#0F172A", corner_radius=8, border_width=1, border_color="#334155")
+        # Barra de Búsqueda (Estilo Clean Light Windows 11)
+        search_frame = ctk.CTkFrame(
+            self,
+            fg_color=Colors.BG_CARD,
+            corner_radius=8,
+            border_width=1,
+            border_color=Colors.BORDER_SUBTLE,
+        )
         search_frame.pack(fill="x", padx=15, pady=(0, 10))
 
-        ctk.CTkLabel(search_frame, text="🔍 Buscar Persona:", font=ctk.CTkFont(size=12, weight="bold"), text_color="#94A3B8").pack(side="left", padx=12, pady=10)
-        entry_search = ctk.CTkEntry(search_frame, textvariable=self.busqueda_var, placeholder_text="Filtrar por documento, nombre o código...", width=320, fg_color="#1E293B", border_color="#334155")
+        ctk.CTkLabel(
+            search_frame,
+            text="🔍 Buscar Persona:",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=Colors.TEXT_MUTED,
+        ).pack(side="left", padx=12, pady=10)
+
+        entry_search = ctk.CTkEntry(
+            search_frame,
+            textvariable=self.busqueda_var,
+            placeholder_text="Filtrar por documento, nombre o código...",
+            width=320,
+            fg_color=Colors.BG_WINDOW,
+            border_color=Colors.BORDER_SUBTLE,
+            text_color=Colors.TEXT_MAIN,
+        )
         entry_search.pack(side="left", padx=5, pady=10)
         entry_search.bind("<KeyRelease>", lambda e: self.actualizar_tablas())
 
-        btn_clear = ctk.CTkButton(search_frame, text="Limpiar", width=80, fg_color="#334155", hover_color="#475569", command=self._limpiar_busqueda)
+        btn_clear = ctk.CTkButton(
+            search_frame,
+            text="Limpiar",
+            width=80,
+            fg_color="#E2E8F0",
+            hover_color="#CBD5E1",
+            text_color=Colors.TEXT_MAIN,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            command=self._limpiar_busqueda,
+        )
         btn_clear.pack(side="left", padx=5, pady=10)
 
         # Pestañas
-        self.tabview = ctk.CTkTabview(self, fg_color="transparent")
+        self.tabview = create_styled_tabview(self)
         self.tabview.pack(fill="both", expand=True, padx=15, pady=5)
 
         self.tab_estudiantes = self.tabview.add("👨‍🎓 Estudiantes")
@@ -403,7 +433,7 @@ class PersonasViewGUI(ctk.CTkFrame):
 
         ctk.CTkLabel(dialog, text=f"👤 {persona.primerNombre} {persona.primerApellido}", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=12)
 
-        info_frame = ctk.CTkFrame(dialog, fg_color="#0F172A", corner_radius=8, border_width=1, border_color="#334155")
+        info_frame = ctk.CTkFrame(dialog, fg_color=Colors.BG_CARD_HOVER, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
         info_frame.pack(fill="both", expand=True, padx=20, pady=10)
 
         detalles = [

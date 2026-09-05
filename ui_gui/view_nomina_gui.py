@@ -7,6 +7,7 @@ from decimal import Decimal
 import customtkinter as ctk
 from typing import TYPE_CHECKING
 
+from ui_gui.theme import Colors, Fonts, create_styled_tabview
 from ui_gui.components import PITAGridTable, create_badge
 from modelo_datos import ConceptoNomina, DetalleLiquidacion, LiquidacionNomina, PeriodoNomina
 
@@ -30,8 +31,8 @@ class NominaViewGUI(ctk.CTkFrame):
         ctk.CTkLabel(
             header,
             text="💰 Liquidación de Nómina & Prestaciones Sociales",
-            font=ctk.CTkFont(size=22, weight="bold"),
-            text_color="#F8FAFC",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
         ).pack(side="left")
 
         h_btns = ctk.CTkFrame(header, fg_color="transparent")
@@ -40,9 +41,9 @@ class NominaViewGUI(ctk.CTkFrame):
         btn_indiv = ctk.CTkButton(
             h_btns,
             text="👤 Liquidación Individual",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#6366F1",
-            hover_color="#4F46E5",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
             height=36,
             corner_radius=8,
             command=self._abrir_modal_liquidar_individual,
@@ -52,9 +53,9 @@ class NominaViewGUI(ctk.CTkFrame):
         btn_liquidar_todos = ctk.CTkButton(
             h_btns,
             text="⚙️ Liquidar Nómina del Periodo",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#10B981",
-            hover_color="#059669",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#0067C0",
+            hover_color="#005FB8",
             height=36,
             corner_radius=8,
             command=self._ejecutar_liquidacion_general,
@@ -62,7 +63,7 @@ class NominaViewGUI(ctk.CTkFrame):
         btn_liquidar_todos.pack(side="left", padx=5)
 
         # Pestañas
-        self.tabview = ctk.CTkTabview(self, fg_color="transparent")
+        self.tabview = create_styled_tabview(self)
         self.tabview.pack(fill="both", expand=True, padx=15, pady=5)
 
         self.tab_liquidaciones = self.tabview.add("📊 Resumen de Liquidaciones")
@@ -136,7 +137,7 @@ class NominaViewGUI(ctk.CTkFrame):
         scroll = ctk.CTkScrollableFrame(self.tab_normatividad, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=10, pady=10)
 
-        ctk.CTkLabel(scroll, text="📋 Marco Normativo Salarial Docente PITA", font=ctk.CTkFont(size=16, weight="bold"), text_color="#F8FAFC").pack(anchor="w", pady=(0, 10))
+        ctk.CTkLabel(scroll, text="📋 Marco Normativo Salarial Docente PITA", font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"), text_color=Colors.TEXT_MAIN).pack(anchor="w", pady=(0, 10))
 
         text_norma = (
             "1. Profesores de Planta (Decreto 1279 de 2002):\n"
@@ -157,9 +158,9 @@ class NominaViewGUI(ctk.CTkFrame):
             "   • Cesantías (8.33 %), Intereses sobre Cesantías (1.0 %), Prima de Servicios (8.33 %) y Vacaciones (4.17 %)."
         )
 
-        card = ctk.CTkFrame(scroll, fg_color="#0F172A", corner_radius=8, border_width=1, border_color="#334155")
+        card = ctk.CTkFrame(scroll, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
         card.pack(fill="x", pady=5)
-        ctk.CTkLabel(card, text=text_norma, font=ctk.CTkFont(size=12), justify="left", text_color="#E2E8F0", anchor="w").pack(padx=20, pady=15)
+        ctk.CTkLabel(card, text=text_norma, font=ctk.CTkFont(family="Segoe UI", size=12), justify="left", text_color=Colors.TEXT_MAIN, anchor="w").pack(padx=20, pady=15)
 
     def _abrir_modal_liquidar_individual(self) -> None:
         dialog = ctk.CTkToplevel(self)
@@ -224,18 +225,18 @@ class NominaViewGUI(ctk.CTkFrame):
                 detalles_info.append(("DEDUCCION", "Fondo Solidaridad Pensional (1%)", f"$ {int(sb * 0.01):,} COP"))
 
             for tipo, desc_c, val in detalles_info:
-                r = ctk.CTkFrame(scroll, fg_color="#1E293B", corner_radius=6)
+                r = ctk.CTkFrame(scroll, fg_color=Colors.BG_CARD_HOVER, corner_radius=6)
                 r.pack(fill="x", pady=3, padx=5)
-                color_t = "#38BDF8" if tipo == "DEVENGADO" else "#F87171"
-                ctk.CTkLabel(r, text=desc_c, font=ctk.CTkFont(size=11, weight="bold"), text_color="#F8FAFC").pack(side="left", padx=10, pady=6)
-                ctk.CTkLabel(r, text=val, font=ctk.CTkFont(size=11, weight="bold"), text_color=color_t).pack(side="right", padx=10, pady=6)
+                color_t = Colors.WIN_BLUE if tipo == "DEVENGADO" else Colors.ACCENT_DANGER
+                ctk.CTkLabel(r, text=desc_c, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left", padx=10, pady=6)
+                ctk.CTkLabel(r, text=val, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=color_t).pack(side="right", padx=10, pady=6)
         else:
             for d in detalles:
-                r = ctk.CTkFrame(scroll, fg_color="#1E293B", corner_radius=6)
+                r = ctk.CTkFrame(scroll, fg_color=Colors.BG_CARD_HOVER, corner_radius=6)
                 r.pack(fill="x", pady=3, padx=5)
                 val_c = getattr(d, "valorCalculado", 0)
-                ctk.CTkLabel(r, text=getattr(d, "observaciones", "Concepto"), font=ctk.CTkFont(size=11, weight="bold"), text_color="#F8FAFC").pack(side="left", padx=10, pady=6)
-                ctk.CTkLabel(r, text=f"$ {val_c}", font=ctk.CTkFont(size=11, weight="bold"), text_color="#34D399").pack(side="right", padx=10, pady=6)
+                ctk.CTkLabel(r, text=getattr(d, "observaciones", "Concepto"), font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left", padx=10, pady=6)
+                ctk.CTkLabel(r, text=f"$ {val_c}", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.BADGE_ACTIVE_TXT).pack(side="right", padx=10, pady=6)
 
         ctk.CTkLabel(dialog, text=f"NETO A PAGAR: $ {getattr(liq, 'netoPagar', '0')}", font=ctk.CTkFont(size=14, weight="bold"), text_color="#34D399").pack(pady=10)
 

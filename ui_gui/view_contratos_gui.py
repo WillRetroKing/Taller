@@ -7,8 +7,9 @@ from decimal import Decimal
 import customtkinter as ctk
 from typing import TYPE_CHECKING
 
+from ui_gui.theme import Colors, Fonts, create_styled_tabview
 from ui_gui.components import PITAGridTable, create_badge
-from modelo_datos import CategoriaDocente, Contrato, FactorSalarial, ProduccionAcademica, TipoFactor
+from modelo_datos import CategoriaDocente, Contrato, Dedicacion, FactorSalarial, ProduccionAcademica, TipoFactor
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -30,8 +31,8 @@ class ContratosViewGUI(ctk.CTkFrame):
         ctk.CTkLabel(
             header,
             text="📝 Gestión de Contratación y Factores Salariales (Dec. 1279)",
-            font=ctk.CTkFont(size=20, weight="bold"),
-            text_color="#F8FAFC",
+            font=ctk.CTkFont(family="Segoe UI", size=20, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
         ).pack(side="left")
 
         h_buttons = ctk.CTkFrame(header, fg_color="transparent")
@@ -40,9 +41,9 @@ class ContratosViewGUI(ctk.CTkFrame):
         btn_nuevo_contrato = ctk.CTkButton(
             h_buttons,
             text="➕ Registrar Contrato",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#10B981",
-            hover_color="#059669",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#0067C0",
+            hover_color="#005FB8",
             corner_radius=8,
             command=self._abrir_modal_nuevo_contrato,
         )
@@ -51,16 +52,16 @@ class ContratosViewGUI(ctk.CTkFrame):
         btn_reconocer_puntos = ctk.CTkButton(
             h_buttons,
             text="🎓 Reconocer Puntos / Productividad",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#6366F1",
-            hover_color="#4F46E5",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
             corner_radius=8,
             command=self._abrir_modal_reconocer_puntos,
         )
         btn_reconocer_puntos.pack(side="left", padx=5)
 
         # Tabview
-        self.tabview = ctk.CTkTabview(self, fg_color="transparent")
+        self.tabview = create_styled_tabview(self)
         self.tabview.pack(fill="both", expand=True, padx=10, pady=5)
 
         self.tab_contratos = self.tabview.add("📜 Contratos Vigentes")
@@ -172,28 +173,71 @@ class ContratosViewGUI(ctk.CTkFrame):
 
         def _guardar():
             num = entry_num.get().strip()
-            hrs = entry_horas.get().strip()
-            monto = entry_monto.get().strip()
+            hrs_str = entry_horas.get().strip()
+            monto_str = entry_monto.get().strip()
             sel_p = combo_prof.get()
-            tipo = combo_tipo.get()
+            tipo_sel = combo_tipo.get()
 
-            if not num or not self.controller.profesores:
+            if not num or not self.controller.profesores or sel_p == "Sin docentes":
                 return
 
             cod_p = sel_p.split(" - ")[0]
             prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod_p)
 
             if prof:
+                try:
+                    hrs_val = Decimal(hrs_str) if hrs_str else Decimal("40")
+                except Exception:
+                    hrs_val = Decimal("40")
+
+                try:
+                    monto_val = Decimal(monto_str) if monto_str else Decimal("3000000")
+                except Exception:
+                    monto_val = Decimal("3000000")
+
+                if "PLANTA" in tipo_sel:
+                    mod = "PLANTA"
+                    regimen = "Decreto 1279 de 2002"
+                    ded = Dedicacion.TIEMPO_COMPLETO if hrs_val >= 40 else Dedicacion.MEDIO_TIEMPO
+                    factor_smmlv = Decimal("0")
+                    val_hora_cat = Decimal("0")
+                elif "OCASIONAL" in tipo_sel:
+                    mod = "OCASIONAL"
+                    regimen = "Acuerdo 027 de 2024"
+                    ded = Dedicacion.TIEMPO_COMPLETO if hrs_val >= 40 else Dedicacion.MEDIO_TIEMPO
+                    factor_smmlv = monto_val if monto_val < 100 else (monto_val / Decimal("1300000")).quantize(Decimal("0.01"))
+                    val_hora_cat = Decimal("0")
+                else:
+                    mod = "CATEDRATICO"
+                    regimen = "Acuerdo 027 de 2024"
+                    ded = Dedicacion.HORA_CATEDRA
+                    factor_smmlv = Decimal("0")
+                    val_hora_cat = monto_val if monto_val > 1000 else Decimal("45000")
+
+                es_ad = (tipo_sel == "DOCENTE_AD_HONOREM")
+                siguiente_id = max((c.idContrato or 0 for c in self.controller.contratos), default=0) + 1
+
                 c = Contrato(
-                    idContrato=len(self.controller.contratos) + 1,
+                    idContrato=siguiente_id,
                     idPersona=prof.idPersona,
                     numeroContrato=num,
-                    tipoContrato=tipo,
+                    tipoContrato=tipo_sel,
+                    modalidadProfesor=mod,
+                    regimenAplicable=regimen,
                     fechaInicio=date.today(),
                     fechaFin=date(2026, 12, 31),
-                    dedicacion=Dedicacion.TIEMPO_COMPLETO if hrs == "40" else Dedicacion.HORA_CATEDRA,
-                    horasSemanales=Decimal(hrs) if hrs.isdigit() else Decimal("40"),
-                    salarioBase=Decimal(monto) if monto.isdigit() else Decimal("3000000"),
+                    dedicacion=ded,
+                    horasSemanales=hrs_val,
+                    horasSemanalesAsignadas=hrs_val,
+                    horasMensualesAsignadas=hrs_val * Decimal("4"),
+                    horasMensualesCumplidas=hrs_val * Decimal("4"),
+                    horasIncumplidas=Decimal("0"),
+                    salarioBase=monto_val,
+                    salarioMensualPactado=monto_val,
+                    factorSalarialSMMLV=factor_smmlv,
+                    valorHoraCatedraVigente=val_hora_cat,
+                    esAdHonorem=es_ad,
+                    claseARL="I",
                     estado="ACTIVO",
                 )
                 self.controller.contratos.append(c)
