@@ -1,0 +1,238 @@
+"""Servicio de Dominio y Lógica de Negocio para Contratación Docente y Factores Salariales."""
+
+from __future__ import annotations
+
+from datetime import date, datetime
+from decimal import Decimal
+from typing import TYPE_CHECKING, Any
+
+from modelo_datos import (
+    Contrato,
+    Dedicacion,
+    FactorSalarial,
+    Persona,
+    ProduccionAcademica,
+    Profesor,
+    TipoFactor,
+)
+
+if TYPE_CHECKING:
+    from ui_gui.gui_controller import PITAController
+
+
+class ContratosService:
+    """Encapsula reglas de negocio, validaciones legales y persistencia para contratos y factores."""
+
+    def __init__(self, controller: PITAController) -> None:
+        self.controller = controller
+
+    # ------------------------------------------------------------------
+    # BÚSQUEDAS Y PARÁMETROS
+    # ------------------------------------------------------------------
+    def obtener_parametro_decimal(self, codigo: str, default: Decimal) -> Decimal:
+        try:
+            return self.controller.gestor_parametros.obtener_parametro_vigente(codigo, date.today())
+        except Exception:
+            return default
+
+    def buscar_persona_por_id(self, id_persona: int | None) -> Persona | None:
+        if not id_persona:
+            return None
+        return next((p for p in self.controller.personas if getattr(p, "idPersona", None) == id_persona), None)
+
+    def buscar_profesor_por_id(self, id_profesor: int | None) -> Profesor | None:
+        if not id_profesor:
+            return None
+        return next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) == id_profesor), None)
+
+    def buscar_profesor_por_id_persona(self, id_persona: int | None) -> Profesor | None:
+        if not id_persona:
+            return None
+        return next((p for p in self.controller.profesores if getattr(p, "idPersona", None) == id_persona), None)
+
+    # ------------------------------------------------------------------
+    # ASISTENTE DE CÁLCULO SALARIAL
+    # ------------------------------------------------------------------
+    def calcular_asignacion_sugerida(
+        self,
+        tipo_contrato: str,
+        profesor: Profesor | None,
+        dedicacion: str,
+        horas: Decimal,
+    ) -> Decimal:
+        val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("19850"))
+        val_cat = self.obtener_parametro_decimal("VALOR_HORA_CATEDRA", Decimal("45000"))
+        smmlv = self.obtener_parametro_decimal("SALARIO_MINIMO", Decimal("1300000"))
+
+        if "PLANTA" in tipo_contrato:
+            pts = getattr(profesor, "puntosSalariales", 0) or 0
+            return Decimal(str(pts)) * val_pto
+
+        elif "OCASIONAL" in tipo_contrato:
+            cat = getattr(profesor, "categoriaDocente", "AUXILIAR") or "AUXILIAR"
+            factores_cat = {
+                "AUXILIAR": Decimal("2.6"),
+                "ASISTENTE": Decimal("3.0"),
+                "ASOCIADO": Decimal("3.5"),
+                "TITULAR": Decimal("4.0"),
+            }
+            mult = factores_cat.get(cat, Decimal("2.6"))
+            sug = smmlv * mult
+            if "MEDIO" in dedicacion:
+                sug = sug / Decimal("2")
+            return sug
+
+        elif "CATEDRATICO" in tipo_contrato:
+            return horas * Decimal("4") * val_cat
+
+        return Decimal("0")
+
+    # ------------------------------------------------------------------
+    # VALIDACIONES Y REGLAS LEGALES
+    # ------------------------------------------------------------------
+    def validar_contrato(
+        self,
+        numero_contrato: str,
+        id_persona: int,
+        tipo_contrato: str,
+        horas: Decimal,
+        es_jubilado: bool,
+        id_contrato_excluir: int | None = None,
+    ) -> tuple[bool, str]:
+        num = numero_contrato.strip()
+        if not num:
+            return False, "El número de contrato es obligatorio."
+
+        # Unicidad de número de contrato
+        for c in self.controller.contratos:
+            if getattr(c, "idContrato", None) != id_contrato_excluir and str(getattr(c, "numeroContrato", "")).strip() == num:
+                return False, f"Ya existe un contrato registrado con el número {num}."
+
+        # Restricción cátedra: máximo 18 horas semanales
+        if "CATEDRATICO" in tipo_contrato and horas > Decimal("18"):
+            return False, "Los profesores de cátedra tienen un tope legal de máximo 18 horas semanales (Acuerdo 027)."
+
+        # Restricción jubilados
+        if es_jubilado and "PLANTA" in tipo_contrato:
+            return False, "Un docente jubilado/pensionado no puede vincularse como Docente de Planta de Carrera."
+
+        return True, ""
+
+    # ------------------------------------------------------------------
+    # CREACIÓN Y ACTUALIZACIÓN DE CONTRATOS
+    # ------------------------------------------------------------------
+    def registrar_contrato(self, datos: dict[str, Any]) -> Contrato:
+        siguiente_id = max((c.idContrato or 0 for c in self.controller.contratos), default=0) + 1
+        ded_val = Dedicacion.TIEMPO_COMPLETO if "COMPLETO" in str(datos.get("dedicacion", "TIEMPO_COMPLETO")) else (
+            Dedicacion.MEDIO_TIEMPO if "MEDIO" in str(datos.get("dedicacion", "")) else Dedicacion.HORA_CATEDRA
+        )
+        nuevo = Contrato(
+            idContrato=siguiente_id,
+            numeroContrato=datos["numeroContrato"],
+            idPersona=datos["idPersona"],
+            tipoContrato=datos["tipoContrato"],
+            modalidadProfesor=datos.get("modalidadProfesor", datos["tipoContrato"]),
+            regimenAplicable=datos.get("regimenAplicable", "Decreto 1279 de 2002" if "PLANTA" in datos.get("tipoContrato", "") else "Acuerdo 027 de 2024"),
+            fechaInicio=datos["fechaInicio"],
+            fechaFin=datos.get("fechaFin"),
+            dedicacion=ded_val,
+            horasSemanales=Decimal(str(datos.get("horasSemanales", 40))),
+            salarioBase=Decimal(str(datos.get("salarioBase", "0"))),
+            salarioMensualPactado=Decimal(str(datos.get("salarioMensualPactado", datos.get("salarioBase", "0")))),
+            estado="ACTIVO",
+            esAdHonorem=datos.get("esAdHonorem", False),
+            numeroCDP=datos.get("numeroCDP") or None,
+            resolucionRectoral=datos.get("resolucionNombramiento") or None,
+            claseARL=datos.get("claseRiesgoARL", "CLASE I"),
+        )
+        self.controller.contratos.append(nuevo)
+        self.controller._recrear_gestores()
+        return nuevo
+
+    def actualizar_contrato(self, contrato: Contrato, datos: dict[str, Any]) -> None:
+        for k, v in datos.items():
+            if hasattr(contrato, k):
+                setattr(contrato, k, v)
+        self.controller._recrear_gestores()
+
+    def terminar_contrato(self, contrato: Contrato, motivo: str, fecha_terminacion: date) -> None:
+        contrato.estado = "TERMINADO"
+        contrato.fechaFin = fecha_terminacion
+        if hasattr(contrato, "observaciones"):
+            contrato.observaciones = f"Terminado: {motivo}"
+        self.controller._recrear_gestores()
+
+    # ------------------------------------------------------------------
+    # RECONOCIMIENTO DE FACTORES Y PRODUCCIÓN (DEC. 1279)
+    # ------------------------------------------------------------------
+    def reconocer_factor_salarial(
+        self,
+        id_profesor: int,
+        tipo_factor_str: str,
+        nombre: str,
+        puntos: Decimal,
+        acto_administrativo: str,
+        fecha_reconocimiento: date,
+    ) -> FactorSalarial:
+        next_id = max((f.idFactor or 0 for f in self.controller.factores), default=0) + 1
+        try:
+            t_factor = TipoFactor[tipo_factor_str]
+        except KeyError:
+            t_factor = TipoFactor.TITULO_ACADEMICO
+
+        factor = FactorSalarial(
+            idFactor=next_id,
+            idProfesor=id_profesor,
+            tipoFactor=t_factor,
+            nombre=nombre,
+            puntosReconocidos=puntos,
+            puntosAprobados=puntos,
+            actoAdministrativo=acto_administrativo,
+            fechaReconocimiento=fecha_reconocimiento,
+            estado="APROBADO",
+        )
+        self.controller.factores.append(factor)
+
+        # Actualizar puntos del profesor
+        prof = self.buscar_profesor_por_id(id_profesor)
+        if prof:
+            prof.puntosSalariales = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0)) + puntos
+
+        self.controller._recrear_gestores()
+        return factor
+
+    def reconocer_produccion_academica(
+        self,
+        id_profesor: int,
+        tipo_prod: str,
+        titulo: str,
+        editorial: str,
+        num_autores: int,
+        puntos_docente: Decimal,
+    ) -> ProduccionAcademica:
+        next_id = max((p.idProduccion or 0 for p in self.controller.producciones), default=0) + 1
+        factor_coautoria = Decimal("1.0") / Decimal(str(max(num_autores, 1)))
+
+        produccion = ProduccionAcademica(
+            idProduccion=next_id,
+            idProfesor=id_profesor,
+            tipoProduccion=tipo_prod,
+            titulo=titulo,
+            entidadPublicadora=editorial,
+            identificadorProducto=editorial,
+            numeroAutores=num_autores,
+            factorCoautoria=factor_coautoria,
+            puntosReconocidos=puntos_docente,
+            puntosReconocidosProfesor=puntos_docente,
+            fechaPublicacion=date.today(),
+            estado="VALIDADO",
+        )
+        self.controller.producciones.append(produccion)
+
+        # Actualizar puntos del profesor
+        prof = self.buscar_profesor_por_id(id_profesor)
+        if prof:
+            prof.puntosSalariales = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0)) + puntos_docente
+
+        self.controller._recrear_gestores()
+        return produccion

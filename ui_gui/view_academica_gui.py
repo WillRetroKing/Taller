@@ -266,13 +266,16 @@ class AcademicaViewGUI(ctk.CTkFrame):
                 for of in self.controller.ofertas if of.idOfertaCurso == d.idOfertaCurso
             )
             max_creditos = 20
-            if hasattr(self.controller, "gestor_parametros") and self.controller.gestor_parametros:
-                param = self.controller.gestor_parametros.obtener_parametro("MAXIMO_CREDITOS_PERIODO")
-                if param and param.valor:
-                    try:
-                        max_creditos = int(param.valor)
-                    except ValueError:
-                        pass
+            gp = getattr(self.controller, "gestor_parametros", None)
+            if gp:
+                fn_param = getattr(gp, "obtener_parametro", None) or getattr(gp, "buscar_parametro_vigente", None)
+                if callable(fn_param):
+                    p_obj = fn_param("MAXIMO_CREDITOS_PERIODO")
+                    if p_obj and getattr(p_obj, "valor", None):
+                        try:
+                            max_creditos = int(p_obj.valor)
+                        except (ValueError, TypeError):
+                            pass
 
             nuevo_cred = curso.numeroCreditos or 3
             if creditos_actuales + nuevo_cred > max_creditos:
@@ -444,22 +447,8 @@ class AcademicaViewGUI(ctk.CTkFrame):
 
                 # Recalcular promedio de notas del estudiante
                 mat = next((m for m in self.controller.matriculas if m.idMatricula == det.idMatricula), None)
-                if mat:
-                    est = next((e for e in self.controller.estudiantes if e.idEstudiante == mat.idEstudiante), None)
-                    if est:
-                        notas_est = [
-                            float(d.notaFinal) for d in self.controller.detalles_matricula
-                            if str(getattr(d, "estadoCurso", "")) != "CANCELADO"
-                            and d.notaFinal is not None
-                            and any(m.idMatricula == d.idMatricula and m.idEstudiante == est.idEstudiante for m in self.controller.matriculas)
-                        ]
-                        if notas_est:
-                            prom = round(sum(notas_est) / len(notas_est), 2)
-                            est.promedioAcumulado = Decimal(str(prom))
-                            if prom < 3.0:
-                                est.estadoAcademico = EstadoAcademico.EBRA
-                            else:
-                                est.estadoAcademico = EstadoAcademico.ACTIVO
+                if mat and mat.idEstudiante:
+                    self._actualizar_promedio_estudiante(mat.idEstudiante)
 
                 self.controller._recrear_gestores()
                 lbl_msg_nota.configure(text=f"✅ Calificación de {val_nota:.2f} registrada exitosamente.", text_color="#10B981")
@@ -469,9 +458,9 @@ class AcademicaViewGUI(ctk.CTkFrame):
         btn_nota.pack(side="left", padx=10)
 
         # Tabla de Calificaciones
-        headers_n = ["ID Inscripción", "Estudiante", "Asignatura", "Nota Definitiva", "Estado Calificación", "Impacto EBRA"]
-        col_w_n = [2, 3, 3, 2, 2, 2]
-        col_m_n = [90, 150, 150, 90, 100, 100]
+        headers_n = ["ID Inscripción", "Estudiante", "Asignatura", "Nota Definitiva", "Estado Calificación", "Impacto EBRA", "Acciones"]
+        col_w_n = [2, 3, 3, 2, 2, 2, 2]
+        col_m_n = [80, 140, 140, 80, 90, 90, 130]
 
         table_n = PITAGridTable(container, headers=headers_n, col_weights=col_w_n, col_mins=col_m_n)
         table_n.pack(fill="both", expand=True, padx=5, pady=5)
@@ -508,6 +497,14 @@ class AcademicaViewGUI(ctk.CTkFrame):
             else:
                 ebra_badge = ("badge", f"● Normal ({prom_est:.2f})", "active")
 
+            actions_list = [
+                ("✏️ Editar Nota", lambda d=det: self._abrir_modal_editar_nota(d)),
+            ]
+            if nota_f is not None:
+                actions_list.append(("🗑️ Limpiar Nota", lambda d=det: self._limpiar_nota(d)))
+
+            act_spec = ("actions", actions_list)
+
             cells = [
                 f"INS-{det.idDetalleMatricula}",
                 (f"{nom_e} ({getattr(est, 'codigoEstudiante', '')})", "#F8FAFC"),
@@ -515,6 +512,7 @@ class AcademicaViewGUI(ctk.CTkFrame):
                 (nota_str, color_nota),
                 badge_tuple,
                 ebra_badge,
+                act_spec,
             ]
             table_n.add_row_items(cells, is_highlighted=(nota_f is not None and float(nota_f) < 3.0))
 
@@ -869,6 +867,138 @@ class AcademicaViewGUI(ctk.CTkFrame):
 
             self.controller._recrear_gestores()
             self.actualizar()
+
+    def _actualizar_promedio_estudiante(self, id_estudiante: int) -> None:
+        """Recalcula el promedio acumulado del estudiante y actualiza el estado EBRA."""
+        est = next((e for e in self.controller.estudiantes if e.idEstudiante == id_estudiante), None)
+        if not est:
+            return
+        matricula_ids = {m.idMatricula for m in self.controller.matriculas if m.idEstudiante == id_estudiante}
+        notas_est = [
+            float(d.notaFinal) for d in self.controller.detalles_matricula
+            if str(getattr(d, "estadoCurso", "")) != "CANCELADO"
+            and d.notaFinal is not None
+            and d.idMatricula in matricula_ids
+        ]
+        if notas_est:
+            prom = round(sum(notas_est) / len(notas_est), 2)
+            est.promedioAcumulado = Decimal(str(prom))
+            if prom < 3.0:
+                est.estadoAcademico = EstadoAcademico.EBRA
+            else:
+                est.estadoAcademico = EstadoAcademico.ACTIVO
+        else:
+            est.promedioAcumulado = Decimal("0.0")
+            est.estadoAcademico = EstadoAcademico.ACTIVO
+
+    def _abrir_modal_editar_nota(self, det: DetalleMatricula) -> None:
+        """Modal interactivo para editar o registrar la calificación de un estudiante."""
+        mat = next((m for m in self.controller.matriculas if m.idMatricula == det.idMatricula), None)
+        est = next((e for e in self.controller.estudiantes if mat and e.idEstudiante == mat.idEstudiante), None)
+        pers = next((p for p in self.controller.personas if est and p.idPersona == est.idPersona), None)
+        oferta = next((o for o in self.controller.ofertas if o.idOfertaCurso == det.idOfertaCurso), None)
+        curso = next((c for c in self.controller.cursos if oferta and c.idCurso == oferta.idCurso), None)
+        if not curso:
+            curso = next((c for c in self.controller.cursos if c.idCurso == det.idOfertaCurso), None)
+
+        nom_e = f"{pers.primerNombre} {pers.primerApellido}" if pers else "Estudiante"
+        cod_e = est.codigoEstudiante if est else ""
+        nom_c = curso.nombre if curso else "Curso"
+        gr = oferta.grupo if oferta else "01"
+
+        dialog = ctk.CTkToplevel(self)
+        dialog.title(f"✏️ Editar Calificación - INS-{det.idDetalleMatricula}")
+        dialog.geometry("450x380")
+        dialog.grab_set()
+
+        ctk.CTkLabel(dialog, text="✏️ Modificar Calificación Definitiva", font=ctk.CTkFont(size=16, weight="bold"), text_color=Colors.TEXT_MAIN).pack(pady=(15, 5))
+        ctk.CTkLabel(dialog, text=f"{nom_e} ({cod_e})", font=ctk.CTkFont(size=12, weight="bold"), text_color="#38BDF8").pack(pady=(0, 2))
+        ctk.CTkLabel(dialog, text=f"{nom_c} — Grupo {gr}", font=ctk.CTkFont(size=11), text_color="#94A3B8").pack(pady=(0, 15))
+
+        f_input = ctk.CTkFrame(dialog, fg_color="transparent")
+        f_input.pack(fill="x", padx=30, pady=10)
+
+        ctk.CTkLabel(f_input, text="Nueva Nota Definitiva (0.0 a 5.0):", font=ctk.CTkFont(size=12, weight="bold"), text_color="#F8FAFC").pack(anchor="w", pady=(0, 5))
+        entry_val = ctk.CTkEntry(f_input, placeholder_text="ej: 4.0", font=ctk.CTkFont(size=14))
+        if det.notaFinal is not None:
+            entry_val.insert(0, f"{float(det.notaFinal):.2f}")
+        entry_val.pack(fill="x")
+
+        lbl_error = ctk.CTkLabel(dialog, text="", font=ctk.CTkFont(size=11, weight="bold"), text_color="#EF4444")
+        lbl_error.pack(pady=(5, 5))
+
+        def _guardar():
+            try:
+                val = float(entry_val.get().strip())
+                if val < 0.0 or val > 5.0:
+                    lbl_error.configure(text="⚠️ La nota debe encontrarse entre 0.0 y 5.0.")
+                    return
+            except ValueError:
+                lbl_error.configure(text="⚠️ Ingrese un valor numérico válido (ej: 3.8).")
+                return
+
+            det.notaFinal = Decimal(str(round(val, 2)))
+            det.estadoCurso = EstadoCurso.APROBADO if val >= 3.0 else EstadoCurso.REPROBADO
+            if est:
+                self._actualizar_promedio_estudiante(est.idEstudiante)
+
+            self.controller._recrear_gestores()
+            dialog.destroy()
+            self.actualizar()
+
+        btn_box = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_box.pack(fill="x", padx=30, pady=15)
+
+        ctk.CTkButton(btn_box, text="💾 Guardar Cambios", font=ctk.CTkFont(size=12, weight="bold"), fg_color="#10B981", hover_color="#059669", height=36, command=_guardar).pack(fill="x", pady=(0, 8))
+        ctk.CTkButton(btn_box, text="Cancelar", font=ctk.CTkFont(size=12), fg_color="#334155", hover_color="#475569", height=32, command=dialog.destroy).pack(fill="x")
+
+    def _limpiar_nota(self, det: DetalleMatricula) -> None:
+        """Modal de confirmación para restablecer o eliminar una nota a estado pendiente (EN_CURSO)."""
+        mat = next((m for m in self.controller.matriculas if m.idMatricula == det.idMatricula), None)
+        est = next((e for e in self.controller.estudiantes if mat and e.idEstudiante == mat.idEstudiante), None)
+        pers = next((p for p in self.controller.personas if est and p.idPersona == est.idPersona), None)
+        oferta = next((o for o in self.controller.ofertas if o.idOfertaCurso == det.idOfertaCurso), None)
+        curso = next((c for c in self.controller.cursos if oferta and c.idCurso == oferta.idCurso), None)
+        if not curso:
+            curso = next((c for c in self.controller.cursos if c.idCurso == det.idOfertaCurso), None)
+
+        nom_e = f"{pers.primerNombre} {pers.primerApellido}" if pers else "Estudiante"
+        nom_c = curso.nombre if curso else "Curso"
+
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("🗑️ Eliminar Calificación")
+        dialog.geometry("420x290")
+        dialog.grab_set()
+
+        ctk.CTkLabel(dialog, text="🗑️ ¿Eliminar Calificación?", font=ctk.CTkFont(size=16, weight="bold"), text_color="#EF4444").pack(pady=(15, 8))
+        ctk.CTkLabel(dialog, text=f"Estudiante: {nom_e}", font=ctk.CTkFont(size=12, weight="bold"), text_color="#F8FAFC").pack(pady=(0, 2))
+        ctk.CTkLabel(dialog, text=f"Asignatura: {nom_c}", font=ctk.CTkFont(size=11), text_color="#38BDF8").pack(pady=(0, 10))
+
+        info_box = ctk.CTkFrame(dialog, fg_color="#1E293B", corner_radius=6)
+        info_box.pack(fill="x", padx=25, pady=5)
+        ctk.CTkLabel(
+            info_box,
+            text="ℹ️ La nota actual será eliminada.\nEl curso volverá a estado 'EN_CURSO' y el\npromedio del estudiante será recalculado.",
+            font=ctk.CTkFont(size=11),
+            text_color="#94A3B8",
+            justify="center",
+        ).pack(padx=10, pady=10)
+
+        def _confirmar():
+            det.notaFinal = None
+            det.estadoCurso = EstadoCurso.EN_CURSO
+            if est:
+                self._actualizar_promedio_estudiante(est.idEstudiante)
+
+            self.controller._recrear_gestores()
+            dialog.destroy()
+            self.actualizar()
+
+        btn_box = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_box.pack(fill="x", padx=25, pady=15)
+
+        ctk.CTkButton(btn_box, text="🗑️ Sí, Eliminar Calificación", font=ctk.CTkFont(size=12, weight="bold"), fg_color="#EF4444", hover_color="#DC2626", height=34, command=_confirmar).pack(fill="x", pady=(0, 6))
+        ctk.CTkButton(btn_box, text="Cancelar", font=ctk.CTkFont(size=12), fg_color="#334155", hover_color="#475569", height=30, command=dialog.destroy).pack(fill="x")
 
     def actualizar(self) -> None:
         for widget in self.winfo_children():

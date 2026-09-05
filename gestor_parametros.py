@@ -67,6 +67,20 @@ class GestorParametros:
         ]
         return max(candidatos, key=lambda parametro: parametro.fechaInicioVigencia or date.min, default=None)
 
+    def obtener_parametro(self, codigo: str, fecha: date | None = None) -> ParametroNormativo | None:
+        """Alias para buscar_parametro_vigente para compatibilidad con vistas GUI."""
+        return self.buscar_parametro_vigente(codigo, fecha)
+
+    def obtener_parametro_vigente(self, codigo: str, fecha: date | None = None) -> Decimal | None:
+        """Obtiene el valor numérico (Decimal) del parámetro vigente para el código dado."""
+        param = self.buscar_parametro_vigente(codigo, fecha)
+        if param and param.valor is not None and param.valor != "":
+            try:
+                return Decimal(str(param.valor))
+            except Exception:
+                return None
+        return None
+
     def modificar_parametro(self, id_parametro: int, **cambios) -> ParametroNormativo:
         actual = self._buscar(id_parametro)
         if self._esta_usado_en_liquidacion(actual):
