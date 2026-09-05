@@ -31,10 +31,14 @@ class PITAApplication(ctk.CTk):
 
         # Inicializar controlador y gestores
         self.controller = PITAController(directorio_datos)
+        self.vista_actual = "dashboard"
 
         self._crear_layout_base()
         self._inicializar_vistas()
         self.mostrar_vista("dashboard")
+
+        # Comprobar si la persistencia está vacía para preguntar al usuario (Requerimiento #59 Taller PITA)
+        self.after(300, self._comprobar_datos_iniciales)
 
     def _crear_layout_base(self) -> None:
         # Configuración grid principal: Header arriba, Sidebar izquierda, Contenedor derecha
@@ -102,7 +106,7 @@ class PITAApplication(ctk.CTk):
             border_color=Colors.BORDER_SUBTLE,
         )
         self.sidebar_frame.grid(row=1, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(8, weight=1)
+        self.sidebar_frame.grid_rowconfigure(14, weight=1)
 
         # Menú Secciones
         ctk.CTkLabel(
@@ -110,7 +114,7 @@ class PITAApplication(ctk.CTk):
             text="NAVEGACIÓN",
             font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
             text_color=Colors.TEXT_MUTED,
-        ).grid(row=0, column=0, padx=20, pady=(15, 10), sticky="w")
+        ).grid(row=0, column=0, padx=20, pady=(15, 6), sticky="w")
 
         self.btn_dashboard = self._crear_sidebar_button("📊  Panel de Control", lambda: self.mostrar_vista("dashboard"))
         self.btn_dashboard.grid(row=1, column=0, padx=12, pady=2, sticky="ew")
@@ -133,6 +137,40 @@ class PITAApplication(ctk.CTk):
         self.btn_parametros = self._crear_sidebar_button("⚙️  Parámetros Legal", lambda: self.mostrar_vista("parametros"))
         self.btn_parametros.grid(row=7, column=0, padx=12, pady=2, sticky="ew")
 
+        # Separador / Gestión de Datos (Requerimiento #59 Taller PITA)
+        ctk.CTkLabel(
+            self.sidebar_frame,
+            text="CONTROL DE DATOS (#59)",
+            font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
+            text_color=Colors.TEXT_MUTED,
+        ).grid(row=8, column=0, padx=20, pady=(15, 6), sticky="w")
+
+        btn_demo = ctk.CTkButton(
+            self.sidebar_frame,
+            text="🌱 Cargar Datos Demo",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            fg_color="#10B981",
+            hover_color="#059669",
+            text_color="#FFFFFF",
+            height=32,
+            corner_radius=8,
+            command=self._cargar_demo_accion,
+        )
+        btn_demo.grid(row=9, column=0, padx=12, pady=3, sticky="ew")
+
+        btn_sin_datos = ctk.CTkButton(
+            self.sidebar_frame,
+            text="🧹 Iniciar Sin Datos",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            fg_color="#64748B",
+            hover_color="#475569",
+            text_color="#FFFFFF",
+            height=32,
+            corner_radius=8,
+            command=self._confirmar_iniciar_sin_datos,
+        )
+        btn_sin_datos.grid(row=10, column=0, padx=12, pady=3, sticky="ew")
+
         # Botón Guardar Rápido en Sidebar
         btn_quick_save = ctk.CTkButton(
             self.sidebar_frame,
@@ -141,11 +179,11 @@ class PITAApplication(ctk.CTk):
             fg_color=Colors.WIN_BLUE,
             hover_color=Colors.WIN_BLUE_HOVER,
             text_color="#FFFFFF",
-            height=38,
+            height=36,
             corner_radius=8,
             command=self._guardar_datos_rapido,
         )
-        btn_quick_save.grid(row=8, column=0, padx=15, pady=(5, 10), sticky="ew")
+        btn_quick_save.grid(row=11, column=0, padx=12, pady=(10, 6), sticky="ew")
 
         # Selector de Tema
         combo_tema = ctk.CTkOptionMenu(
@@ -157,7 +195,7 @@ class PITAApplication(ctk.CTk):
             text_color=Colors.TEXT_MAIN,
             command=self._cambiar_tema,
         )
-        combo_tema.grid(row=9, column=0, padx=15, pady=(0, 15), sticky="ew")
+        combo_tema.grid(row=12, column=0, padx=12, pady=(4, 15), sticky="ew")
 
         # ------------------------------------------------------------------
         # Contenedor de Vistas Dinámicas
@@ -198,6 +236,7 @@ class PITAApplication(ctk.CTk):
     def mostrar_vista(self, nombre_vista: str) -> None:
         """Muestra la vista solicitada y oculta las demás."""
         if nombre_vista in self.vistas:
+            self.vista_actual = nombre_vista
             target = self.vistas[nombre_vista]
             if hasattr(target, "actualizar"):
                 target.actualizar()
@@ -226,3 +265,129 @@ class PITAApplication(ctk.CTk):
     def _cambiar_tema(self, seleccion: str) -> None:
         mode = "Dark" if "Oscuro" in seleccion else "Light"
         ctk.set_appearance_mode(mode)
+
+    # ------------------------------------------------------------------
+    # Gestión de Inicio Con / Sin Datos (Requerimiento #59 Taller PITA)
+    # ------------------------------------------------------------------
+    def _comprobar_datos_iniciales(self) -> None:
+        """Si la aplicación arranca sin facultades ni personas, ofrece la decisión al usuario."""
+        if not self.controller.facultades and not self.controller.personas:
+            self._mostrar_modal_bienvenida_datos()
+
+    def _mostrar_modal_bienvenida_datos(self) -> None:
+        """Modal de bienvenida para decidir arranque con datos demo o en limpio."""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("👋 Configuración Inicial de Datos - PITA v2.0")
+        dialog.geometry("560x380")
+        dialog.resizable(False, False)
+        dialog.grab_set()
+
+        card = ctk.CTkFrame(dialog, fg_color=Colors.BG_CARD, corner_radius=12, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            card,
+            text="👋 Bienvenido a PITA v2.0 (UPC)",
+            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
+        ).pack(pady=(20, 5))
+
+        ctk.CTkLabel(
+            card,
+            text="No se encontraron registros académicos previos en la carpeta 'datos/'.\nSegún el Requerimiento #59 del Taller, ¿cómo desea iniciar el sistema?",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color=Colors.TEXT_MUTED,
+            justify="center",
+        ).pack(pady=(0, 20))
+
+        def _elegir_demo():
+            self.controller.cargar_datos_demo()
+            dialog.destroy()
+            self._refrescar_despues_de_cambio("🌱 Datos de Demostración Cargados con Éxito")
+
+        def _elegir_sin_datos():
+            self.controller.iniciar_sin_datos(crear_parametros_defecto=True)
+            dialog.destroy()
+            self._refrescar_despues_de_cambio("🧹 Sistema Iniciado Sin Datos (Solo Parámetros Normativos)")
+
+        btn_demo = ctk.CTkButton(
+            card,
+            text="🌱 Cargar Datos de Demostración (Recomendado para video)",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#10B981",
+            hover_color="#059669",
+            height=40,
+            corner_radius=8,
+            command=_elegir_demo,
+        )
+        btn_demo.pack(fill="x", padx=40, pady=(0, 10))
+
+        btn_vacio = ctk.CTkButton(
+            card,
+            text="🧹 Comenzar Sin Datos (Solo Parámetros por Defecto)",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#475569",
+            hover_color="#334155",
+            height=40,
+            corner_radius=8,
+            command=_elegir_sin_datos,
+        )
+        btn_vacio.pack(fill="x", padx=40, pady=(0, 15))
+
+        ctk.CTkLabel(
+            card,
+            text="💡 Nota: Podrá alternar entre Modo Demo y Modo Sin Datos en cualquier momento\ndesde los botones del menú lateral izquierdo.",
+            font=ctk.CTkFont(family="Segoe UI", size=10, slant="italic"),
+            text_color=Colors.TEXT_MUTED,
+            justify="center",
+        ).pack(pady=(0, 10))
+
+    def _cargar_demo_accion(self) -> None:
+        """Carga la base de datos de ejemplo completa."""
+        self.controller.cargar_datos_demo()
+        self._refrescar_despues_de_cambio("🌱 Datos Demo Restaurados en 'datos/'")
+
+    def _confirmar_iniciar_sin_datos(self) -> None:
+        """Solicita confirmación antes de limpiar las entidades y comenzar sin datos."""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("⚠️ Confirmar Modo Sin Datos")
+        dialog.geometry("450x230")
+        dialog.resizable(False, False)
+        dialog.grab_set()
+
+        ctk.CTkLabel(
+            dialog,
+            text="¿Desea limpiar los datos y comenzar sin registros?",
+            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
+        ).pack(pady=(20, 10))
+
+        ctk.CTkLabel(
+            dialog,
+            text="Se vaciarán facultades, programas, cursos, personas y contratos.\nLos 20 parámetros normativos legales se mantendrán activos\npara permitir registros desde cero.",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=Colors.TEXT_MUTED,
+            justify="center",
+        ).pack(pady=(0, 20))
+
+        f_btns = ctk.CTkFrame(dialog, fg_color="transparent")
+        f_btns.pack(fill="x", padx=20, pady=10)
+
+        def _confirmar():
+            self.controller.iniciar_sin_datos(crear_parametros_defecto=True)
+            dialog.destroy()
+            self._refrescar_despues_de_cambio("🧹 Modo Sin Datos Activo (Solo Parámetros)")
+
+        ctk.CTkButton(f_btns, text="Cancelar", fg_color="#94A3B8", hover_color="#64748B", command=dialog.destroy).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(f_btns, text="Sí, Iniciar Sin Datos", fg_color="#EF4444", hover_color="#DC2626", command=_confirmar).pack(side="right", expand=True, padx=5)
+
+    def _refrescar_despues_de_cambio(self, mensaje_estado: str) -> None:
+        """Actualiza el estado de la barra y refresca todas las vistas cargadas."""
+        self.lbl_status.configure(text=f"🟢 {mensaje_estado}")
+        for vista in self.vistas.values():
+            if hasattr(vista, "actualizar"):
+                try:
+                    vista.actualizar()
+                except Exception as err:
+                    print(f"Error al refrescar vista: {err}")
+        self.mostrar_vista(self.vista_actual or "dashboard")

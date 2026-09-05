@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
@@ -71,8 +71,14 @@ class GestorNomina:
         self._validar_contrato(contrato, TipoProfesor.OCASIONAL, periodo)
 
         salario_minimo = self._salario_minimo(contrato, periodo)
-        factor = self._decimal(contrato.factorSalarialSMMLV, "factor salarial del contrato")
-        salario_base = salario_minimo * factor
+        factor = contrato.factorSalarialSMMLV
+        if factor is None or factor == self.CERO:
+            if contrato.salarioBase and salario_minimo > self.CERO:
+                factor = (self._decimal(contrato.salarioBase, "salario base") / salario_minimo).quantize(Decimal("0.01"))
+            else:
+                factor = Decimal("2.5")
+        factor = self._decimal(factor, "factor salarial del contrato")
+        salario_base = contrato.salarioBase or (salario_minimo * factor)
         horas_no_cumplidas = self._decimal(
             (contrato.horasIncumplidas if horas_incumplidas is None else horas_incumplidas) or self.CERO,
             "horas incumplidas",
@@ -156,16 +162,27 @@ class GestorNomina:
         profesor = self._profesor(contrato.idPersona)
         self._validar_contrato(contrato, TipoProfesor.CATEDRATICO, periodo)
 
-        horas_asignadas = self._decimal(contrato.horasMensualesAsignadas, "horas mensuales asignadas")
-        horas_cumplidas = self._decimal(contrato.horasMensualesCumplidas, "horas mensuales cumplidas")
-        horas_pagables = min(horas_asignadas, horas_cumplidas)
-        valor_hora = self._decimal(
-            contrato.valorHoraCatedraVigente,
-            "valor vigente de la hora cátedra",
+        horas_semanales = contrato.horasSemanales or contrato.horasSemanalesAsignadas or Decimal("12")
+        horas_asignadas = self._decimal(
+            contrato.horasMensualesAsignadas or (horas_semanales * Decimal("4")),
+            "horas mensuales asignadas",
         )
-        modalidad = getattr(contrato.modalidadProfesor, "value", contrato.modalidadProfesor)
-        es_ad_honorem = contrato.esAdHonorem is True or modalidad == TipoProfesor.CATEDRATICO_AD_HONOREM.value
-        salario_base = self.CERO if es_ad_honorem else horas_pagables * valor_hora
+        horas_cumplidas = self._decimal(
+            contrato.horasMensualesCumplidas or horas_asignadas,
+            "horas mensuales cumplidas",
+        )
+        horas_pagables = min(horas_asignadas, horas_cumplidas)
+        valor_hora = contrato.valorHoraCatedraVigente or contrato.valorHora
+        if valor_hora is None or valor_hora == self.CERO:
+            if contrato.salarioBase and horas_pagables > self.CERO:
+                valor_hora = (self._decimal(contrato.salarioBase, "salario base") / horas_pagables).quantize(Decimal("1"))
+            else:
+                valor_hora = self._parametro_decimal("VALOR_HORA_CATEDRA") if hasattr(self, "_parametro_decimal") else Decimal("38500")
+        valor_hora = self._decimal(valor_hora, "valor vigente de la hora cátedra")
+
+        modalidad = str(getattr(contrato.modalidadProfesor or contrato.tipoContrato or "", "value", contrato.modalidadProfesor or contrato.tipoContrato or "")).upper()
+        es_ad_honorem = contrato.esAdHonorem is True or "AD_HONOREM" in modalidad
+        salario_base = self.CERO if es_ad_honorem else (contrato.salarioBase or (horas_pagables * valor_hora))
         return self._crear_liquidacion(
             contrato=contrato,
             profesor=profesor,
@@ -310,6 +327,7 @@ class GestorNomina:
                 cantidad=Decimal("1"), baseCalculo=self._redondear(base),
                 porcentajeAplicado=porcentaje, valorCalculado=self._redondear(valor),
                 valorDefinitivo=self._redondear(valor), tipoMovimiento=codigo,
+                observaciones=codigo.replace("_", " ").title(),
                 periodoCausacion=str(periodo.idPeriodoNomina), formulaAplicada=formula,
                 fechaRegistro=date.today(), esSalarial=codigo == "SALARIO_ORDINARIO",
                 integraSeguridadSocial=codigo in {"SALARIO_ORDINARIO"},
@@ -492,6 +510,8 @@ class GestorNomina:
 
         Solo permite eliminación si la liquidación no tiene historial (no fue
         reliquidada, pagada o versionada). Si tiene historial, usa eliminación lógica.
+        AL FINALIZAR, sincroniza los detalles de liquidación para evitar
+        referencias huérfanas en el archivo de persistencia.
         """
         liquidacion = self._liquidacion(id_liquidacion)
 
@@ -502,7 +522,20 @@ class GestorNomina:
 
         # Eliminación física: remover de la lista
         self.liquidaciones.remove(liquidacion)
+
+        # Sincronizar: remover detalles de liquidación que referencian este ID
+        self._sincronizar_detalles_liquidacion(id_liquidacion)
+
         return liquidacion
+
+    def _sincronizar_detalles_liquidacion(self, id_liquidacion: int) -> None:
+        """Remover registros de DetalleLiquidacion que referencian el ID eliminado."""
+        if not hasattr(self, 'detalles_liquidacion') or self.detalles_liquidacion is None:
+            return
+        self.detalles_liquidacion = [
+            d for d in self.detalles_liquidacion
+            if getattr(d, 'idLiquidacion', None) != id_liquidacion
+        ]
 
     def tiene_historial_liquidacion(self, liquidacion: LiquidacionNomina) -> bool:
         """Verificar si una liquidación tiene historial que la protege de modificaciones."""
@@ -513,10 +546,6 @@ class GestorNomina:
             or (liquidacion.version is not None and liquidacion.version > 0)
             or liquidacion.estado == "RELIQUIDADA"
         )
-
-    def _porcentaje(self, codigo: str, defecto: Decimal, fecha: date | None = None, codigos_utilizados: dict | None = None) -> Decimal:
-        if periodo.estaCerrado or str(periodo.estado or "").upper() == "CERRADO":
-            raise ErrorNomina("El periodo de nómina está cerrado")
 
     def _validar_periodo_abierto(self, periodo: PeriodoNomina) -> None:
         if periodo.estaCerrado or str(periodo.estado or "").upper() == "CERRADO":
@@ -708,9 +737,14 @@ class GestorNomina:
 
     def _validar_contrato(self, contrato: Contrato, tipo: TipoProfesor, periodo: PeriodoNomina) -> None:
         actual = getattr(contrato.modalidadProfesor or contrato.tipoContrato or "", "value", contrato.modalidadProfesor or contrato.tipoContrato or "")
-        actual = str(actual).upper()
-        esperado = tipo.value
-        if actual not in {esperado, TipoProfesor.CATEDRATICO_AD_HONOREM.value if tipo == TipoProfesor.CATEDRATICO else esperado}:
+        actual = str(actual).upper().replace("DOCENTE_", "")
+        esperado = tipo.value.replace("DOCENTE_", "")
+        permitidos = {esperado}
+        if tipo == TipoProfesor.CATEDRATICO:
+            permitidos.add(TipoProfesor.CATEDRATICO_AD_HONOREM.value)
+            permitidos.add("CATEDRATICO_AD_HONOREM")
+            permitidos.add("AD_HONOREM")
+        if actual not in permitidos:
             raise ErrorNomina(f"El contrato no es de tipo {esperado}")
         if not self._activo(contrato.estado):
             raise ErrorNomina("El contrato no está activo")

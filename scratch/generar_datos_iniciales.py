@@ -197,8 +197,8 @@ def generar() -> None:
     ]
 
     liquidaciones = [
-        LiquidacionNomina(idLiquidacion=1, idProfesor=1, idContrato=1, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("8932500"), totalDevengado=Decimal("9825750"), totalDescuentos=Decimal("786060"), netoPagar=Decimal("9039690"), totalPrestaciones=Decimal("2046700"), estado="LIQUIDADO"),
-        LiquidacionNomina(idLiquidacion=2, idProfesor=2, idContrato=2, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("1848000"), totalDevengado=Decimal("2010000"), totalDescuentos=Decimal("147840"), netoPagar=Decimal("1862160"), totalPrestaciones=Decimal("418680"), estado="LIQUIDADO"),
+        LiquidacionNomina(idLiquidacion=1, idProfesor=1, idContrato=1, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("8932500"), totalDevengado=Decimal("8932500"), totalDescuentos=Decimal("803925"), netoPagar=Decimal("8128575"), totalPrestaciones=Decimal("1860640"), estado="LIQUIDADO"),
+        LiquidacionNomina(idLiquidacion=2, idProfesor=2, idContrato=2, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("1848000"), totalDevengado=Decimal("1848000"), totalDescuentos=Decimal("147840"), netoPagar=Decimal("1700160"), totalPrestaciones=Decimal("385000"), estado="LIQUIDADO"),
         LiquidacionNomina(idLiquidacion=3, idProfesor=3, idContrato=3, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("3800000"), totalDevengado=Decimal("3800000"), totalDescuentos=Decimal("304000"), netoPagar=Decimal("3496000"), totalPrestaciones=Decimal("791540"), estado="LIQUIDADO"),
     ]
 
@@ -211,10 +211,10 @@ def generar() -> None:
     ]
 
     detalles_liq = [
-        DetalleLiquidacion(idDetalleLiquidacion=1, idLiquidacion=1, idConcepto=1, valorCalculado=Decimal("8932500"), observaciones="Sueldo básico mensual"),
-        DetalleLiquidacion(idDetalleLiquidacion=2, idLiquidacion=1, idConcepto=3, valorCalculado=Decimal("357300"), observaciones="4% Salud"),
-        DetalleLiquidacion(idDetalleLiquidacion=3, idLiquidacion=1, idConcepto=4, valorCalculado=Decimal("357300"), observaciones="4% Pensión"),
-        DetalleLiquidacion(idDetalleLiquidacion=4, idLiquidacion=1, idConcepto=5, valorCalculado=Decimal("71460"), observaciones="1% FSP"),
+        DetalleLiquidacion(idDetalleLiquidacion=1, idLiquidacion=1, idConcepto=1, tipoMovimiento="SALARIO_ORDINARIO", valorCalculado=Decimal("8932500"), observaciones="Sueldo básico mensual"),
+        DetalleLiquidacion(idDetalleLiquidacion=2, idLiquidacion=1, idConcepto=3, tipoMovimiento="DESCUENTO_SALUD", valorCalculado=Decimal("357300"), observaciones="Aporte Salud Trabajador (4%)"),
+        DetalleLiquidacion(idDetalleLiquidacion=3, idLiquidacion=1, idConcepto=4, tipoMovimiento="DESCUENTO_PENSION", valorCalculado=Decimal("357300"), observaciones="Aporte Pensión Trabajador (4%)"),
+        DetalleLiquidacion(idDetalleLiquidacion=4, idLiquidacion=1, idConcepto=5, tipoMovimiento="FONDO_SOLIDARIDAD", valorCalculado=Decimal("89325"), observaciones="Fondo de Solidaridad Pensional (1%)"),
     ]
 
     parametros = [

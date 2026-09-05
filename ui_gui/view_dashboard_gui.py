@@ -21,6 +21,12 @@ class DashboardViewGUI(ctk.CTkFrame):
 
         self._crear_interfaz()
 
+    def actualizar(self) -> None:
+        """Refresca todos los KPIs, alertas y resúmenes con los datos vigentes del controlador."""
+        for child in self.winfo_children():
+            child.destroy()
+        self._crear_interfaz()
+
     def _crear_interfaz(self) -> None:
         # Título y Subtítulo
         title_frame = ctk.CTkFrame(self, fg_color="transparent")
