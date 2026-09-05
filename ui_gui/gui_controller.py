@@ -13,7 +13,7 @@ from typing import Any
 from gestor_academico import GestorAcademico
 from gestor_contratos import GestorContratos
 from gestor_crud import GestorCRUD
-from gestor_factores import GestorFactoresSalariales
+from gestor_factores import GestorFactores
 from gestor_nomina import GestorNomina
 from gestor_parametros import GestorParametros
 from gestor_periodos import GestorPeriodosAcademicos
@@ -138,10 +138,6 @@ class PITAController:
         if not self.parametros:
             self._crear_parametros_por_defecto()
 
-        # Si el sistema está vacío, sembrar algunos datos demostrativos
-        if not self.facultades and not self.personas:
-            self.sembrar_datos_ejemplo()
-
         self._recrear_gestores()
 
     def _recrear_gestores(self) -> None:
@@ -157,8 +153,8 @@ class PITAController:
             self.periodos_academicos, self.ofertas
         )
         self.gestor_contratos = GestorContratos(self.contratos)
-        self.gestor_factores = GestorFactoresSalariales(
-            self.factores, self.producciones
+        self.gestor_factores = GestorFactores(
+            self.categorias, self.factores, self.producciones, self.profesores
         )
         self.gestor_nomina = GestorNomina(
             self.periodos_nomina, self.liquidaciones, self.conceptos
@@ -183,7 +179,7 @@ class PITAController:
             self.cursos,
             self.parametros,
         )
-        self.gestor_crud = GestorCRUD(self.facultades, "idFacultad", "codigoFacultad")
+        self.gestor_crud = GestorCRUD(self.facultades, campo_id="idFacultad", campo_codigo="codigoFacultad")
 
     def guardar_datos(self) -> None:
         """Guardar todas las entidades en la persistencia de archivos planos."""
@@ -236,49 +232,3 @@ class PITAController:
             ParametroNormativo(10, PNC.TOPE_BONIFICACION_SERVICIOS, "Tope Bonificación Servicios", "Tope Decreto 1279", "MONETARIO", "756411", "COP", "Decreto 1279 de 2002", "Art. 41", date(2026, 1, 1), date(2026, 12, 31), "PLANTA", "ACTIVO"),
         ]
         self.parametros.extend(defaults)
-
-    def sembrar_datos_ejemplo(self) -> None:
-        """Sembrar datos institucionales iniciales para demostración."""
-        # 1. Facultad
-        f1 = Facultad(1, "FAC-ING", "Facultad de Ingenierías y Tecnológicas", "Ingenierías UPC", "Sede Sabanas", "5842000", "ingenieria@unicesar.edu.co", None, date(1998, 3, 15), "ACTIVO")
-        self.facultades.append(f1)
-
-        # 2. Programa
-        p1 = ProgramaAcademico(1, "PROG-ING-SIST", "Ingeniería de Sistemas", "PREGRADO", "PRESENCIAL", 10, 165, "RC-2024-001", date(2000, 1, 10), None, 1, "ACTIVO")
-        self.programas.append(p1)
-
-        # 3. Cursos
-        c1 = Curso(1, "INF-101", "Estructura de Datos", "Listas, Árboles, Grafos y Complejidad", 4, 4, 2, 6, 35, "3.0", "ACTIVO")
-        c2 = Curso(2, "INF-102", "Bases de Datos I", "Modelado relacional y SQL", 3, 3, 2, 4, 30, "3.0", "ACTIVO")
-        self.cursos.extend([c1, c2])
-
-        # 4. Periodo Académico
-        per1 = PeriodoAcademico(1, "2026-1", "Periodo Académico 2026-I", 2026, 1, date(2026, 2, 1), date(2026, 6, 30), date(2026, 1, 15), date(2026, 1, 30), date(2026, 3, 15), "ACTIVO")
-        self.periodos_academicos.append(per1)
-
-        # 5. Personas y Estudiantes
-        p_est1 = Persona(1, "CC", "1065123456", "Carlos", "Alberto", "Mendoza", "Ríos", date(2003, 5, 12), "Calle 12 #4-20", "3001234567", "carlos@gmail.com", "cmendoza@unicesar.edu.co", "Valledupar", date(2023, 1, 15), "ACTIVO")
-        p_est2 = Persona(2, "CC", "1065987654", "Ana", "María", "Gómez", "López", date(2004, 8, 22), "Cra 9 #15-30", "3159876543", "ana@gmail.com", "agomez@unicesar.edu.co", "Valledupar", date(2023, 1, 15), "ACTIVO")
-        self.personas.extend([p_est1, p_est2])
-
-        e1 = Estudiante(1, 1, "EST-2026-01", 1, 1, date(2023, 1, 15), 4, 45, "2.7", EstadoAcademico.EBRA, "ACTIVO")
-        e2 = Estudiante(2, 2, "EST-2026-02", 1, 1, date(2023, 1, 15), 4, 52, "4.2", EstadoAcademico.ACTIVO, "ACTIVO")
-        self.estudiantes.extend([e1, e2])
-
-        # 6. Profesores
-        p_prof1 = Persona(3, "CC", "77123456", "Adith", "Enrique", "Pérez", "Orozco", date(1980, 4, 10), "Av. Universidad", "3104567890", "adith@gmail.com", "adithperez@unicesar.edu.co", "Valledupar", date(2010, 2, 1), "ACTIVO")
-        p_prof2 = Persona(4, "CC", "77987654", "Roberto", "Carlos", "Martínez", "Díaz", date(1985, 11, 5), "Calle 16 #9-40", "3017654321", "roberto@gmail.com", "rmartinez@unicesar.edu.co", "Valledupar", date(2015, 8, 10), "ACTIVO")
-        self.personas.extend([p_prof1, p_prof2])
-
-        prof1 = Profesor(1, 3, "PROF-001", 1, date(2010, 2, 1), TipoProfesor.PLANTA, CategoriaDocente.TITULAR, Dedicacion.TIEMPO_COMPLETO, "DOCTORADO", "Ingeniero de Sistemas", "Estructura de Datos", 40, "450", "ACTIVO", "Decreto 1279")
-        prof2 = Profesor(2, 4, "PROF-002", 1, date(2020, 1, 15), TipoProfesor.CATEDRATICO, CategoriaDocente.ASISTENTE, Dedicacion.HORA_CATEDRA, "MAESTRIA", "Ingeniero de Sistemas", "Bases de Datos", 12, "0", "ACTIVO", "Acuerdo 027")
-        self.profesores.extend([prof1, prof2])
-
-        # 7. Contratos
-        c_prof1 = Contrato(1, 1, "CONT-2026-001", "DOCENTE_PLANTA", date(2026, 1, 1), date(2026, 12, 31), 40, "4500000", "ASIGNADO", "ACTIVO", "Acto Adm 045")
-        c_prof2 = Contrato(2, 2, "CONT-2026-002", "DOCENTE_CATEDRATICO", date(2026, 2, 1), date(2026, 6, 30), 12, "1848000", "ASIGNADO", "ACTIVO", "Acto Adm 089")
-        self.contratos.extend([c_prof1, c_prof2])
-
-        # 8. Periodo de Nómina
-        per_nom = PeriodoNomina(1, "NOM-2026-03", "Nómina Mar/2026", 2026, 3, date(2026, 3, 1), date(2026, 3, 31), "ABIERTO")
-        self.periodos_nomina.append(per_nom)

@@ -1,0 +1,3 @@
+1|4|PROF-001|1|2010-02-01|PLANTA|TITULAR|TIEMPO_COMPLETO|DOCTORADO|Ingeniero de Sistemas|Estructura de Datos|40|450|ACTIVO|Decreto 1279|||||||||||||||||||||||||||||||||||||||||||
+2|5|PROF-002|1|2020-01-15|CATEDRATICO|ASISTENTE|HORA_CATEDRA|MAESTRIA|Ingeniero de Sistemas|Bases de Datos|12|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||
+3|6|PROF-003|2|2018-01-20|OCASIONAL|ASOCIADO|TIEMPO_COMPLETO|MAESTRIA|Enfermera Especialista|Salud Pública|40|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||

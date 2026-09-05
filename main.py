@@ -26,6 +26,9 @@ from ui.view_nomina import PayrollView
 from ui.view_personas import PeopleView
 from ui.view_contratos import ContractsView
 from ui.view_parametros import ParametrosView
+from ui.view_facultades import FacultadesView
+from ui.view_programas import ProgramasView
+from ui.view_matricula import MatriculaView
 
 
 class MenuController:
@@ -84,6 +87,13 @@ class MenuController:
                 gestor_personas=self._gestor_personas,
                 gestor_academico=self._gestor_academico,
             ),
+            "6": FacultadesView(gestor_crud=self._gestor_crud),
+            "7": ProgramasView(gestor_academico=self._gestor_academico),
+            "8": MatriculaView(
+                gestor_academico=self._gestor_academico,
+                gestor_personas=self._gestor_personas,
+                gestor_nomina=self._gestor_nomina,
+            ),
         }
 
         # Estado de la aplicación
@@ -91,16 +101,36 @@ class MenuController:
         self._contexto = {}  # Contexto compartido entre vistas
 
     def _cargar_datos_iniciales(self) -> None:
-        """Cargar datos iniciales o desde persistencia."""
-        try:
-            # Intentar cargar desde persistencia
-            directorio = Path("data")
-            if directorio.exists():
+        """Cargar datos iniciales o desde persistencia.
+
+        El usuario decide explícitamente si carga los datos previos o empieza
+        con parámetros por defecto. Se muestra un mensaje clarificador al
+        arranque, según lo requerido en el Taller 1 EdD (puntos 52-59).
+        """
+        directorio = Path("datos")
+
+        # Caso 1: El directorio existe y tiene archivos → cargar datos previos
+        if directorio.exists() and any(directorio.iterdir()):
+            try:
                 self._gestor_persistencia = GestorPersistencia(str(directorio))
                 datos_cargados = self._gestor_persistencia.cargar_todos_los_datos()
 
-                # Reconstruir gestores desde datos cargados
-                from modelo_datos import Facultad, ParametroNormativo
+                from modelo_datos import (
+                    Administrativo,
+                    Contrato,
+                    Curso,
+                    Estudiante,
+                    Facultad,
+                    LiquidacionNomina,
+                    OfertaCurso,
+                    ParametroNormativo,
+                    PeriodoAcademico,
+                    PeriodoNomina,
+                    Persona,
+                    PlanEstudio,
+                    Profesor,
+                    ProgramaAcademico,
+                )
 
                 if Facultad in datos_cargados:
                     self._gestor_crud = GestorCRUD(
@@ -114,17 +144,77 @@ class MenuController:
                         datos_cargados[ParametroNormativo]
                     )
 
-                # Si cargó datos, inicializar gestores vacíos para los demás
+                self._gestor_personas = GestorPersonas(
+                    datos_cargados.get(Persona, []),
+                    datos_cargados.get(Estudiante, []),
+                    datos_cargados.get(Profesor, []),
+                    datos_cargados.get(Administrativo, []),
+                )
+
+                self._gestor_academico = GestorAcademico(
+                    datos_cargados.get(Facultad, []),
+                    datos_cargados.get(ProgramaAcademico, []),
+                    datos_cargados.get(PlanEstudio, []),
+                    datos_cargados.get(Curso, []),
+                )
+
+                self._gestor_periodos = GestorPeriodosAcademicos(
+                    datos_cargados.get(PeriodoAcademico, []),
+                    datos_cargados.get(OfertaCurso, []),
+                )
+
+                self._gestor_contratos = GestorContratos(
+                    datos_cargados.get(Contrato, [])
+                )
+
+                self._gestor_nomina = GestorNomina(
+                    datos_cargados.get(Contrato, []),
+                    datos_cargados.get(Profesor, []),
+                    datos_cargados.get(PeriodoNomina, []),
+                    datos_cargados.get(LiquidacionNomina, []),
+                    parametros=datos_cargados.get(ParametroNormativo, []),
+                )
+
                 self._inicializar_gestores_vacios()
+                nombres = [t.__name__ for t in datos_cargados if datos_cargados[t]]
+                self._mostrar_message(
+                    f"Se cargaron los datos de persistencias desde '{directorio}' "
+                    f"({', '.join(nombres)}).",
+                    tipo="success",
+                )
+                return
+            except Exception as e:
+                self._mostrar_error(
+                    f"No fue posible cargar los datos de '{directorio}': {e}"
+                )
+                # Continuar a continuación con la opción al usuario
 
-            # Si no hay datos de persistencia, crear parámetros por defecto
-            # para que el sistema funcione inmediatamente
-            else:
-                self._crear_parametros_por_defecto()
-
-        except Exception as e:
-            # Errores en carga inicial no críticos - continuar con vacíos
-            pass
+        # Caso 2: No hay datos previos — preguntar al usuario
+        self._mostrar_message(
+            "No encontraron datos de persistencias previas en 'datos/'."
+        )
+        # Pregunta simple usando Prompt
+        from rich.prompt import Prompt
+        try:
+            respuesta = Prompt.ask(
+                "¿Desea crear los parámetros normativos por defecto y comenzar sin datos? (s/n)",
+                choices=["s", "n"],
+                default="s",
+            )
+        except (EOFError, TypeError):
+            respuesta = "s"
+        if respuesta == "s":
+            self._crear_parametros_por_defecto()
+            self._mostrar_message(
+                "Sistema iniciado con parámetros por defecto. "
+                "Use la opción 5 del menú para cargar datos posteriores.",
+                tipo="info",
+            )
+        else:
+            self._mostrar_message(
+                "La aplicación iniciará sin parámetros. Configure los parámetros "
+                "después desde la opción 5.", tipo="info"
+            )
 
     def _crear_parametros_por_defecto(self) -> None:
         """Crear parámetros normativos por defecto al iniciar sin datos previos.
@@ -133,9 +223,14 @@ class MenuController:
         que el usuario configure parámetros manualmente en la primera ejecución.
         Los valores son los típicos de la Universidad Popular del Cesar / Acuerdo 027.
         """
-        from modelo_datos import ParametroNormativo as PN, ParametroNormativoCodigo as PNC
+        from modelo_datos import (
+            ParametroNormativo,
+            ParametroNormativo as PN,
+            ParametroNormativoCodigo,
+            ParametroNormativoCodigo as PNC,
+        )
 
-        self._gestor_persistencia = GestorPersistencia("data")
+        self._gestor_persistencia = GestorPersistencia("datos")
         self._gestor_parametros = GestorParametros([])
 
         # Parámetros monetarios
@@ -383,7 +478,7 @@ class MenuController:
                 codigo=ParametroNormativoCodigo.PROMEDIO_MINIMO_EBRA,
                 nombre="Promedio Mínimo EBRA",
                 descripcion="Promedio acumulado mínimo para alerta EBRA",
-                tipoDATO="MONETARIO",
+                tipoDato="MONETARIO",
                 valor="3.0",
                 unidad="",
                 normaOrigen="Manual Calculadora Mintrabajo",
@@ -444,6 +539,28 @@ class MenuController:
             self._gestor_nomina = GestorNomina([], [], [])
         if self._gestor_periodos is None:
             self._gestor_periodos = GestorPeriodosAcademicos([])
+        if self._gestor_matriculas is None:
+            self._gestor_matriculas = GestorMatriculas(
+                self._gestor_personas.estudiantes,
+                self._gestor_periodos.periodos,
+                self._gestor_academico.ofertas,
+                self._gestor_academico.cursos,
+                [],
+                [],
+                self._gestor_academico.horarios,
+                self._gestor_parametros.parametros,
+            )
+        if self._gestor_calificaciones is None:
+            self._gestor_calificaciones = GestorCalificaciones(
+                [],
+                [],
+                self._gestor_matriculas.detalles,
+                self._gestor_matriculas.matriculas,
+                self._gestor_personas.estudiantes,
+                self._gestor_academico.ofertas,
+                self._gestor_academico.cursos,
+                self._gestor_parametros.parametros,
+            )
 
     def ejecutar(self) -> None:
         """Ejecutar el ciclo principal de la aplicación.
@@ -502,6 +619,9 @@ class MenuController:
                 "3. Subsistema de Personas\n"
                 "4. Subsistema de Contratos\n"
                 "5. Configuración y Parámetros\n"
+                "6. Gestionar Facultades\n"
+                "7. Gestionar Programas / Ofertas\n"
+                "8. Subsistema de Matrícula y Rendimiento\n"
                 "0. Salir de la Aplicación\n"
                 "----------------------\n"
                 "Seleccione una opción para continuar:",
@@ -514,7 +634,7 @@ class MenuController:
         from rich.prompt import Prompt
         try:
             return Prompt.ask(
-                "\nOpción", choices=["0", "1", "2", "3", "4", "5"], default="0"
+                "\nOpción", choices=["0", "1", "2", "3", "4", "5", "6", "7", "8"], default="0"
             )
         except (EOFError, TypeError):
             return "0"
@@ -548,6 +668,8 @@ class MenuController:
 
     def _guardar_datos_finales(self) -> None:
         """Guardar datos al salir de la aplicación."""
+        from modelo_datos import ParametroNormativo
+
         try:
             if self._gestor_persistencia:
                 # Collect data from all gestores
@@ -580,8 +702,14 @@ class MenuController:
 
 
 def main() -> None:
-    """Punto de entrada de la aplicación."""
-    # Crear y ejecutar el controlador principal
+    """Punto de entrada de la aplicación PITA (Soporta modo CLI y modo GUI --gui)."""
+    import sys
+    if "--gui" in sys.argv or "-g" in sys.argv:
+        from gui_main import main as main_gui
+        main_gui()
+        return
+
+    # Crear y ejecutar el controlador principal (CLI)
     controlador = MenuController()
 
     # Mostrar mensaje de bienvenida
@@ -593,6 +721,7 @@ def main() -> None:
             "Arquitectura modular con Programación Orientada a Objetos\n"
             "----------------------\n"
             "La aplicación se ejecutará en modo consola.\n"
+            "Para iniciar en modo Interfaz Gráfica ejecute: python main.py --gui\n"
             "Use las opciones numericas para navegar.",
             border_style="green",
         )

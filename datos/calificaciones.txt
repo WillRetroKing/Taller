@@ -1,0 +1,2 @@
+1|1|1|2.5|2026-03-16|Parcial 1|ACTIVO
+2|1|3|4.5|2026-03-16|Excelente|ACTIVO

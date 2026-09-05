@@ -125,8 +125,10 @@ class GestorPersistencia:
 
     def guardar_todos_los_datos(self, datos: Mapping[type | str, Iterable[Any]]) -> None:
         for tipo in self.ARCHIVOS:
-            entidades = datos.get(tipo, datos.get(tipo.__name__, []))
-            self.guardar_entidad(entidades, tipo)
+            if tipo in datos:
+                self.guardar_entidad(datos[tipo], tipo)
+            elif tipo.__name__ in datos:
+                self.guardar_entidad(datos[tipo.__name__], tipo)
 
     def cargar_todos_los_datos(self) -> dict[type, list[Any]]:
         datos = {tipo: self.cargar_entidad(tipo) for tipo in self.ARCHIVOS}
