@@ -116,8 +116,8 @@ class NominaViewGUI(ctk.CTkFrame):
             act_spec = (
                 "actions",
                 [
-                    ("📋 Desglose", lambda l_id=liq.idLiquidacion: self._abrir_modal_detalle_liquidacion(l_id), "#6366F1", "#4F46E5", 80, 28, 10),
-                    ("❌", lambda l_id=liq.idLiquidacion: self._eliminar_liquidacion(l_id), "#EF4444", "#DC2626", 30, 28, 10),
+                    ("📋 Desglose", lambda l_id=liq.idLiquidacion: self._abrir_modal_detalle_liquidacion(l_id), "#6366F1", "#4F46E5", 85, 28, 10),
+                    ("❌ Anular", lambda l_id=liq.idLiquidacion: self._eliminar_liquidacion(l_id), "#EF4444", "#DC2626", 75, 28, 10),
                 ],
             )
 

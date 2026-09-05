@@ -94,8 +94,8 @@ class AcademicaViewGUI(ctk.CTkFrame):
             act_spec = (
                 "actions",
                 [
-                    ("✏️", lambda cur=c: self._editar_curso(cur), "#334155", "#475569", 32, 28),
-                    ("❌", lambda c_id=c.idCurso: self._eliminar_curso(c_id), "#EF4444", "#DC2626", 32, 28),
+                    ("✏️ Editar", lambda cur=c: self._editar_curso(cur), "#334155", "#475569", 70, 28),
+                    ("❌ Eliminar", lambda c_id=c.idCurso: self._eliminar_curso(c_id), "#EF4444", "#DC2626", 75, 28),
                 ],
             )
 

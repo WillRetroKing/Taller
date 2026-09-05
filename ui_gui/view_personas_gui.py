@@ -162,9 +162,9 @@ class PersonasViewGUI(ctk.CTkFrame):
             act_spec = (
                 "actions",
                 [
-                    ("👁️", lambda p=pers: self._ver_detalle_persona(p), "#6366F1", "#4F46E5", 30, 28),
-                    ("✏️", lambda e=est, p=pers: self._editar_estudiante(e, p), "#334155", "#475569", 30, 28),
-                    ("❌", lambda e_id=getattr(est, "idEstudiante", 0): self._desactivar_estudiante(e_id), "#EF4444", "#DC2626", 30, 28),
+                    ("👁️ Ver", lambda p=pers: self._ver_detalle_persona(p), "#6366F1", "#4F46E5", 65, 28),
+                    ("✏️ Editar", lambda e=est, p=pers: self._editar_estudiante(e, p), "#334155", "#475569", 70, 28),
+                    ("❌ Desactivar", lambda e_id=getattr(est, "idEstudiante", 0): self._desactivar_estudiante(e_id), "#EF4444", "#DC2626", 85, 28),
                 ],
             )
 
@@ -221,9 +221,9 @@ class PersonasViewGUI(ctk.CTkFrame):
             act_spec = (
                 "actions",
                 [
-                    ("👁️", lambda p=pers: self._ver_detalle_persona(p), "#6366F1", "#4F46E5", 30, 28),
-                    ("✏️", lambda pr=prof, p=pers: self._editar_profesor(pr, p), "#334155", "#475569", 30, 28),
-                    ("❌", lambda p_id=getattr(prof, "idProfesor", 0): self._desactivar_profesor(p_id), "#EF4444", "#DC2626", 30, 28),
+                    ("👁️ Ver", lambda p=pers: self._ver_detalle_persona(p), "#6366F1", "#4F46E5", 65, 28),
+                    ("✏️ Editar", lambda pr=prof, p=pers: self._editar_profesor(pr, p), "#334155", "#475569", 70, 28),
+                    ("❌ Desactivar", lambda p_id=getattr(prof, "idProfesor", 0): self._desactivar_profesor(p_id), "#EF4444", "#DC2626", 85, 28),
                 ],
             )
 
@@ -276,9 +276,9 @@ class PersonasViewGUI(ctk.CTkFrame):
             act_spec = (
                 "actions",
                 [
-                    ("👁️", lambda p=pers: self._ver_detalle_persona(p), "#6366F1", "#4F46E5", 30, 28),
-                    ("✏️", lambda a=adm, p=pers: self._editar_administrativo(a, p), "#334155", "#475569", 30, 28),
-                    ("❌", lambda a_id=getattr(adm, "idAdministrativo", 0): self._desactivar_administrativo(a_id), "#EF4444", "#DC2626", 30, 28),
+                    ("👁️ Ver", lambda p=pers: self._ver_detalle_persona(p), "#6366F1", "#4F46E5", 65, 28),
+                    ("✏️ Editar", lambda a=adm, p=pers: self._editar_administrativo(a, p), "#334155", "#475569", 70, 28),
+                    ("❌ Desactivar", lambda a_id=getattr(adm, "idAdministrativo", 0): self._desactivar_administrativo(a_id), "#EF4444", "#DC2626", 85, 28),
                 ],
             )
 

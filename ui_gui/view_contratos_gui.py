@@ -96,9 +96,9 @@ class ContratosViewGUI(ctk.CTkFrame):
 
             badge_tuple = ("badge", est, "cancelado" if est == "TERMINADO" else "active")
 
-            btn_list = [("✏️", lambda c=cont: self._editar_contrato(c), "#334155", "#475569", 30, 28)]
+            btn_list = [("✏️ Editar", lambda c=cont: self._editar_contrato(c), "#334155", "#475569", 70, 28)]
             if est != "TERMINADO":
-                btn_list.append(("🚫", lambda c_id=cont.idContrato: self._terminar_contrato(c_id), "#EF4444", "#DC2626", 30, 28))
+                btn_list.append(("🚫 Terminar", lambda c_id=cont.idContrato: self._terminar_contrato(c_id), "#EF4444", "#DC2626", 80, 28))
             act_spec = ("actions", btn_list)
 
             cells = [
