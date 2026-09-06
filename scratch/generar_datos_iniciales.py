@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from datetime import date
 from decimal import Decimal
 
-from modelo_datos import (
+from dominio.modelo_datos import (
     Administrativo,
     AlertaAcademica,
     AsignacionDocente,
@@ -45,7 +45,7 @@ from modelo_datos import (
     TipoProfesor,
     Universidad,
 )
-from gestor_persistencia import GestorPersistencia
+from persistencia.gestor_persistencia import GestorPersistencia
 
 
 def generar() -> None:
@@ -218,9 +218,9 @@ def generar() -> None:
     ]
 
     parametros = [
-        ParametroNormativo(idParametro=1, codigo=PNC.SALARIO_MINIMO, nombre="Salario Mínimo Legal Vigente", descripcion="SMMLV Colombia", tipoDato="MONETARIO", valor="1423500", unidad="COP", normaOrigen="Decreto Nacional Salarial", articulo="Art. 1", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
-        ParametroNormativo(idParametro=2, codigo=PNC.VALOR_PUNTO_SALARIAL, nombre="Valor Punto Salarial", descripcion="Punto Salarial Dec. 1279", tipoDato="MONETARIO", valor="19850", unidad="COP", normaOrigen="Decreto 1279 de 2002", articulo="Art. 27", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="PLANTA", estado="ACTIVO"),
-        ParametroNormativo(idParametro=3, codigo=PNC.VALOR_AUXILIO_TRANSPORTE_VIGENTE, nombre="Auxilio Transporte", descripcion="Auxilio legal transporte", tipoDato="MONETARIO", valor="162000", unidad="COP", normaOrigen="Decreto Nacional Auxilio Transporte", articulo="Art. 1", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
+        ParametroNormativo(idParametro=1, codigo=PNC.SALARIO_MINIMO, nombre="Salario Mínimo Legal Vigente", descripcion="SMMLV Colombia", tipoDato="MONETARIO", valor="1750905", unidad="COP", normaOrigen="Decreto Nacional Salarial", articulo="Art. 1", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
+        ParametroNormativo(idParametro=2, codigo=PNC.VALOR_PUNTO_SALARIAL, nombre="Valor Punto Salarial", descripcion="Punto Salarial Dec. 1279", tipoDato="MONETARIO", valor="23924", unidad="COP", normaOrigen="Decreto 1279 de 2002", articulo="Art. 27", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="PLANTA", estado="ACTIVO"),
+        ParametroNormativo(idParametro=3, codigo=PNC.VALOR_AUXILIO_TRANSPORTE_VIGENTE, nombre="Auxilio Transporte", descripcion="Auxilio legal transporte", tipoDato="MONETARIO", valor="249095", unidad="COP", normaOrigen="Decreto Nacional Auxilio Transporte", articulo="Art. 1", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
         ParametroNormativo(idParametro=4, codigo=PNC.VALOR_HORA_CATEDRA, nombre="Valor Hora Cátedra", descripcion="Valor hora catedrático", tipoDato="MONETARIO", valor="38500", unidad="COP", normaOrigen="Acuerdo 027 de 2024", articulo="Art. 15", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="CATEDRATICO", estado="ACTIVO"),
         ParametroNormativo(idParametro=5, codigo=PNC.PORCENTAJE_SALUD_TRABAJADOR, nombre="Salud Trabajador %", descripcion="Descuento Salud 4%", tipoDato="PORCENTUAL", valor="0.04", unidad="%", normaOrigen="Ley 100 de 1993", articulo="Art. 204", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
         ParametroNormativo(idParametro=6, codigo=PNC.PORCENTAJE_SALUD_EMPLEADOR, nombre="Salud Empleador %", descripcion="Aporte Salud Empleador 8.5%", tipoDato="PORCENTUAL", valor="0.085", unidad="%", normaOrigen="Ley 100 de 1993", articulo="Art. 204", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),

@@ -304,9 +304,9 @@ class PITAController:
     def _crear_parametros_por_defecto(self) -> None:
         """Genera los 20 parámetros normativos legales según Decreto 1279, Acuerdo 027 y leyes colombianas."""
         defaults = [
-            ParametroNormativo(1, PNC.SALARIO_MINIMO, "Salario Mínimo Legal Vigente", "SMMLV Colombia", "MONETARIO", "1423500", "COP", "Decreto Nacional Salarial", "Art. 1", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
-            ParametroNormativo(2, PNC.VALOR_PUNTO_SALARIAL, "Valor Punto Salarial", "Punto Salarial Dec. 1279", "MONETARIO", "19850", "COP", "Decreto 1279 de 2002", "Art. 27", date(2026, 1, 1), date(2026, 12, 31), "PLANTA", "ACTIVO"),
-            ParametroNormativo(3, PNC.VALOR_AUXILIO_TRANSPORTE_VIGENTE, "Auxilio Transporte", "Auxilio legal transporte", "MONETARIO", "162000", "COP", "Decreto Nacional Auxilio Transporte", "Art. 1", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
+            ParametroNormativo(1, PNC.SALARIO_MINIMO, "Salario Mínimo Legal Vigente", "SMMLV Colombia", "MONETARIO", "1750905", "COP", "Decreto Nacional Salarial", "Art. 1", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
+            ParametroNormativo(2, PNC.VALOR_PUNTO_SALARIAL, "Valor Punto Salarial", "Punto Salarial Dec. 1279", "MONETARIO", "23924", "COP", "Decreto 1279 de 2002", "Art. 27", date(2026, 1, 1), date(2026, 12, 31), "PLANTA", "ACTIVO"),
+            ParametroNormativo(3, PNC.VALOR_AUXILIO_TRANSPORTE_VIGENTE, "Auxilio Transporte", "Auxilio legal transporte", "MONETARIO", "249095", "COP", "Decreto Nacional Auxilio Transporte", "Art. 1", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
             ParametroNormativo(4, PNC.VALOR_HORA_CATEDRA, "Valor Hora Cátedra", "Valor hora catedrático", "MONETARIO", "38500", "COP", "Acuerdo 027 de 2024", "Art. 15", date(2026, 1, 1), date(2026, 12, 31), "CATEDRATICO", "ACTIVO"),
             ParametroNormativo(5, PNC.PORCENTAJE_SALUD_TRABAJADOR, "Salud Trabajador %", "Descuento Salud 4%", "PORCENTUAL", "0.04", "%", "Ley 100 de 1993", "Art. 204", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
             ParametroNormativo(6, PNC.PORCENTAJE_SALUD_EMPLEADOR, "Salud Empleador %", "Aporte Salud Empleador 8.5%", "PORCENTUAL", "0.085", "%", "Ley 100 de 1993", "Art. 204", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),

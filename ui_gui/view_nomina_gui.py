@@ -160,7 +160,8 @@ class NominaViewGUI(ctk.CTkFrame):
             prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None)
             pers = next((p for p in self.controller.personas if prof and getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
             nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Docente"
-            tipo_prof = str(getattr(prof, "tipoProfesor", "DOCENTE"))
+            tipo_prof_raw = getattr(prof, "tipoProfesor", "DOCENTE")
+            tipo_prof = tipo_prof_raw.value if hasattr(tipo_prof_raw, "value") else str(tipo_prof_raw)
 
             sueldo_b = str(getattr(liq, "salarioBase", "0") or getattr(liq, "sueldoBasico", "0"))
             sueldo_fmt = f"$ {int(float(sueldo_b)):,} COP" if sueldo_b.replace(".","").isdigit() else sueldo_b

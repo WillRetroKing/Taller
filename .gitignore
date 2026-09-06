@@ -1,0 +1,107 @@
+# ======================================================================
+# GITIGNORE - PROYECTO PITA (Python + C++ / CMake / ImGui)
+# ======================================================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- C++ & Compiladores (MSVC, GCC, Clang) ---
+*.obj
+*.o
+*.lib
+*.a
+*.dll
+*.dylib
+*.exe
+*.out
+*.app
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.tlog
+*.manifest
+*.res
+
+# --- CMake & Carpetas de Compilación ---
+build/
+**/build/
+cpp/build/
+CMakeFiles/
+**/CMakeFiles/
+CMakeCache.txt
+**/CMakeCache.txt
+cmake_install.cmake
+**/cmake_install.cmake
+CTestTestfile.cmake
+**/CTestTestfile.cmake
+_deps/
+**/_deps/
+*.cmake.in
+
+# --- Visual Studio & IDEs ---
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Dear ImGui ---
+imgui.ini
+
+# --- Sistema Operativo ---
+desktop.ini
+Thumbs.db
+ehthumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Archivos Temporales y Scratch ---
+scratch/
+tmp/
+*.tmp
+*.log

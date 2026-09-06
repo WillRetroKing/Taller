@@ -171,9 +171,9 @@ class DashboardViewGUI(ctk.CTkFrame):
         pay_info_frame = ctk.CTkFrame(payroll_card, fg_color="transparent")
         pay_info_frame.pack(fill="both", expand=True, padx=15, pady=5)
 
-        smmlv = next((p.valor for p in self.controller.parametros if p.codigo == "SALARIO_MINIMO"), "1423500")
-        punto = next((p.valor for p in self.controller.parametros if p.codigo == "VALOR_PUNTO_SALARIAL"), "19850")
-        aux_trans = next((p.valor for p in self.controller.parametros if p.codigo == "VALOR_AUXILIO_TRANSPORTE_VIGENTE"), "162000")
+        smmlv = next((p.valor for p in self.controller.parametros if p.codigo == "SALARIO_MINIMO"), "1750905")
+        punto = next((p.valor for p in self.controller.parametros if p.codigo == "VALOR_PUNTO_SALARIAL"), "23924")
+        aux_trans = next((p.valor for p in self.controller.parametros if p.codigo == "VALOR_AUXILIO_TRANSPORTE_VIGENTE"), "249095")
 
         rows = [
             ("💵 SMMLV Vigente:", f"$ {int(float(smmlv)):,} COP" if str(smmlv).replace(".","").isdigit() else smmlv),
