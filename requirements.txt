@@ -12,12 +12,7 @@ darkdetect>=0.8.0
 pillow>=10.0.0
 
 # ------------------------------------------------------------------------------
-# 2. Dependencias de Ejecución en Línea de Comandos (CLI - Terminal Rich)
-# ------------------------------------------------------------------------------
-rich>=13.0.0
-
-# ------------------------------------------------------------------------------
-# 3. Dependencias de Desarrollo y Pruebas Automatizadas (Testing)
+# 2. Dependencias de Desarrollo y Pruebas Automatizadas (Testing)
 # ------------------------------------------------------------------------------
 pytest>=8.0.0
 pytest-timeout>=2.3.0
