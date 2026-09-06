@@ -1,0 +1,23 @@
+# ==============================================================================
+# UNIVERSIDAD POPULAR DEL CESAR - INGENIERÍA DE SISTEMAS
+# Programa Integrado de Transacciones Académicas (PITA)
+# Requisitos del Sistema (Dependencias de Ejecución y Pruebas)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Dependencias de Ejecución de la Interfaz Gráfica (GUI - CustomTkinter)
+# ------------------------------------------------------------------------------
+customtkinter>=5.2.0
+darkdetect>=0.8.0
+pillow>=10.0.0
+
+# ------------------------------------------------------------------------------
+# 2. Dependencias de Ejecución en Línea de Comandos (CLI - Terminal Rich)
+# ------------------------------------------------------------------------------
+rich>=13.0.0
+
+# ------------------------------------------------------------------------------
+# 3. Dependencias de Desarrollo y Pruebas Automatizadas (Testing)
+# ------------------------------------------------------------------------------
+pytest>=8.0.0
+pytest-timeout>=2.3.0
