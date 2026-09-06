@@ -8,7 +8,7 @@ from pathlib import Path
 from types import UnionType
 from typing import Any, Iterable, Mapping, Union, get_args, get_origin, get_type_hints
 
-from modelo_datos import (
+from dominio.modelo_datos import (
     AlertaAcademica,
     Administrativo,
     ArchivoPersistencia,

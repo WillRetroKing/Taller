@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from modelo_datos import (
+from dominio.modelo_datos import (
     AsignacionDocente,
     Curso,
     DetalleMatricula,

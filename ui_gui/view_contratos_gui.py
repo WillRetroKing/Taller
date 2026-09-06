@@ -19,7 +19,7 @@ from ui_gui.contratos.dialog_contrato_acciones import (
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
-    from modelo_datos import Contrato
+    from dominio.modelo_datos import Contrato
 
 
 class ContratosViewGUI(ctk.CTkFrame):

@@ -4,7 +4,7 @@ from datetime import date, time
 from decimal import Decimal
 from typing import Any, Iterable
 
-from modelo_datos import (
+from dominio.modelo_datos import (
     AlertaAcademica,
     Calificacion,
     Curso,

@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from modelo_datos import (
+from dominio.modelo_datos import (
     Contrato,
     Dedicacion,
     DetalleLiquidacion,
@@ -18,7 +18,7 @@ from modelo_datos import (
 from nomina.excepciones import ErrorNomina
 
 if TYPE_CHECKING:
-    from gestor_nomina import GestorNomina
+    from nomina.gestor_nomina import GestorNomina
 
 
 class MotorLiquidacionBase:

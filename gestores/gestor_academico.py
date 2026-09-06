@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Iterable
 
-from modelo_datos import AsignacionDocente, Curso, DetallePlanEstudio, Horario, PlanEstudio, Prerrequisito
+from dominio.modelo_datos import AsignacionDocente, Curso, DetallePlanEstudio, Horario, PlanEstudio, Prerrequisito
 
 
 class ErrorAcademico(ValueError):

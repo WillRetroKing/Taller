@@ -7,7 +7,7 @@ from typing import Any
 import customtkinter as ctk
 
 from ui_gui.theme import Colors
-from modelo_datos import Persona
+from dominio.modelo_datos import Persona
 
 
 class PersonaFormCard(ctk.CTkFrame):

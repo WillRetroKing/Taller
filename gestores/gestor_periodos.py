@@ -4,7 +4,7 @@ from datetime import date
 from dataclasses import fields
 from typing import Any
 
-from modelo_datos import PeriodoAcademico
+from dominio.modelo_datos import PeriodoAcademico
 
 
 class ErrorPeriodo(ValueError):

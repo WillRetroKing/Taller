@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Iterable
 
-from modelo_datos import CategoriaDocente, FactorSalarial, ProduccionAcademica, Profesor, TipoFactor
+from dominio.modelo_datos import CategoriaDocente, FactorSalarial, ProduccionAcademica, Profesor, TipoFactor
 
 
 class ErrorFactor(ValueError):

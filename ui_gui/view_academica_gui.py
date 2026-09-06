@@ -27,7 +27,7 @@ from ui_gui.academica.dialogs_notas import (
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
-    from modelo_datos import Curso, DetalleMatricula
+    from dominio.modelo_datos import Curso, DetalleMatricula
 
 
 class AcademicaViewGUI(ctk.CTkFrame):

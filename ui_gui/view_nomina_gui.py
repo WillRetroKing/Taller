@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any
 
 from ui_gui.theme import Colors, Fonts, create_styled_tabview
 from ui_gui.components import PITAGridTable, create_badge
-from modelo_datos import ConceptoNomina, DetalleLiquidacion, LiquidacionNomina, PeriodoNomina, TipoProfesor
-from gestor_nomina import GestorNomina, ErrorNomina
+from dominio.modelo_datos import ConceptoNomina, DetalleLiquidacion, LiquidacionNomina, PeriodoNomina, TipoProfesor
+from nomina import GestorNomina, ErrorNomina
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController

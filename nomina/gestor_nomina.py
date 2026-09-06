@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Iterable
 
-from modelo_datos import (
+from dominio.modelo_datos import (
     CategoriaDocente,
     Contrato,
     Dedicacion,
@@ -272,7 +272,7 @@ class GestorNomina:
         tiene_categoria = any(categoria.idCategoria == profesor.idCategoriaDocente or str(getattr(categoria.codigo, "value", categoria.codigo or "")).upper() in codigos_categoria for categoria in self.categorias)
         tiene_fuentes = tiene_categoria or any(factor.idProfesor == profesor.idProfesor for factor in self.factores) or any(produccion.idProfesor == profesor.idProfesor for produccion in self.producciones)
         if tiene_fuentes:
-            from gestor_factores import GestorFactores
+            from gestores.gestor_factores import GestorFactores
             fecha = periodo.fechaFin or periodo.fechaInicio or date.today()
             return GestorFactores(self.categorias, self.factores, self.producciones, self.profesores).calcular_puntos_profesor(profesor.idProfesor, fecha)
         return self._decimal(profesor.puntosSalariales, "puntos salariales del profesor")

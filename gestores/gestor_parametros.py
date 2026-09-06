@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Iterable
 
-from modelo_datos import LiquidacionNomina, ParametroNormativo
+from dominio.modelo_datos import LiquidacionNomina, ParametroNormativo
 
 
 class ErrorParametro(ValueError):

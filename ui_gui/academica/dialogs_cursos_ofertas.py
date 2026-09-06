@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
 from ui_gui.theme import Colors
-from modelo_datos import Curso
+from dominio.modelo_datos import Curso
 
 if TYPE_CHECKING:
     from ui_gui.academica.academica_service import AcademicaService

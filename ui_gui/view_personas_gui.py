@@ -18,7 +18,7 @@ from ui_gui.personas.dialog_editar_persona import (
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
-    from modelo_datos import Persona, Estudiante, Profesor, Administrativo
+    from dominio.modelo_datos import Persona, Estudiante, Profesor, Administrativo
 
 
 class PersonasViewGUI(ctk.CTkFrame):

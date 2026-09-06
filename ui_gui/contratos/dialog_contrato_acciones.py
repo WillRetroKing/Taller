@@ -12,7 +12,7 @@ from ui_gui.theme import Colors
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
     from ui_gui.contratos.contratos_service import ContratosService
-    from modelo_datos import Contrato
+    from dominio.modelo_datos import Contrato
 
 
 class DialogDetalleContrato(ctk.CTkToplevel):

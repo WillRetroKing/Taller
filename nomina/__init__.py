@@ -3,5 +3,6 @@
 from __future__ import annotations
 
 from nomina.excepciones import ErrorNomina
+from nomina.gestor_nomina import GestorNomina
 
-__all__ = ["ErrorNomina"]
+__all__ = ["ErrorNomina", "GestorNomina"]

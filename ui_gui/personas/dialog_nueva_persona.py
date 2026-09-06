@@ -9,7 +9,7 @@ import customtkinter as ctk
 
 from ui_gui.theme import Colors
 from ui_gui.personas.persona_form_card import PersonaFormCard
-from modelo_datos import (
+from dominio.modelo_datos import (
     Dedicacion,
     EstadoAcademico,
     TipoProfesor,

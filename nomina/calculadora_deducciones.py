@@ -7,7 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from modelo_datos import ParametroNormativo
+    from dominio.modelo_datos import ParametroNormativo
 
 
 class CalculadoraDeducciones:

@@ -7,11 +7,11 @@ from datetime import date
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
-from modelo_datos import LiquidacionNomina, PeriodoNomina, TipoProfesor
+from dominio.modelo_datos import LiquidacionNomina, PeriodoNomina, TipoProfesor
 from nomina.excepciones import ErrorNomina
 
 if TYPE_CHECKING:
-    from gestor_nomina import GestorNomina
+    from nomina.gestor_nomina import GestorNomina
 
 
 class CicloVidaNomina:

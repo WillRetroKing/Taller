@@ -7,7 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from modelo_datos import Contrato, Profesor
+    from dominio.modelo_datos import Contrato, Profesor
     from nomina.calculadora_deducciones import CalculadoraDeducciones
 
 

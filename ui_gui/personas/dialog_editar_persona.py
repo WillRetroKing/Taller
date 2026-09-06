@@ -8,7 +8,7 @@ import customtkinter as ctk
 
 from ui_gui.theme import Colors
 from ui_gui.personas.persona_form_card import PersonaFormCard
-from modelo_datos import (
+from dominio.modelo_datos import (
     Dedicacion,
     EstadoAcademico,
     TipoProfesor,
@@ -17,7 +17,7 @@ from modelo_datos import (
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
     from ui_gui.personas.personas_service import PersonasService
-    from modelo_datos import Persona, Estudiante, Profesor, Administrativo
+    from dominio.modelo_datos import Persona, Estudiante, Profesor, Administrativo
 
 
 class DialogEditarEstudiante(ctk.CTkToplevel):

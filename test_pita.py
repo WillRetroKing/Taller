@@ -5,15 +5,15 @@ import unittest
 import subprocess
 import sys
 
-from gestor_academico import ErrorAcademico, GestorAcademico
-from gestor_contratos import ErrorContrato, GestorContratos
-from gestor_crud import ErrorCRUD, GestorCRUD
-from gestor_nomina import ErrorNomina, GestorNomina
-from gestor_parametros import ErrorParametro, GestorParametros
-from gestor_periodos import ErrorPeriodo, GestorPeriodosAcademicos
-from gestor_persistencia import GestorPersistencia
-from gestores_academicos import ErrorCalificacion, ErrorMatricula, GestorCalificaciones, GestorMatriculas
-from modelo_datos import (
+from gestores.gestor_academico import ErrorAcademico, GestorAcademico
+from gestores.gestor_contratos import ErrorContrato, GestorContratos
+from persistencia.gestor_crud import ErrorCRUD, GestorCRUD
+from nomina import ErrorNomina, GestorNomina
+from gestores.gestor_parametros import ErrorParametro, GestorParametros
+from gestores.gestor_periodos import ErrorPeriodo, GestorPeriodosAcademicos
+from persistencia.gestor_persistencia import GestorPersistencia
+from gestores.gestores_academicos import ErrorCalificacion, ErrorMatricula, GestorCalificaciones, GestorMatriculas
+from dominio.modelo_datos import (
     Administrativo, Calificacion, Contrato, Curso, DetalleMatricula,
     Dedicacion, Estudiante, EstadoAcademico, EstadoCurso, Evaluacion, Facultad,
     Horario, LiquidacionNomina, MatriculaAcademica, OfertaCurso,

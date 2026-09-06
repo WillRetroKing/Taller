@@ -10,18 +10,19 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from gestor_academico import GestorAcademico
-from gestor_contratos import GestorContratos
-from gestor_crud import GestorCRUD
-from gestor_factores import GestorFactores
-from gestor_nomina import GestorNomina
-from gestor_parametros import GestorParametros
-from gestor_periodos import GestorPeriodosAcademicos
-from gestor_persistencia import GestorPersistencia
-from gestor_personas import GestorPersonas
-from gestores_academicos import GestorCalificaciones, GestorMatriculas
-
-from modelo_datos import (
+from persistencia import GestorPersistencia, GestorCRUD
+from nomina import GestorNomina
+from gestores import (
+    GestorAcademico,
+    GestorCalificaciones,
+    GestorContratos,
+    GestorFactores,
+    GestorMatriculas,
+    GestorParametros,
+    GestorPeriodosAcademicos,
+    GestorPersonas,
+)
+from dominio import (
     Administrativo,
     AlertaAcademica,
     AsignacionDocente,

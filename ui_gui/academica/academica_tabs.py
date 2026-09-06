@@ -12,7 +12,7 @@ from ui_gui.components import PITAGridTable
 if TYPE_CHECKING:
     from ui_gui.academica.academica_service import AcademicaService
     from ui_gui.gui_controller import PITAController
-    from modelo_datos import Curso, DetalleMatricula
+    from dominio.modelo_datos import Curso, DetalleMatricula
 
 
 class AcademicaTabs:
