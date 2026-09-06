@@ -29,6 +29,17 @@ void GUIController::guardarDatos() {
     }
 }
 
+void GUIController::iniciarSinDatos() {
+    ListaEnlazada<ParametroNormativo> params = datos.parametrosNormativos;
+    ListaEnlazada<ConceptoNomina> conceptos = datos.conceptosNomina;
+    datos = DatosSistema();
+    datos.parametrosNormativos = params;
+    datos.conceptosNomina = conceptos;
+    inicializarGestores();
+    datosDisponibles = true;
+    setMensaje("Sistema iniciado en limpio (0 datos operativos). Listo para ingresar datos desde cero.");
+}
+
 void GUIController::inicializarGestores() {
     gestorPersonas = std::make_unique<GestorPersonas>(
         datos.personas, datos.estudiantes, datos.profesores,

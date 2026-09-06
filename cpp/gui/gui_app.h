@@ -173,6 +173,29 @@ private:
     char paramDescripcion[128] = "";
     char paramValor[64] = "";
 
+    // Filtros de vistas
+    int conFiltroModalidadIdx = 0; // 0: Todas, 1: Planta, 2: Ocasional, 3: Catedra, 4: Ad-Honorem
+    int conFiltroEstadoIdx = 0;    // 0: Todos, 1: Activo, 2: Terminado
+    char conFiltroBusqueda[64] = "";
+    char perFiltroBusqueda[64] = "";
+    char estFiltroBusqueda[64] = "";
+    char profFiltroBusqueda[64] = "";
+
+    // 4b. Modal Reconocer Puntos (Dec. 1279)
+    bool modalReconocerPuntosAbierto = false;
+    int recProfesorId = 0;
+    int recTipoReconocimientoIdx = 0; // 0: Factores Salariales, 1: Produccion Intelectual
+    int recTipoFactorIdx = 0;
+    char recNombreFactor[128] = "Titulo de Doctorado en Computacion";
+    double recPuntosFactor = 120.0;
+    char recActoAdmin[64] = "Resolucion No. 015-2025";
+    char recFechaReconocimiento[32] = "2025-02-01";
+    int recTipoProduccionIdx = 0;
+    char recTituloProduccion[128] = "Publicacion en Revista Indexada Q1";
+    char recEditorial[128] = "IEEE Transactions on Software";
+    int recNumAutores = 1;
+    double recPuntosProduccion = 15.0;
+
     // Métodos de Renderizado de Modales
     void renderModales();
     void renderModalPersona();
@@ -183,6 +206,7 @@ private:
     void renderModalNota();
     void renderModalContrato();
     void renderModalTerminarContrato();
+    void renderModalReconocerPuntos();
     void renderModalPeriodoNomina();
     void renderModalLiquidar();
     void renderModalPagarNomina();

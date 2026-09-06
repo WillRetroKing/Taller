@@ -51,6 +51,7 @@ public:
 
     void cargarDatos();
     void guardarDatos();
+    void iniciarSinDatos();
     void inicializarGestores();
 
     // Mensajes de estado

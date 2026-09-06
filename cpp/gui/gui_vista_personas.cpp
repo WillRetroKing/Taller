@@ -32,19 +32,35 @@ void PITAApp::renderPersonas() {
         // Tab Personas
         if (ImGui::BeginTabItem("Personas")) {
             ImGui::Spacing();
+
+            // Buscador dinámico
+            ImGui::SetNextItemWidth(320);
+            ImGui::InputTextWithHint("##BuscarPersona", "Buscar persona por nombre, documento o correo...", perFiltroBusqueda, sizeof(perFiltroBusqueda));
+            ImGui::SameLine();
+            if (ImGui::Button("Limpiar##Per")) {
+                perFiltroBusqueda[0] = '\0';
+            }
+            ImGui::SameLine();
+            ImGui::TextColored(tema::TEXT_MUTED(), "(%d registradas)", ctrl.datos.personas.tamano());
+
+            ImGui::Spacing();
+
             if (ImGui::BeginTable("##TablaPersonas", 8,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID");
-                ImGui::TableSetupColumn("Tipo Doc.");
-                ImGui::TableSetupColumn("No. Documento");
-                ImGui::TableSetupColumn("Nombre Completo");
-                ImGui::TableSetupColumn("Correo");
-                ImGui::TableSetupColumn("Ciudad");
-                ImGui::TableSetupColumn("Estado");
-                ImGui::TableSetupColumn("Acciones");
+                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+                ImGui::TableSetupColumn("Tipo Doc.", ImGuiTableColumnFlags_WidthFixed, 80);
+                ImGui::TableSetupColumn("No. Documento", ImGuiTableColumnFlags_WidthFixed, 120);
+                ImGui::TableSetupColumn("Nombre Completo", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Correo", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Ciudad", ImGuiTableColumnFlags_WidthFixed, 110);
+                ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 80);
+                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 140);
                 ImGui::TableHeadersRow();
+
+                std::string busqPer = perFiltroBusqueda;
+                for (auto& ch : busqPer) ch = (char)tolower(ch);
 
                 for (int i = 0; i < ctrl.datos.personas.tamano(); i++) {
                     auto& p = ctrl.datos.personas.obtener(i);
@@ -52,10 +68,26 @@ void PITAApp::renderPersonas() {
                                          (p.segundoNombre ? *p.segundoNombre : "") + " " +
                                          (p.primerApellido ? *p.primerApellido : "") + " " +
                                          (p.segundoApellido ? *p.segundoApellido : "");
+
+                    if (!busqPer.empty()) {
+                        std::string nLower = nombre;
+                        for (auto& ch : nLower) ch = (char)tolower(ch);
+                        std::string docLower = p.numeroDocumento ? *p.numeroDocumento : "";
+                        for (auto& ch : docLower) ch = (char)tolower(ch);
+                        std::string mailLower = p.correoPersonal ? *p.correoPersonal : "";
+                        for (auto& ch : mailLower) ch = (char)tolower(ch);
+
+                        if (nLower.find(busqPer) == std::string::npos &&
+                            docLower.find(busqPer) == std::string::npos &&
+                            mailLower.find(busqPer) == std::string::npos) {
+                            continue;
+                        }
+                    }
+
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn(); ImGui::Text("%d", p.idPersona ? *p.idPersona : 0);
                     ImGui::TableNextColumn(); ImGui::Text("%s", p.tipoDocumento ? p.tipoDocumento->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", p.numeroDocumento ? p.numeroDocumento->c_str() : "---");
+                    ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "%s", p.numeroDocumento ? p.numeroDocumento->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
                     ImGui::TableNextColumn(); ImGui::Text("%s", p.correoPersonal ? p.correoPersonal->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", p.ciudadResidencia ? p.ciudadResidencia->c_str() : "---");
@@ -97,18 +129,33 @@ void PITAApp::renderPersonas() {
         // Tab Estudiantes
         if (ImGui::BeginTabItem("Estudiantes")) {
             ImGui::Spacing();
+
+            ImGui::SetNextItemWidth(300);
+            ImGui::InputTextWithHint("##BuscarEstudiante", "Buscar por nombre o codigo de estudiante...", estFiltroBusqueda, sizeof(estFiltroBusqueda));
+            ImGui::SameLine();
+            if (ImGui::Button("Limpiar##Est")) {
+                estFiltroBusqueda[0] = '\0';
+            }
+            ImGui::SameLine();
+            ImGui::TextColored(tema::TEXT_MUTED(), "(%d matriculados)", ctrl.datos.estudiantes.tamano());
+
+            ImGui::Spacing();
+
             if (ImGui::BeginTable("##TablaEstudiantes", 7,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID");
-                ImGui::TableSetupColumn("Codigo");
-                ImGui::TableSetupColumn("Nombre");
-                ImGui::TableSetupColumn("Semestre");
-                ImGui::TableSetupColumn("Creditos Apr.");
-                ImGui::TableSetupColumn("Promedio");
-                ImGui::TableSetupColumn("Estado Acad.");
+                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+                ImGui::TableSetupColumn("Codigo", ImGuiTableColumnFlags_WidthFixed, 105);
+                ImGui::TableSetupColumn("Nombre", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Semestre", ImGuiTableColumnFlags_WidthFixed, 80);
+                ImGui::TableSetupColumn("Creditos Apr.", ImGuiTableColumnFlags_WidthFixed, 100);
+                ImGui::TableSetupColumn("Promedio", ImGuiTableColumnFlags_WidthFixed, 80);
+                ImGui::TableSetupColumn("Estado Acad.", ImGuiTableColumnFlags_WidthFixed, 100);
                 ImGui::TableHeadersRow();
+
+                std::string busqEst = estFiltroBusqueda;
+                for (auto& ch : busqEst) ch = (char)tolower(ch);
 
                 for (int i = 0; i < ctrl.datos.estudiantes.tamano(); i++) {
                     auto& e = ctrl.datos.estudiantes.obtener(i);
@@ -122,12 +169,24 @@ void PITAApp::renderPersonas() {
                             }
                         }
                     }
+
+                    if (!busqEst.empty()) {
+                        std::string nLower = nombre;
+                        for (auto& ch : nLower) ch = (char)tolower(ch);
+                        std::string codLower = e.codigoEstudiante ? *e.codigoEstudiante : "";
+                        for (auto& ch : codLower) ch = (char)tolower(ch);
+
+                        if (nLower.find(busqEst) == std::string::npos && codLower.find(busqEst) == std::string::npos) {
+                            continue;
+                        }
+                    }
+
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn(); ImGui::Text("%d", e.idEstudiante ? *e.idEstudiante : 0);
-                    ImGui::TableNextColumn(); ImGui::Text("%s", e.codigoEstudiante ? e.codigoEstudiante->c_str() : "---");
+                    ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "%s", e.codigoEstudiante ? e.codigoEstudiante->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
-                    ImGui::TableNextColumn(); ImGui::Text("%d", e.semestreActual ? *e.semestreActual : 0);
-                    ImGui::TableNextColumn(); ImGui::Text("%d", e.creditosAprobados ? *e.creditosAprobados : 0);
+                    ImGui::TableNextColumn(); ImGui::Text("Sem. %d", e.semestreActual ? *e.semestreActual : 0);
+                    ImGui::TableNextColumn(); ImGui::Text("%d cr.", e.creditosAprobados ? *e.creditosAprobados : 0);
                     ImGui::TableNextColumn();
                     if (e.promedioAcumulado && *e.promedioAcumulado < 3.0) {
                         ImGui::TextColored(tema::ACCENT_DANGER(), "%.2f", *e.promedioAcumulado);
@@ -157,18 +216,33 @@ void PITAApp::renderPersonas() {
         // Tab Profesores
         if (ImGui::BeginTabItem("Profesores")) {
             ImGui::Spacing();
+
+            ImGui::SetNextItemWidth(300);
+            ImGui::InputTextWithHint("##BuscarProfesor", "Buscar por nombre o codigo de docente...", profFiltroBusqueda, sizeof(profFiltroBusqueda));
+            ImGui::SameLine();
+            if (ImGui::Button("Limpiar##Prof")) {
+                profFiltroBusqueda[0] = '\0';
+            }
+            ImGui::SameLine();
+            ImGui::TextColored(tema::TEXT_MUTED(), "(%d vinculados)", ctrl.datos.profesores.tamano());
+
+            ImGui::Spacing();
+
             if (ImGui::BeginTable("##TablaProfesores", 7,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID");
-                ImGui::TableSetupColumn("Codigo");
-                ImGui::TableSetupColumn("Nombre");
-                ImGui::TableSetupColumn("Tipo");
-                ImGui::TableSetupColumn("Dedicacion");
-                ImGui::TableSetupColumn("Horas/Sem");
-                ImGui::TableSetupColumn("Puntos Sal.");
+                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+                ImGui::TableSetupColumn("Codigo", ImGuiTableColumnFlags_WidthFixed, 105);
+                ImGui::TableSetupColumn("Nombre Docente", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Tipo / Modalidad", ImGuiTableColumnFlags_WidthFixed, 140);
+                ImGui::TableSetupColumn("Dedicacion", ImGuiTableColumnFlags_WidthFixed, 130);
+                ImGui::TableSetupColumn("Horas/Sem", ImGuiTableColumnFlags_WidthFixed, 90);
+                ImGui::TableSetupColumn("Puntos Dec. 1279", ImGuiTableColumnFlags_WidthFixed, 120);
                 ImGui::TableHeadersRow();
+
+                std::string busqProf = profFiltroBusqueda;
+                for (auto& ch : busqProf) ch = (char)tolower(ch);
 
                 for (int i = 0; i < ctrl.datos.profesores.tamano(); i++) {
                     auto& prof = ctrl.datos.profesores.obtener(i);
@@ -182,14 +256,28 @@ void PITAApp::renderPersonas() {
                             }
                         }
                     }
+
+                    if (!busqProf.empty()) {
+                        std::string nLower = nombre;
+                        for (auto& ch : nLower) ch = (char)tolower(ch);
+                        std::string codLower = prof.codigoProfesor ? *prof.codigoProfesor : "";
+                        for (auto& ch : codLower) ch = (char)tolower(ch);
+
+                        if (nLower.find(busqProf) == std::string::npos && codLower.find(busqProf) == std::string::npos) {
+                            continue;
+                        }
+                    }
+
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn(); ImGui::Text("%d", prof.idProfesor ? *prof.idProfesor : 0);
-                    ImGui::TableNextColumn(); ImGui::Text("%s", prof.codigoProfesor ? prof.codigoProfesor->c_str() : "---");
+                    ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_INDIGO(), "%s", prof.codigoProfesor ? prof.codigoProfesor->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
                     ImGui::TableNextColumn(); ImGui::Text("%s", prof.tipoProfesor ? to_string(*prof.tipoProfesor).c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", prof.dedicacion ? to_string(*prof.dedicacion).c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%.1f", prof.numeroHorasSemanales ? *prof.numeroHorasSemanales : 0.0);
-                    ImGui::TableNextColumn(); ImGui::Text("%.1f", prof.puntosSalariales ? *prof.puntosSalariales : 0.0);
+                    ImGui::TableNextColumn(); ImGui::Text("%.1f h", prof.numeroHorasSemanales ? *prof.numeroHorasSemanales : 0.0);
+                    ImGui::TableNextColumn();
+                    double pts = prof.puntosSalariales.value_or(0.0);
+                    ImGui::TextColored(tema::ACCENT_WARNING(), "%.0f pts", pts);
                 }
                 ImGui::EndTable();
             }

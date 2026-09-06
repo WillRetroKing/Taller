@@ -208,6 +208,16 @@ def generar() -> None:
         ConceptoNomina(idConcepto=3, codigo="DED-01", nombre="Descuento Salud (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
         ConceptoNomina(idConcepto=4, codigo="DED-02", nombre="Descuento Pensión (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
         ConceptoNomina(idConcepto=5, codigo="DED-03", nombre="Fondo Solidaridad Pensional (1%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=6, codigo="PAT-01", nombre="Aporte Patronal Salud (8.5%)", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=7, codigo="PAT-02", nombre="Aporte Patronal Pensión (12%)", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=8, codigo="PAT-03", nombre="Aporte ARL Riesgos Laborales", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=9, codigo="PAT-04", nombre="Caja de Compensación Familiar (4%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=10, codigo="PAT-05", nombre="Aporte Parafiscal SENA (2%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=11, codigo="PAT-06", nombre="Aporte Parafiscal ICBF (3%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=12, codigo="PRE-01", nombre="Cesantías", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=13, codigo="PRE-02", nombre="Intereses sobre Cesantías", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=14, codigo="PRE-03", nombre="Prima de Servicios", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=15, codigo="PRE-04", nombre="Vacaciones", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
     ]
 
     detalles_liq = [

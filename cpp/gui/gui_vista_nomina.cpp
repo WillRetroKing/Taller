@@ -967,7 +967,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d2;
         d2.idDetalleLiquidacion = ++maxDetId;
         d2.idLiquidacion = nuevoIdLiq;
-        d2.idConcepto = 5;
+        d2.idConcepto = 3;
         d2.tipoMovimiento = "DESCUENTO_SALUD";
         d2.valorCalculado = std::round(sueldoBase * 0.04);
         d2.observaciones = "Aporte Salud Trabajador (4%)";
@@ -976,7 +976,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d3;
         d3.idDetalleLiquidacion = ++maxDetId;
         d3.idLiquidacion = nuevoIdLiq;
-        d3.idConcepto = 6;
+        d3.idConcepto = 4;
         d3.tipoMovimiento = "DESCUENTO_PENSION";
         d3.valorCalculado = std::round(sueldoBase * 0.04);
         d3.observaciones = "Aporte Pension Trabajador (4%)";
@@ -985,7 +985,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d4;
         d4.idDetalleLiquidacion = ++maxDetId;
         d4.idLiquidacion = nuevoIdLiq;
-        d4.idConcepto = 10;
+        d4.idConcepto = 6;
         d4.tipoMovimiento = "APORTE_SALUD_PATRONAL";
         d4.valorCalculado = std::round(sueldoBase * 0.085);
         d4.observaciones = "Aporte Patronal Salud (8.5%)";
@@ -994,7 +994,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d5;
         d5.idDetalleLiquidacion = ++maxDetId;
         d5.idLiquidacion = nuevoIdLiq;
-        d5.idConcepto = 11;
+        d5.idConcepto = 7;
         d5.tipoMovimiento = "APORTE_PENSION_PATRONAL";
         d5.valorCalculado = std::round(sueldoBase * 0.12);
         d5.observaciones = "Aporte Patronal Pension (12%)";
@@ -1003,7 +1003,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d6;
         d6.idDetalleLiquidacion = ++maxDetId;
         d6.idLiquidacion = nuevoIdLiq;
-        d6.idConcepto = 12;
+        d6.idConcepto = 8;
         d6.tipoMovimiento = "APORTE_ARL";
         d6.valorCalculado = std::round(sueldoBase * 0.00522);
         d6.observaciones = "Aporte Riesgos Laborales (ARL)";
@@ -1012,7 +1012,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d7;
         d7.idDetalleLiquidacion = ++maxDetId;
         d7.idLiquidacion = nuevoIdLiq;
-        d7.idConcepto = 13;
+        d7.idConcepto = 9;
         d7.tipoMovimiento = "APORTE_CAJA";
         d7.valorCalculado = std::round(sueldoBase * 0.04);
         d7.observaciones = "Caja de Compensacion Familiar (4%)";
@@ -1021,7 +1021,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d8;
         d8.idDetalleLiquidacion = ++maxDetId;
         d8.idLiquidacion = nuevoIdLiq;
-        d8.idConcepto = 14;
+        d8.idConcepto = 10;
         d8.tipoMovimiento = "APORTE_SENA";
         d8.valorCalculado = std::round(sueldoBase * 0.02);
         d8.observaciones = "Aporte Parafiscal SENA (2%)";
@@ -1030,7 +1030,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         DetalleLiquidacion d9;
         d9.idDetalleLiquidacion = ++maxDetId;
         d9.idLiquidacion = nuevoIdLiq;
-        d9.idConcepto = 15;
+        d9.idConcepto = 11;
         d9.tipoMovimiento = "APORTE_ICBF";
         d9.valorCalculado = std::round(sueldoBase * 0.03);
         d9.observaciones = "Aporte Parafiscal ICBF (3%)";

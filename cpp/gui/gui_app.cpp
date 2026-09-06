@@ -280,6 +280,17 @@ void PITAApp::renderSidebar() {
     ImGui::SetCursorPosX(10);
     ImGui::BeginGroup();
 
+    // Botón Iniciar Sin Datos (Requerimiento #59 Taller PITA)
+    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::TEXT_MUTED(), 0.25f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, tema::withAlpha(tema::TEXT_MUTED(), 0.45f));
+    ImGui::PushStyleColor(ImGuiCol_Text, tema::TEXT_MAIN());
+    if (ImGui::Button("Iniciar Sin Datos (0 datos)", ImVec2(ImGui::GetContentRegionAvail().x, 30))) {
+        ctrl.iniciarSinDatos();
+    }
+    ImGui::PopStyleColor(3);
+
+    ImGui::Spacing();
+
     // Botón Recargar Datos
     ImGui::PushStyleColor(ImGuiCol_Button, tema::ACCENT_SUCCESS());
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, tema::ACCENT_SUCCESS_H());
@@ -528,12 +539,12 @@ void PITAApp::renderDashboard() {
 
     ImGui::SetCursorPos(ImVec2(15, 15));
     if (fuenteNormal) ImGui::PushFont(fuenteNormal);
-    ImGui::TextColored(tema::ACCENT_INDIGO(), "Resumen de Nomina");
+    ImGui::TextColored(tema::ACCENT_INDIGO(), "Parametros Salariales y Normatividad");
     if (fuenteNormal) ImGui::PopFont();
 
     ImGui::SetCursorPosX(15);
     if (fuentePequena) ImGui::PushFont(fuentePequena);
-    ImGui::TextColored(tema::TEXT_MUTED(), "Liquidaciones registradas en el sistema");
+    ImGui::TextColored(tema::TEXT_MUTED(), "Decreto 1279 de 2002 / Acuerdo 027 del 31 de octubre de 2024");
     if (fuentePequena) ImGui::PopFont();
 
     ImGui::Spacing();
@@ -552,32 +563,40 @@ void PITAApp::renderDashboard() {
     }
 
     if (ImGui::BeginTable("##ResumenNomina", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH, ImVec2(halfW - 30, 0))) {
-        ImGui::TableSetupColumn("Concepto", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableSetupColumn("Valor", ImGuiTableColumnFlags_WidthFixed, 150);
+        ImGui::TableSetupColumn("Parametro / Metrica", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Valor Institucional", ImGuiTableColumnFlags_WidthFixed, 175);
         ImGui::TableHeadersRow();
 
         ImGui::TableNextRow();
-        ImGui::TableNextColumn(); ImGui::Text("Total Liquidaciones");
-        ImGui::TableNextColumn(); ImGui::Text("%d", totalLiq);
+        ImGui::TableNextColumn(); ImGui::Text("SMMLV Vigente");
+        ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "$1.750.905 COP");
 
         ImGui::TableNextRow();
-        ImGui::TableNextColumn(); ImGui::Text("Aprobadas");
-        ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_SUCCESS(), "%d", liqAprobadas);
+        ImGui::TableNextColumn(); ImGui::Text("Punto Salarial (Dec. 1279)");
+        ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "$23.924 COP");
 
         ImGui::TableNextRow();
-        ImGui::TableNextColumn(); ImGui::Text("Pendientes");
-        ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "%d", liqPendientes);
+        ImGui::TableNextColumn(); ImGui::Text("Auxilio de Transporte");
+        ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "$249.095 COP");
 
         ImGui::TableNextRow();
-        ImGui::TableNextColumn(); ImGui::Text("Total Neto Pagado");
+        ImGui::TableNextColumn(); ImGui::Text("Salud / Pension Trabajador");
+        ImGui::TableNextColumn(); ImGui::Text("4.0 %% c/u (IBC)");
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn(); ImGui::Text("Fondo Solidaridad Pensional");
+        ImGui::TableNextColumn(); ImGui::Text("1.0 %% (si IBC >= 4 SMMLV)");
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn(); ImGui::Text("Liquidaciones Registradas");
+        ImGui::TableNextColumn(); ImGui::Text("%d (Aprob: %d, Pend: %d)", totalLiq, liqAprobadas, liqPendientes);
+
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn(); ImGui::Text("Masa Pagada Consolidada");
         ImGui::TableNextColumn();
         char buf[64];
-        snprintf(buf, sizeof(buf), "$%.0f", totalNeto);
-        ImGui::TextColored(tema::WIN_BLUE(), "%s", buf);
-
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn(); ImGui::Text("Periodos de Nomina");
-        ImGui::TableNextColumn(); ImGui::Text("%d", ctrl.datos.periodosNomina.tamano());
+        snprintf(buf, sizeof(buf), "$%.0f COP", totalNeto);
+        ImGui::TextColored(tema::ACCENT_SUCCESS(), "%s", buf);
 
         ImGui::EndTable();
     }
@@ -600,6 +619,7 @@ void PITAApp::renderModales() {
     renderModalNota();
     renderModalContrato();
     renderModalTerminarContrato();
+    renderModalReconocerPuntos();
     renderModalPeriodoNomina();
     renderModalLiquidar();
     renderModalPagarNomina();
