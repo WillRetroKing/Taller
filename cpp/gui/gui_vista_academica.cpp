@@ -272,6 +272,10 @@ void PITAApp::renderAcademica() {
                         curCodigo[0] = '\0';
                         curNombre[0] = '\0';
                         curCreditos = 3;
+                        curHorasTeoricas = 3;
+                        curHorasPracticas = 2;
+                        curNotaMinima = 3.0f;
+                        curCupoSugerido = 30;
                         mensajeModal[0] = '\0';
                         errorModal = false;
                         modalCursoAbierto = true;
@@ -760,6 +764,14 @@ void PITAApp::renderModalCurso() {
         ImGui::InputText("Nombre de Asignatura *", curNombre, sizeof(curNombre));
         ImGui::InputInt("Creditos Academicos", &curCreditos);
         if (curCreditos < 1) curCreditos = 1;
+        ImGui::InputInt("Horas Teoricas Semanales", &curHorasTeoricas);
+        if (curHorasTeoricas < 0) curHorasTeoricas = 0;
+        ImGui::InputInt("Horas Practicas Semanales", &curHorasPracticas);
+        if (curHorasPracticas < 0) curHorasPracticas = 0;
+        ImGui::InputFloat("Nota Minima Aprobatoria", &curNotaMinima, 0.1f, 0.5f, "%.1f");
+        if (curNotaMinima < 0.0f) curNotaMinima = 3.0f;
+        ImGui::InputInt("Cupo Sugerido", &curCupoSugerido);
+        if (curCupoSugerido < 1) curCupoSugerido = 30;
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -779,6 +791,10 @@ void PITAApp::renderModalCurso() {
                 c.codigoCurso = curCodigo;
                 c.nombre = curNombre;
                 c.numeroCreditos = curCreditos;
+                c.horasTeoricas = curHorasTeoricas;
+                c.horasPracticas = curHorasPracticas;
+                c.cupoSugerido = curCupoSugerido;
+                c.notaMinimaAprobatoria = curNotaMinima > 0.0f ? curNotaMinima : 3.0;
                 c.estado = "ACTIVO";
 
                 ctrl.datos.cursos.push_back(c);

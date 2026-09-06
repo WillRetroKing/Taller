@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
 from ui_gui.theme import Colors
+from ui_gui.components import clean_enum
 from ui_gui.personas.persona_form_card import PersonaFormCard
 from dominio.modelo_datos import (
     Dedicacion,
@@ -111,7 +112,7 @@ class DialogEditarEstudiante(ctk.CTkToplevel):
         self.combo_sem.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 8))
 
         self.combo_est_acad = ctk.CTkComboBox(grid_a, values=["ACTIVO", "EBRA", "MATRICULADO", "ASPIRANTE", "ADMITIDO", "GRADUADO", "INACTIVO", "RETIRADO"])
-        self.combo_est_acad.set(str(getattr(self.estudiante, "estadoAcademico", "ACTIVO")))
+        self.combo_est_acad.set(clean_enum(getattr(self.estudiante, "estadoAcademico", "ACTIVO")))
         self.combo_est_acad.grid(row=3, column=1, sticky="ew", padx=5, pady=(2, 8))
 
         # Promedio y Créditos
@@ -158,7 +159,7 @@ class DialogEditarEstudiante(ctk.CTkToplevel):
         cred = int(cred_str) if cred_str.isdigit() else self.estudiante.creditosAprobados
 
         try:
-            est_acad = EstadoAcademico[self.combo_est_acad.get()]
+            est_acad = EstadoAcademico[clean_enum(self.combo_est_acad.get())]
         except KeyError:
             est_acad = self.estudiante.estadoAcademico
 
@@ -257,8 +258,8 @@ class DialogEditarProfesor(ctk.CTkToplevel):
         self.combo_prog.set(sel_prog)
         self.combo_prog.grid(row=1, column=0, sticky="ew", padx=5, pady=(2, 8))
 
-        self.combo_tipo = ctk.CTkComboBox(grid_d, values=["PLANTA", "OCASIONAL_TC", "OCASIONAL_MT", "CATEDRA"])
-        self.combo_tipo.set(str(getattr(self.profesor, "tipoProfesor", "PLANTA")))
+        self.combo_tipo = ctk.CTkComboBox(grid_d, values=["PLANTA", "OCASIONAL", "CATEDRATICO", "CATEDRATICO_AD_HONOREM"])
+        self.combo_tipo.set(clean_enum(getattr(self.profesor, "tipoProfesor", "PLANTA")))
         self.combo_tipo.grid(row=1, column=1, sticky="ew", padx=5, pady=(2, 8))
 
         # Categoría y Dedicación
@@ -266,11 +267,11 @@ class DialogEditarProfesor(ctk.CTkToplevel):
         ctk.CTkLabel(grid_d, text="Dedicación *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=1, sticky="w", padx=5, pady=(2, 0))
 
         self.combo_cat = ctk.CTkComboBox(grid_d, values=["AUXILIAR", "ASISTENTE", "ASOCIADO", "TITULAR", "NO_CATEGORIZADO"])
-        self.combo_cat.set(str(getattr(self.profesor, "categoriaDocente", "TITULAR")))
+        self.combo_cat.set(clean_enum(getattr(self.profesor, "categoriaDocente", "TITULAR")))
         self.combo_cat.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 8))
 
-        self.combo_ded = ctk.CTkComboBox(grid_d, values=["TIEMPO_COMPLETO", "MEDIO_TIEMPO", "CATEDRA"])
-        self.combo_ded.set(str(getattr(self.profesor, "dedicacion", "TIEMPO_COMPLETO")))
+        self.combo_ded = ctk.CTkComboBox(grid_d, values=["TIEMPO_COMPLETO", "MEDIO_TIEMPO", "HORA_CATEDRA"])
+        self.combo_ded.set(clean_enum(getattr(self.profesor, "dedicacion", "TIEMPO_COMPLETO")))
         self.combo_ded.grid(row=3, column=1, sticky="ew", padx=5, pady=(2, 8))
 
         # Horas Semanales y Puntos Salariales
@@ -327,12 +328,12 @@ class DialogEditarProfesor(ctk.CTkToplevel):
         id_prog = int(prog_sel) if prog_sel.isdigit() else self.profesor.idProgramaPrincipal
 
         try:
-            tipo_prof = TipoProfesor[self.combo_tipo.get()]
+            tipo_prof = TipoProfesor[clean_enum(self.combo_tipo.get())]
         except KeyError:
             tipo_prof = self.profesor.tipoProfesor
 
         try:
-            dedicacion = Dedicacion[self.combo_ded.get()]
+            dedicacion = Dedicacion[clean_enum(self.combo_ded.get())]
         except KeyError:
             dedicacion = self.profesor.dedicacion
 
@@ -441,7 +442,7 @@ class DialogEditarAdministrativo(ctk.CTkToplevel):
         ctk.CTkLabel(grid_l, text="Salario Base Mensual ($) *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=1, sticky="w", padx=5, pady=(2, 0))
 
         self.combo_tcont = ctk.CTkComboBox(grid_l, values=["PLANTA", "PROVISIONALIDAD", "PRESTACION_SERVICIOS"])
-        self.combo_tcont.set(str(getattr(self.administrativo, "tipoContratacion", "PLANTA") or "PLANTA"))
+        self.combo_tcont.set(clean_enum(getattr(self.administrativo, "tipoContratacion", "PLANTA") or "PLANTA"))
         self.combo_tcont.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 8))
 
         self.entry_sal = ctk.CTkEntry(grid_l)

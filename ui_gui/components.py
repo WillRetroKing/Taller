@@ -7,33 +7,67 @@ y tarjetas de métricas KPI estilizadas.
 from __future__ import annotations
 
 import customtkinter as ctk
-from typing import Callable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 from ui_gui.theme import Colors, Fonts
 
 
+def clean_enum(val: Any, default: str = "") -> str:
+    """Extrae el nombre o valor limpio de una instancia de Enum o string de Enum.
+    
+    Evita que cadenas como 'TipoProfesor.PLANTA' o 'EstadoAcademico.EBRA'
+    se muestren directamente en la interfaz.
+    """
+    if val is None:
+        return default
+    if hasattr(val, "value"):
+        s = str(val.value)
+    elif hasattr(val, "name"):
+        s = str(val.name)
+    else:
+        s = str(val)
+    if "." in s:
+        s = s.split(".")[-1]
+    return s
+
+
+def format_title_enum(val: Any, default: str = "") -> str:
+    """Limpia el enum y lo formatea como Title Case reemplazando guiones bajos."""
+    cleaned = clean_enum(val, default)
+    return cleaned.replace("_", " ").title()
+
+
 def create_badge(
     parent: Optional[ctk.CTkFrame],
-    text: str,
-    badge_type: str = "success",
+    text: Any,
+    badge_type: Any = "success",
 ) -> ctk.CTkFrame:
     """Crea una insignia estilizada compacta (Status Badge Pill) estilo Windows Fluent."""
+    text_clean = clean_enum(text)
+    type_clean = clean_enum(badge_type).lower()
+
     styles = {
         "success": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
         "active": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
+        "activo": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
+        "matriculado": {"bg": Colors.BADGE_INFO_BG, "text": Colors.BADGE_INFO_TXT, "border": Colors.BADGE_INFO_BORDER},
+        "aprobado": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
         "liquidado": {"bg": Colors.BADGE_ACTIVE_BG, "text": Colors.BADGE_ACTIVE_TXT, "border": Colors.BADGE_ACTIVE_BORDER},
         "danger": {"bg": Colors.BADGE_EBRA_BG, "text": Colors.BADGE_EBRA_TXT, "border": Colors.BADGE_EBRA_BORDER},
         "ebra": {"bg": Colors.BADGE_EBRA_BG, "text": Colors.BADGE_EBRA_TXT, "border": Colors.BADGE_EBRA_BORDER},
         "cancelado": {"bg": Colors.BADGE_EBRA_BG, "text": Colors.BADGE_EBRA_TXT, "border": Colors.BADGE_EBRA_BORDER},
+        "reprobado": {"bg": Colors.BADGE_EBRA_BG, "text": Colors.BADGE_EBRA_TXT, "border": Colors.BADGE_EBRA_BORDER},
         "warning": {"bg": "#FEF3C7", "text": "#D97706", "border": "#FCD34D"},
         "info": {"bg": Colors.BADGE_INFO_BG, "text": Colors.BADGE_INFO_TXT, "border": Colors.BADGE_INFO_BORDER},
+        "en_curso": {"bg": "#E0E7FF", "text": "#4338CA", "border": "#A5B4FC"},
         "planta": {"bg": Colors.BADGE_INFO_BG, "text": Colors.BADGE_INFO_TXT, "border": Colors.BADGE_INFO_BORDER},
         "ocasional": {"bg": "#E0F2FE", "text": "#0369A1", "border": "#7DD3FC"},
         "catedra": {"bg": "#F3E8FF", "text": "#7E22CE", "border": "#D8B4FE"},
+        "catedratico": {"bg": "#F3E8FF", "text": "#7E22CE", "border": "#D8B4FE"},
         "neutral": {"bg": "#F1F5F9", "text": Colors.TEXT_MUTED, "border": Colors.BORDER_SUBTLE},
     }
 
-    style = styles.get(badge_type.lower(), styles["neutral"])
+    style = styles.get(type_clean, styles["neutral"])
 
     pill = ctk.CTkFrame(
         parent,
@@ -45,7 +79,7 @@ def create_badge(
 
     label = ctk.CTkLabel(
         pill,
-        text=text,
+        text=text_clean,
         font=ctk.CTkFont(family="Segoe UI", size=10, weight="bold"),
         text_color=style["text"],
     )
@@ -246,21 +280,27 @@ class PITATreeviewTable(ctk.CTkFrame):
 
         for item in cells:
             if isinstance(item, tuple) and len(item) >= 2 and item[0] == "badge":
-                b_text = item[1]
-                b_type = item[2] if len(item) > 2 else "neutral"
+                b_text = clean_enum(item[1])
+                b_type = clean_enum(item[2]).lower() if len(item) > 2 else "neutral"
                 prefix = {
                     "success": "🟢 ",
                     "active": "🟢 ",
+                    "activo": "🟢 ",
+                    "matriculado": "🟢 ",
+                    "aprobado": "🟢 ",
                     "liquidado": "🟢 ",
                     "danger": "🔴 ",
                     "ebra": "🔴 ",
                     "cancelado": "🔴 ",
+                    "reprobado": "🔴 ",
                     "warning": "⚠️ ",
                     "info": "🔵 ",
+                    "en_curso": "🔵 ",
                     "planta": "🔵 ",
                     "ocasional": "🟣 ",
                     "catedra": "🟣 ",
-                }.get(b_type.lower(), "")
+                    "catedratico": "🟣 ",
+                }.get(b_type, "")
                 row_values.append(f"{prefix}{b_text}")
             elif isinstance(item, tuple) and item[0] == "actions":
                 action_strs = []
@@ -275,9 +315,9 @@ class PITATreeviewTable(ctk.CTkFrame):
                 row_values.append(btn_text)
                 row_action_list.append((btn_text, btn_cmd))
             elif isinstance(item, tuple):
-                row_values.append(str(item[0]))
+                row_values.append(clean_enum(item[0]))
             else:
-                row_values.append(str(item))
+                row_values.append(clean_enum(item))
 
         tag = "highlight" if is_highlighted else ("even" if self.row_counter % 2 == 0 else "odd")
         self.tree.insert("", "end", iid=row_id, values=row_values, tags=(tag,))

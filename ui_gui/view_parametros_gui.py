@@ -5,7 +5,7 @@ from __future__ import annotations
 import customtkinter as ctk
 from typing import Any, TYPE_CHECKING
 
-from ui_gui.components import PITAGridTable, create_badge
+from ui_gui.components import PITAGridTable, create_badge, clean_enum
 from ui_gui.theme import Colors, Fonts
 
 if TYPE_CHECKING:
@@ -76,8 +76,7 @@ class ParametrosViewGUI(ctk.CTkFrame):
             val_str = str(getattr(p, "valor", "0"))
             val_fmt = f"$ {int(float(val_str)):,}" if val_str.replace(".","").isdigit() and getattr(p, "tipoDato", "") == "MONETARIO" else val_str
 
-            codigo_raw = str(getattr(p, "codigo", "N/A"))
-            codigo_clean = codigo_raw.split(".")[-1] if "." in codigo_raw else codigo_raw
+            codigo_clean = clean_enum(getattr(p, "codigo", "N/A"))
 
             act_spec = (
                 "actions",
@@ -99,8 +98,7 @@ class ParametrosViewGUI(ctk.CTkFrame):
 
     def _editar_parametro(self, param: Any) -> None:
         dialog = ctk.CTkToplevel(self)
-        codigo_raw = str(param.codigo)
-        codigo_clean = codigo_raw.split(".")[-1] if "." in codigo_raw else codigo_raw
+        codigo_clean = clean_enum(param.codigo)
         dialog.title(f"✏️ Editar Parámetro {codigo_clean}")
         dialog.geometry("450x380")
         dialog.grab_set()

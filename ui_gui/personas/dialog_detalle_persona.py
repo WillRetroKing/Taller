@@ -1,6 +1,7 @@
+from __future__ import annotations
 """Modal para ver la Ficha Técnica detallada de una Persona y sus roles en PITA."""
 
-from __future__ import annotations
+from ui_gui.components import clean_enum
 
 from typing import TYPE_CHECKING
 import customtkinter as ctk
@@ -13,29 +14,35 @@ if TYPE_CHECKING:
 
 
 class DialogDetallePersona(ctk.CTkToplevel):
-    """Diálogo modal para inspección de información de una Persona."""
+    """Modal de visualización de detalles completos de una persona y sus roles asociados."""
 
-    def __init__(self, parent: ctk.CTkBaseClass, persona: Persona | None, controller: PITAController) -> None:
+    def __init__(self, parent: ctk.CTkFrame, controller: "PITAController", persona: "Persona"):
         super().__init__(parent)
-        if not persona:
-            self.destroy()
-            return
-
-        self.persona = persona
         self.controller = controller
+        self.persona = persona
 
-        self.title(f"👁️ Ficha Técnica — {persona.primerNombre} {persona.primerApellido}")
-        self.geometry("520x620")
+        self.title("📄 Ficha Detallada de Persona")
+        self.geometry("640x700")
+        self.resizable(False, False)
+        self.configure(fg_color=Colors.BG_PAGE)
+
+        self.transient(parent.winfo_toplevel())
         self.grab_set()
-        self._construir_ui()
 
-    def _construir_ui(self) -> None:
+        self._crear_interfaz()
+
+    def _crear_interfaz(self) -> None:
         p = self.persona
-        nom_completo = f"{p.primerNombre} {p.segundoNombre or ''} {p.primerApellido} {p.segundoApellido or ''}".strip()
+        nom_completo = f"{p.primerNombre or ''} {p.segundoNombre or ''} {p.primerApellido or ''} {p.segundoApellido or ''}".strip()
 
-        ctk.CTkLabel(self, text=f"👤 {nom_completo}", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=(15, 5))
-        ctk.CTkLabel(self, text="Ficha de Identificación, Contacto y Roles en PITA", font=ctk.CTkFont(size=11), text_color="#94A3B8").pack(pady=(0, 10))
+        # Header
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", padx=20, pady=(15, 10))
 
+        ctk.CTkLabel(header, text="👤 FICHA INTEGRAL DE PERSONA", font=ctk.CTkFont(size=11, weight="bold"), text_color="#38BDF8").pack(anchor="w")
+        ctk.CTkLabel(header, text=nom_completo, font=ctk.CTkFont(size=18, weight="bold"), text_color="#F8FAFC").pack(anchor="w")
+
+        # Scrollable container
         scroll_info = ctk.CTkScrollableFrame(self, fg_color="transparent")
         scroll_info.pack(fill="both", expand=True, padx=20, pady=(0, 15))
 
@@ -44,8 +51,9 @@ class DialogDetallePersona(ctk.CTkToplevel):
         info_frame.pack(fill="x", pady=6)
         ctk.CTkLabel(info_frame, text="Datos Personales y Contacto", font=ctk.CTkFont(size=12, weight="bold"), text_color="#38BDF8").pack(anchor="w", padx=15, pady=(10, 6))
 
+        tipo_doc = clean_enum(p.tipoDocumento) or "CC"
         detalles = [
-            ("📄 Documento Identidad:", f"{p.tipoDocumento or 'CC'} {p.numeroDocumento}"),
+            ("📄 Documento Identidad:", f"{tipo_doc} {p.numeroDocumento}"),
             ("🎂 Fecha Nacimiento:", str(p.fechaNacimiento or "No registrada")),
             ("📧 Correo Institucional:", p.correoInstitucional or "N/A"),
             ("📧 Correo Personal:", p.correoPersonal or "No registrado"),
@@ -53,7 +61,7 @@ class DialogDetallePersona(ctk.CTkToplevel):
             ("🏠 Dirección:", p.direccion or "No registrada"),
             ("🏙️ Ciudad de Residencia:", p.ciudadResidencia or "No registrada"),
             ("📅 Fecha Registro:", str(p.fechaRegistro or "N/A")),
-            ("🟢 Estado Sistema:", p.estado or "ACTIVO"),
+            ("🟢 Estado Sistema:", clean_enum(p.estado or "ACTIVO")),
         ]
         for lbl, val in detalles:
             self._agregar_fila_detalle(info_frame, lbl, str(val))
@@ -75,7 +83,7 @@ class DialogDetallePersona(ctk.CTkToplevel):
                 ("Programa Académico:", str(prog_name)),
                 ("Semestre Actual:", f"Semestre {est_rel.semestreActual}"),
                 ("Promedio Acumulado:", f"{float(est_rel.promedioAcumulado or 0.0):.2f}"),
-                ("Estado Académico:", str(est_rel.estadoAcademico)),
+                ("Estado Académico:", clean_enum(est_rel.estadoAcademico)),
             ]:
                 self._agregar_fila_detalle(card_est, lbl, val)
             ctk.CTkLabel(card_est, text="").pack(pady=2)
@@ -86,12 +94,15 @@ class DialogDetallePersona(ctk.CTkToplevel):
             ctk.CTkLabel(card_prof, text="👨‍🏫 Rol: Profesor", font=ctk.CTkFont(size=12, weight="bold"), text_color="#C084FC").pack(anchor="w", padx=15, pady=(10, 6))
 
             prog_name = next((pr.nombre for pr in self.controller.programas if pr.idPrograma == prof_rel.idProgramaPrincipal), f"Prog #{prof_rel.idProgramaPrincipal}")
+            tipo_prof_str = clean_enum(prof_rel.tipoProfesor).replace("_", " ").title()
+            cat_str = clean_enum(prof_rel.categoriaDocente).replace("_", " ").title()
+            ded_str = clean_enum(prof_rel.dedicacion).replace("_", " ").title()
             for lbl, val in [
                 ("Código Profesor:", str(prof_rel.codigoProfesor)),
                 ("Programa Principal:", str(prog_name)),
-                ("Tipo Profesor:", str(prof_rel.tipoProfesor)),
-                ("Categoría:", str(prof_rel.categoriaDocente)),
-                ("Dedicación:", str(prof_rel.dedicacion)),
+                ("Tipo Profesor:", tipo_prof_str),
+                ("Categoría:", cat_str),
+                ("Dedicación:", ded_str),
                 ("Horas Semanales:", f"{prof_rel.numeroHorasSemanales} h/sem"),
                 ("Puntos Salariales:", str(prof_rel.puntosSalariales or "0")),
                 ("Máximo Nivel Estudio:", str(prof_rel.maximoNivelEstudio or "N/A")),
@@ -105,11 +116,12 @@ class DialogDetallePersona(ctk.CTkToplevel):
             card_adm.pack(fill="x", pady=6)
             ctk.CTkLabel(card_adm, text="👔 Rol: Administrativo", font=ctk.CTkFont(size=12, weight="bold"), text_color="#F59E0B").pack(anchor="w", padx=15, pady=(10, 6))
 
+            tipo_adm = clean_enum(getattr(adm_rel, "tipoContratacion", "PLANTA")).replace("_", " ").title()
             for lbl, val in [
                 ("Código Empleado:", str(adm_rel.codigoEmpleado)),
                 ("Cargo:", str(adm_rel.cargo)),
                 ("Dependencia:", str(adm_rel.dependencia)),
-                ("Tipo Contratación:", str(getattr(adm_rel, "tipoContratacion", "PLANTA"))),
+                ("Tipo Contratación:", tipo_adm),
                 ("Salario Base:", f"${float(adm_rel.salarioBase or 0):,.2f}"),
             ]:
                 self._agregar_fila_detalle(card_adm, lbl, val)

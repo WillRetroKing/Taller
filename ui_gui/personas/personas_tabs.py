@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
-from ui_gui.components import PITAGridTable
+from ui_gui.components import PITAGridTable, clean_enum
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -51,7 +51,7 @@ class PersonasTabsRenderer:
             estud_list = [
                 e for e in estud_list
                 if query in str(getattr(e, "codigoEstudiante", "")).lower()
-                or query in str(getattr(e, "estadoAcademico", "")).lower()
+                or query in clean_enum(getattr(e, "estadoAcademico", "")).lower()
                 or any(
                     query in str(getattr(p, "numeroDocumento", "")).lower()
                     or query in str(getattr(p, "primerNombre", "")).lower()
@@ -70,7 +70,7 @@ class PersonasTabsRenderer:
             doc = getattr(pers, "numeroDocumento", "N/A") if pers else "N/A"
             nombre = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Sin Persona"
 
-            estado_acad = str(getattr(est, "estadoAcademico", "ACTIVO"))
+            estado_acad = clean_enum(getattr(est, "estadoAcademico", "ACTIVO"))
             promedio = float(getattr(est, "promedioAcumulado", 0.0) or 0.0)
 
             badge_tuple = ("badge", "⚠️ EBRA", "ebra") if (estado_acad == "EBRA" or promedio < 3.0) else ("badge", "● ACTIVO", "active")
@@ -112,7 +112,7 @@ class PersonasTabsRenderer:
             prof_list = [
                 p for p in prof_list
                 if query in str(getattr(p, "codigoProfesor", "")).lower()
-                or query in str(getattr(p, "tipoProfesor", "")).lower()
+                or query in clean_enum(getattr(p, "tipoProfesor", "")).lower()
                 or any(
                     query in str(getattr(pers, "numeroDocumento", "")).lower()
                     or query in str(getattr(pers, "primerNombre", "")).lower()
@@ -131,9 +131,18 @@ class PersonasTabsRenderer:
             doc = getattr(pers, "numeroDocumento", "N/A") if pers else "N/A"
             nombre = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Sin Persona"
 
-            tipo = str(getattr(prof, "tipoProfesor", "PLANTA"))
-            cat = str(getattr(prof, "categoriaDocente", "TITULAR"))
-            badge_tuple = ("badge", tipo, tipo.lower())
+            tipo_raw = clean_enum(getattr(prof, "tipoProfesor", "PLANTA"))
+            tipo_map = {
+                "PLANTA": ("🏛️ Planta", "planta"),
+                "OCASIONAL": ("⏱️ Ocasional", "ocasional"),
+                "CATEDRATICO": ("📚 Cátedra", "catedra"),
+                "CATEDRATICO_AD_HONOREM": ("🤝 Ad-Honorem", "neutral"),
+            }
+            tipo_label, b_type = tipo_map.get(tipo_raw, (tipo_raw.replace("_", " ").title(), "neutral"))
+            badge_tuple = ("badge", tipo_label, b_type)
+
+            cat_raw = clean_enum(getattr(prof, "categoriaDocente", "TITULAR"))
+            cat = cat_raw.replace("_", " ").title()
 
             act_spec = (
                 "actions",

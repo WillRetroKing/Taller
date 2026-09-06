@@ -8,7 +8,7 @@ import customtkinter as ctk
 from typing import TYPE_CHECKING, Any
 
 from ui_gui.theme import Colors, Fonts, create_styled_tabview
-from ui_gui.components import PITAGridTable, create_badge
+from ui_gui.components import PITAGridTable, create_badge, clean_enum
 from dominio.modelo_datos import ConceptoNomina, DetalleLiquidacion, LiquidacionNomina, PeriodoNomina, TipoProfesor
 from nomina import GestorNomina, ErrorNomina
 
@@ -160,8 +160,14 @@ class NominaViewGUI(ctk.CTkFrame):
             prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None)
             pers = next((p for p in self.controller.personas if prof and getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
             nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Docente"
-            tipo_prof_raw = getattr(prof, "tipoProfesor", "DOCENTE")
-            tipo_prof = tipo_prof_raw.value if hasattr(tipo_prof_raw, "value") else str(tipo_prof_raw)
+            tipo_prof = clean_enum(getattr(prof, "tipoProfesor", "DOCENTE"))
+            tipo_map = {
+                "PLANTA": ("🏛️ Planta", "planta"),
+                "OCASIONAL": ("⏱️ Ocasional", "ocasional"),
+                "CATEDRATICO": ("📚 Cátedra", "catedra"),
+                "CATEDRATICO_AD_HONOREM": ("🤝 Ad-Honorem", "neutral"),
+            }
+            tipo_label, b_type = tipo_map.get(tipo_prof, (tipo_prof.replace("_", " ").title(), "neutral"))
 
             sueldo_b = str(getattr(liq, "salarioBase", "0") or getattr(liq, "sueldoBasico", "0"))
             sueldo_fmt = f"$ {int(float(sueldo_b)):,} COP" if sueldo_b.replace(".","").isdigit() else sueldo_b
@@ -178,7 +184,7 @@ class NominaViewGUI(ctk.CTkFrame):
             prest = str(getattr(liq, "totalPrestaciones", "0") or getattr(liq, "totalPrestacionesSociales", "0"))
             prest_fmt = f"$ {int(float(prest)):,} COP" if prest.replace(".","").isdigit() else prest
 
-            badge_tuple = ("badge", tipo_prof, tipo_prof.lower())
+            badge_tuple = ("badge", tipo_label, b_type)
 
             act_spec = (
                 "actions",
@@ -337,7 +343,7 @@ class NominaViewGUI(ctk.CTkFrame):
         prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None)
         pers = next((p for p in self.controller.personas if prof and getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
         nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Docente"
-        tipo_prof = str(getattr(prof, "tipoProfesor", "PLANTA")).replace("TipoProfesor.", "")
+        tipo_prof = clean_enum(getattr(prof, "tipoProfesor", "PLANTA"))
 
         dialog = ctk.CTkToplevel(self)
         dialog.title(f"📋 Desprendible de Liquidación - {nom_prof}")
@@ -570,7 +576,7 @@ class NominaViewGUI(ctk.CTkFrame):
         self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) not in [l.idLiquidacion for l in self.controller.liquidaciones if l.idProfesor == prof.idProfesor]]
         self.controller._recrear_gestores()
 
-        tipo_prof = str(getattr(contrato, "modalidadProfesor", "") or getattr(contrato, "tipoContrato", "") or getattr(prof, "tipoProfesor", "PLANTA")).upper()
+        tipo_prof = clean_enum(getattr(contrato, "modalidadProfesor", "") or getattr(contrato, "tipoContrato", "") or getattr(prof, "tipoProfesor", "PLANTA")).upper()
 
         liq = None
         if contrato:

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
 from ui_gui.theme import Colors, create_styled_tabview
-from ui_gui.components import PITAGridTable
+from ui_gui.components import PITAGridTable, clean_enum
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -128,8 +128,8 @@ class ContratosTabsRenderer:
 
         filtrados = []
         for cont in contratos:
-            mod = str(getattr(cont, "modalidadProfesor", "") or getattr(cont, "tipoContrato", "")).upper()
-            est = str(getattr(cont, "estado", "ACTIVO")).upper()
+            mod = clean_enum(getattr(cont, "modalidadProfesor", "") or getattr(cont, "tipoContrato", "")).upper()
+            est = clean_enum(getattr(cont, "estado", "ACTIVO")).upper()
 
             if self.filtro_modalidad not in ("TODAS LAS MODALIDADES", "TODAS"):
                 if self.filtro_modalidad == "AD_HONOREM" and not (getattr(cont, "esAdHonorem", False) or "AD_HONOREM" in mod):
@@ -166,17 +166,17 @@ class ContratosTabsRenderer:
             except Exception:
                 asig_fmt = f"$ {asig}"
 
-            est = str(getattr(cont, "estado", "ACTIVO")).upper()
+            est = clean_enum(getattr(cont, "estado", "ACTIVO")).upper()
             badge_est = "cancelado" if est in ("TERMINADO", "INACTIVO") else "active"
 
-            mod = str(getattr(cont, "modalidadProfesor", "") or getattr(cont, "tipoContrato", "DOCENTE")).upper()
+            mod = clean_enum(getattr(cont, "modalidadProfesor", "") or getattr(cont, "tipoContrato", "DOCENTE")).upper()
             if "PLANTA" in mod:
                 badge_mod_type = "planta"
                 mod_desc = "🏛️ Planta (D.1279)"
             elif "OCASIONAL" in mod:
                 badge_mod_type = "ocasional"
                 mod_desc = "⏱️ Ocasional (Ac.027)"
-            elif "CATEDRATICO" in mod:
+            elif "CATEDRATICO" in mod or "CATEDRA" in mod:
                 badge_mod_type = "catedra"
                 mod_desc = "📚 Cátedra (Ac.027)"
             else:
@@ -184,7 +184,7 @@ class ContratosTabsRenderer:
                 mod_desc = "🤝 Ad-Honorem"
 
             horas = getattr(cont, "horasSemanales", 40)
-            ded = str(getattr(cont, "dedicacion", "TC"))
+            ded = clean_enum(getattr(cont, "dedicacion", "TC"))
             ded_fmt = "TC (40h)" if "COMPLETO" in ded else ("MT (20h)" if "MEDIO" in ded else f"HC ({horas}h)")
 
             f_ini = getattr(cont, "fechaInicio", "") or "N/D"
@@ -239,7 +239,7 @@ class ContratosTabsRenderer:
                 pers = self.service.buscar_persona_por_id(getattr(prof, "idPersona", None))
                 nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else f"Profesor #{fac.idProfesor}"
 
-                t_fac = str(getattr(fac, "tipoFactor", "TITULO_ACADEMICO"))
+                t_fac = clean_enum(getattr(fac, "tipoFactor", "TITULO_ACADEMICO"))
                 pts = getattr(fac, "puntosReconocidos", None) or getattr(fac, "puntosAprobados", 0)
 
                 cells = [
@@ -277,7 +277,7 @@ class ContratosTabsRenderer:
 
                 cells = [
                     (nom_prof, "#F8FAFC"),
-                    str(getattr(prod, "tipoProduccion", "ARTICULO")).replace("_", " ").title(),
+                    clean_enum(getattr(prod, "tipoProduccion", "ARTICULO")).replace("_", " ").title(),
                     getattr(prod, "titulo", "Obra"),
                     getattr(prod, "entidadPublicadora", "") or getattr(prod, "identificadorProducto", "N/A"),
                     coaut_pct,

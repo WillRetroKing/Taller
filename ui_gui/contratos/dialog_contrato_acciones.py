@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
 from ui_gui.theme import Colors
+from ui_gui.components import clean_enum
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -30,8 +31,8 @@ class DialogDetalleContrato(ctk.CTkToplevel):
         self.controller = controller
         self.service = service
 
-        self.title(f"👁️ Ficha Contractual — {contrato.numeroContrato}")
-        self.geometry("540x620")
+        self.title(f"📄 Ficha Técnica Contractual — {contrato.numeroContrato}")
+        self.geometry("560x650")
         self.transient(parent.winfo_toplevel())
         self.grab_set()
 
@@ -39,12 +40,12 @@ class DialogDetalleContrato(ctk.CTkToplevel):
 
     def _construir_ui(self) -> None:
         c = self.contrato
-        pers = self.service.buscar_persona_por_id(c.idPersona)
-        prof = self.service.buscar_profesor_por_id_persona(c.idPersona)
-        nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else f"Persona #{c.idPersona}"
+        prof = self.service.buscar_profesor_por_id(c.idPersona)
+        pers = self.service.buscar_persona_por_id(getattr(prof, "idPersona", None)) or self.service.buscar_persona_por_id(c.idPersona)
+        nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else f"Docente #{c.idPersona}"
 
-        ctk.CTkLabel(self, text=f"📜 Contrato: {c.numeroContrato}", font=ctk.CTkFont(family="Segoe UI", size=17, weight="bold"), text_color=Colors.TEXT_MAIN).pack(pady=(15, 2))
-        ctk.CTkLabel(self, text=f"Docente: {nom_prof}", font=ctk.CTkFont(family="Segoe UI", size=13), text_color=Colors.WIN_BLUE).pack(pady=(0, 10))
+        ctk.CTkLabel(self, text=f"🏛️ VINCULACIÓN: {c.numeroContrato}", font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"), text_color=Colors.WIN_BLUE).pack(pady=(16, 2))
+        ctk.CTkLabel(self, text="Ficha Técnica Consolidada y Formalización de Nómina PITA", font=ctk.CTkFont(family="Segoe UI", size=11), text_color=Colors.TEXT_MUTED).pack(pady=(0, 10))
 
         scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=16, pady=4)
@@ -58,25 +59,26 @@ class DialogDetalleContrato(ctk.CTkToplevel):
         except Exception:
             asig_fmt = f"$ {asig}"
 
-        mod = str(getattr(c, "modalidadProfesor", "") or getattr(c, "tipoContrato", "DOCENTE")).upper()
+        mod = clean_enum(getattr(c, "modalidadProfesor", "") or getattr(c, "tipoContrato", "DOCENTE")).upper()
         regimen = "Carrera Docente (Decreto 1279/2002)" if "PLANTA" in mod else "Docente Transitorio (Acuerdo 027/2024)"
 
         pts_sal = getattr(prof, "puntosSalariales", 0) or 0
-        cat_doc = getattr(prof, "categoriaDocente", "N/A") or "N/A"
+        cat_doc = clean_enum(getattr(prof, "categoriaDocente", "N/A")).replace("_", " ").title()
+        ded_fmt = clean_enum(getattr(c, "dedicacion", "TIEMPO_COMPLETO")).replace("_", " ").title()
 
         items = [
             ("Docente Vinculado:", nom_prof),
             ("Documento de Identidad:", str(getattr(pers, "numeroDocumento", "N/D"))),
             ("Modalidad Contractual:", mod),
             ("Régimen Jurídico:", regimen),
-            ("Categoría Docente:", str(cat_doc)),
+            ("Categoría Docente:", cat_doc),
             ("Puntos Salariales (Dec. 1279):", f"{pts_sal} puntos"),
-            ("Dedicación:", str(getattr(c, "dedicacion", "TIEMPO_COMPLETO"))),
+            ("Dedicación:", ded_fmt),
             ("Horas Semanales:", f"{getattr(c, 'horasSemanales', 40)} horas/semana"),
             ("Asignación Básica Mensual:", asig_fmt),
             ("Fecha de Inicio:", str(getattr(c, "fechaInicio", "N/D"))),
             ("Fecha de Terminación:", str(getattr(c, "fechaFin", "Indefinido"))),
-            ("Estado:", str(getattr(c, "estado", "ACTIVO"))),
+            ("Estado:", clean_enum(getattr(c, "estado", "ACTIVO")).upper()),
             ("Disponibilidad Presupuestal (CDP):", str(getattr(c, "numeroCDP", "N/A"))),
             ("Resolución de Nombramiento:", str(getattr(c, "resolucionNombramiento", "N/A"))),
             ("Clase de Riesgo ARL:", str(getattr(c, "claseRiesgoARL", "CLASE I"))),
@@ -127,7 +129,7 @@ class DialogEditarContrato(ctk.CTkToplevel):
 
         ctk.CTkLabel(card, text="Dedicación:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold")).pack(anchor="w", padx=14, pady=(10, 2))
         combo_ded = ctk.CTkComboBox(card, values=["TIEMPO_COMPLETO", "MEDIO_TIEMPO", "HORA_CATEDRA"])
-        combo_ded.set(str(getattr(c, "dedicacion", "TIEMPO_COMPLETO")))
+        combo_ded.set(clean_enum(getattr(c, "dedicacion", "TIEMPO_COMPLETO")))
         combo_ded.pack(fill="x", padx=14, pady=(0, 6))
 
         ctk.CTkLabel(card, text="Horas Semanales:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold")).pack(anchor="w", padx=14, pady=(4, 2))
@@ -162,7 +164,7 @@ class DialogEditarContrato(ctk.CTkToplevel):
 
         ctk.CTkLabel(card, text="Estado del Contrato:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold")).pack(anchor="w", padx=14, pady=(4, 2))
         combo_est = ctk.CTkComboBox(card, values=["ACTIVO", "TERMINADO", "SUSPENDIDO"])
-        combo_est.set(str(getattr(c, "estado", "ACTIVO")))
+        combo_est.set(clean_enum(getattr(c, "estado", "ACTIVO")))
         combo_est.pack(fill="x", padx=14, pady=(0, 10))
 
         lbl_err = ctk.CTkLabel(scroll, text="", text_color="#EF4444", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"))

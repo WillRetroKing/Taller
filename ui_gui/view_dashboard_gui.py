@@ -5,7 +5,7 @@ from __future__ import annotations
 import customtkinter as ctk
 from typing import TYPE_CHECKING
 
-from ui_gui.components import create_badge, create_stat_card
+from ui_gui.components import create_badge, create_stat_card, clean_enum
 from ui_gui.theme import Colors, Fonts
 
 if TYPE_CHECKING:
@@ -58,10 +58,10 @@ class DashboardViewGUI(ctk.CTkFrame):
         total_estudiantes = len(self.controller.estudiantes)
         estudiantes_ebra = sum(
             1 for e in self.controller.estudiantes
-            if str(getattr(e, "estadoAcademico", "")) == "EBRA" or (e.promedioAcumulado and e.promedioAcumulado < 3.0)
+            if clean_enum(getattr(e, "estadoAcademico", "")) == "EBRA" or (e.promedioAcumulado and e.promedioAcumulado < 3.0)
         )
         total_profesores = len(self.controller.profesores)
-        total_contratos = sum(1 for c in self.controller.contratos if str(getattr(c, "estado", "")) == "ACTIVO")
+        total_contratos = sum(1 for c in self.controller.contratos if clean_enum(getattr(c, "estado", "")) == "ACTIVO")
 
         create_stat_card(
             kpi_frame, 0, 0, "👨‍🎓 Estudiantes Registrados", str(total_estudiantes), Colors.WIN_BLUE, "Activos en programas PITA"
@@ -118,7 +118,7 @@ class DashboardViewGUI(ctk.CTkFrame):
 
         estud_ebra_list = [
             e for e in self.controller.estudiantes
-            if str(getattr(e, "estadoAcademico", "")) == "EBRA" or (e.promedioAcumulado and e.promedioAcumulado < 3.0)
+            if clean_enum(getattr(e, "estadoAcademico", "")) == "EBRA" or (e.promedioAcumulado and e.promedioAcumulado < 3.0)
         ]
 
         if not estud_ebra_list:
@@ -171,9 +171,9 @@ class DashboardViewGUI(ctk.CTkFrame):
         pay_info_frame = ctk.CTkFrame(payroll_card, fg_color="transparent")
         pay_info_frame.pack(fill="both", expand=True, padx=15, pady=5)
 
-        smmlv = next((p.valor for p in self.controller.parametros if p.codigo == "SALARIO_MINIMO"), "1750905")
-        punto = next((p.valor for p in self.controller.parametros if p.codigo == "VALOR_PUNTO_SALARIAL"), "23924")
-        aux_trans = next((p.valor for p in self.controller.parametros if p.codigo == "VALOR_AUXILIO_TRANSPORTE_VIGENTE"), "249095")
+        smmlv = next((p.valor for p in self.controller.parametros if clean_enum(p.codigo) == "SALARIO_MINIMO"), "1750905")
+        punto = next((p.valor for p in self.controller.parametros if clean_enum(p.codigo) == "VALOR_PUNTO_SALARIAL"), "23924")
+        aux_trans = next((p.valor for p in self.controller.parametros if clean_enum(p.codigo) == "VALOR_AUXILIO_TRANSPORTE_VIGENTE"), "249095")
 
         rows = [
             ("💵 SMMLV Vigente:", f"$ {int(float(smmlv)):,} COP" if str(smmlv).replace(".","").isdigit() else smmlv),

@@ -121,6 +121,10 @@ private:
     char curNombre[128] = "";
     int curCreditos = 3;
     int curSemestre = 1;
+    int curHorasTeoricas = 3;
+    int curHorasPracticas = 2;
+    float curNotaMinima = 3.0f;
+    int curCupoSugerido = 30;
 
     bool modalMatriculaAbierto = false;
     int matEstudianteId = 0;

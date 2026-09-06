@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
 from ui_gui.theme import Colors, create_styled_tabview
-from ui_gui.components import PITAGridTable
+from ui_gui.components import PITAGridTable, clean_enum
 
 if TYPE_CHECKING:
     from ui_gui.academica.academica_service import AcademicaService
@@ -55,12 +55,18 @@ class AcademicaTabs:
                         ("❌ Eliminar", lambda c_id=c.idCurso: on_eliminar_curso(c_id), "#EF4444", "#DC2626"),
                     ],
                 )
+                nota_min_raw = getattr(c, "notaMinimaAprobatoria", None)
+                try:
+                    nota_min_fmt = f"{float(nota_min_raw):.1f}" if (nota_min_raw is not None and float(nota_min_raw) > 0) else "3.0"
+                except Exception:
+                    nota_min_fmt = "3.0"
+
                 cells = [
                     (getattr(c, "codigoCurso", "N/A"), "#38BDF8"),
                     (getattr(c, "nombre", "N/A"), "#F8FAFC"),
                     f"{getattr(c, 'numeroCreditos', 3)} créditos",
                     f"{getattr(c, 'horasTeoricas', 3)}h T / {getattr(c, 'horasPracticas', 2)}h P",
-                    str(getattr(c, "notaMinimaAprobatoria", "3.0")),
+                    nota_min_fmt,
                     str(getattr(c, "cupoSugerido", 30)),
                     act_spec,
                 ]
@@ -208,12 +214,13 @@ class AcademicaTabs:
             nom_c = f"{curso.nombre} (Gr. {oferta.grupo if oferta else '01'})" if curso else "Curso"
             cred_c = f"{curso.numeroCreditos or 3} cr." if curso else "3 cr."
 
-            est_c = str(getattr(det, "estadoCurso", "EN_CURSO"))
+            est_c = clean_enum(getattr(det, "estadoCurso", "EN_CURSO"))
             nota_f = getattr(det, "notaFinal", None)
             nota_str = f"{float(nota_f):.2f}" if nota_f is not None else "Sin nota"
             color_nota = "#F87171" if (nota_f is not None and float(nota_f) < 3.0) else ("#34D399" if nota_f is not None else "#94A3B8")
 
-            badge_tuple = ("badge", est_c, "cancelado" if est_c == "CANCELADO" else ("active" if est_c == "APROBADO" else "ebra"))
+            badge_type = "cancelado" if est_c == "CANCELADO" else ("active" if est_c == "APROBADO" else ("danger" if est_c == "REPROBADO" else "info"))
+            badge_tuple = ("badge", est_c.replace("_", " ").title(), badge_type)
 
             if est_c != "CANCELADO":
                 btn_canc = ("button", "🚫 Cancelar", lambda d_id=det.idDetalleMatricula: on_cancelar_curso(d_id), "#EF4444", "#DC2626", 90, 28)
@@ -258,7 +265,7 @@ class AcademicaTabs:
         # Opciones legibles de inscripciones activas
         det_options = []
         for d in controller.detalles_matricula:
-            if str(getattr(d, "estadoCurso", "")) == "CANCELADO":
+            if clean_enum(getattr(d, "estadoCurso", "")) == "CANCELADO":
                 continue
             mat = next((m for m in controller.matriculas if m.idMatricula == d.idMatricula), None)
             est = next((e for e in controller.estudiantes if mat and e.idEstudiante == mat.idEstudiante), None)
@@ -327,7 +334,7 @@ class AcademicaTabs:
             return
 
         for det in controller.detalles_matricula:
-            if str(getattr(det, "estadoCurso", "")) == "CANCELADO":
+            if clean_enum(getattr(det, "estadoCurso", "")) == "CANCELADO":
                 continue
             mat = next((m for m in controller.matriculas if m.idMatricula == det.idMatricula), None)
             est = next((e for e in controller.estudiantes if mat and e.idEstudiante == mat.idEstudiante), None)
@@ -345,8 +352,9 @@ class AcademicaTabs:
             nota_str = f"{float(nota_f):.2f}" if nota_f is not None else "Sin calificar"
             color_nota = "#F87171" if (nota_f is not None and float(nota_f) < 3.0) else ("#34D399" if nota_f is not None else "#94A3B8")
 
-            est_c = str(getattr(det, "estadoCurso", "EN_CURSO"))
-            badge_tuple = ("badge", est_c, "active" if est_c == "APROBADO" else ("ebra" if est_c == "REPROBADO" else "en_curso"))
+            est_c = clean_enum(getattr(det, "estadoCurso", "EN_CURSO"))
+            badge_type = "active" if est_c == "APROBADO" else ("danger" if est_c == "REPROBADO" else "info")
+            badge_tuple = ("badge", est_c.replace("_", " ").title(), badge_type)
 
             prom_est = float(getattr(est, "promedioAcumulado", 0.0) or 0.0) if est else 0.0
             if prom_est < 3.0 and prom_est > 0:
@@ -447,7 +455,8 @@ class AcademicaTabs:
 
             pers = next((p for p in controller.personas if p.idPersona == est.idPersona), None)
             nom = f"{pers.primerNombre} {pers.primerApellido}" if pers else "Estudiante"
-            doc = f"{pers.tipoDocumento} {pers.numeroDocumento}" if pers else "N/A"
+            tipo_doc = clean_enum(pers.tipoDocumento) if pers else ""
+            doc = f"{tipo_doc} {pers.numeroDocumento}".strip() if pers else "N/A"
 
             prog = next((pr.nombre for pr in controller.programas if pr.idPrograma == est.idPrograma), f"Prog #{est.idPrograma}")
 

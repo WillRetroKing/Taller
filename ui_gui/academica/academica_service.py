@@ -15,6 +15,7 @@ from dominio.modelo_datos import (
     MatriculaAcademica,
     OfertaCurso,
 )
+from ui_gui.components import clean_enum
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -52,7 +53,7 @@ class AcademicaService:
 
         creditos = 0
         for d in self.controller.detalles_matricula:
-            if str(getattr(d, "estadoCurso", "")) != "CANCELADO" and d.idMatricula in matricula_ids:
+            if clean_enum(getattr(d, "estadoCurso", "")) != "CANCELADO" and d.idMatricula in matricula_ids:
                 oferta = ofertas_map.get(d.idOfertaCurso)
                 if oferta:
                     curso = cursos_map.get(oferta.idCurso)
@@ -83,7 +84,7 @@ class AcademicaService:
         matricula_ids = {m.idMatricula for m in self.controller.matriculas if m.idEstudiante == est.idEstudiante}
         ya_inscrito = any(
             d.idOfertaCurso == oferta.idOfertaCurso
-            and str(getattr(d, "estadoCurso", "")) != "CANCELADO"
+            and clean_enum(getattr(d, "estadoCurso", "")) != "CANCELADO"
             and d.idMatricula in matricula_ids
             for d in self.controller.detalles_matricula
         )
@@ -132,6 +133,7 @@ class AcademicaService:
         oferta.cupoDisponible = max(0, (oferta.cupoDisponible or 1) - 1)
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return True, f"✅ Matrícula exitosa para {est.codigoEstudiante} en {curso.nombre} (Gr. {oferta.grupo})."
 
     def cancelar_curso_estudiante(self, id_detalle: int) -> bool:
@@ -156,6 +158,7 @@ class AcademicaService:
             mat.totalCreditos = max(0, mat.totalCreditos - (curso.numeroCreditos or 0))
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return True
 
     # ------------------------------------------------------------------
@@ -170,7 +173,7 @@ class AcademicaService:
         matricula_ids = {m.idMatricula for m in self.controller.matriculas if m.idEstudiante == id_estudiante}
         notas_est = [
             float(d.notaFinal) for d in self.controller.detalles_matricula
-            if str(getattr(d, "estadoCurso", "")) != "CANCELADO"
+            if clean_enum(getattr(d, "estadoCurso", "")) != "CANCELADO"
             and d.notaFinal is not None
             and d.idMatricula in matricula_ids
         ]
@@ -200,6 +203,7 @@ class AcademicaService:
             self.actualizar_promedio_estudiante(mat.idEstudiante)
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return True
 
     def limpiar_nota(self, id_detalle: int) -> bool:
@@ -216,13 +220,23 @@ class AcademicaService:
             self.actualizar_promedio_estudiante(mat.idEstudiante)
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return True
 
     # ------------------------------------------------------------------
     # CRUD ASIGNATURAS Y OFERTAS
     # ------------------------------------------------------------------
-    def crear_curso(self, codigo: str, nombre: str, creditos: int, ht: int, hp: int, cupo: int) -> Curso:
-        """Crea una nueva asignatura en el catálogo."""
+    def crear_curso(
+        self,
+        codigo: str,
+        nombre: str,
+        creditos: int,
+        ht: int,
+        hp: int,
+        cupo: int,
+        nota_minima: Decimal = Decimal("3.0"),
+    ) -> Curso:
+        """Crea una nueva asignatura en el catálogo y persiste los cambios."""
         new_id = max((c.idCurso or 0 for c in self.controller.cursos), default=0) + 1
         curso = Curso(
             idCurso=new_id,
@@ -233,17 +247,19 @@ class AcademicaService:
             horasTeoricas=ht,
             horasPracticas=hp,
             cupoSugerido=cupo,
-            notaMinimaAprobatoria=Decimal("3.0"),
+            notaMinimaAprobatoria=nota_minima,
             estado="ACTIVO",
         )
         self.controller.cursos.append(curso)
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return curso
 
     def eliminar_curso(self, id_curso: int) -> None:
-        """Elimina una asignatura del catálogo."""
+        """Elimina una asignatura del catálogo y persiste los cambios."""
         self.controller.cursos = [c for c in self.controller.cursos if c.idCurso != id_curso]
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
 
     def crear_oferta(
         self,
@@ -285,6 +301,7 @@ class AcademicaService:
             self.controller.asignaciones.append(asig)
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return oferta
 
     def eliminar_oferta(self, id_oferta: int) -> None:
@@ -292,6 +309,7 @@ class AcademicaService:
         self.controller.ofertas = [o for o in self.controller.ofertas if o.idOfertaCurso != id_oferta]
         self.controller.asignaciones = [a for a in self.controller.asignaciones if a.idOfertaCurso != id_oferta]
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
 
     # ------------------------------------------------------------------
     # ANALÍTICA EBRA
@@ -299,7 +317,7 @@ class AcademicaService:
     def calcular_kpis_ebra(self) -> dict[str, Any]:
         """Calcula los indicadores globales de desempeño y alertas EBRA."""
         total_est = len(self.controller.estudiantes)
-        ebras = [e for e in self.controller.estudiantes if getattr(e, "estadoAcademico", "") == EstadoAcademico.EBRA]
+        ebras = [e for e in self.controller.estudiantes if clean_enum(getattr(e, "estadoAcademico", "")) == "EBRA"]
         total_ebras = len(ebras)
         normales = total_est - total_ebras
 

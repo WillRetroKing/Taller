@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable
 import customtkinter as ctk
 
 from ui_gui.theme import Colors
+from ui_gui.components import clean_enum
 from ui_gui.personas.persona_form_card import PersonaFormCard
 from dominio.modelo_datos import (
     Dedicacion,
@@ -172,7 +173,7 @@ class DialogNuevaPersona(ctk.CTkToplevel):
             ctk.CTkLabel(self.sub_rol, text="Tipo de Profesor / Vinculación *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=0, sticky="w", padx=5, pady=(2, 0))
             ctk.CTkLabel(self.sub_rol, text="Categoría Docente *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=1, sticky="w", padx=5, pady=(2, 0))
 
-            combo_tipo = ctk.CTkComboBox(self.sub_rol, values=["PLANTA", "OCASIONAL_TC", "OCASIONAL_MT", "CATEDRA"])
+            combo_tipo = ctk.CTkComboBox(self.sub_rol, values=["PLANTA", "OCASIONAL", "CATEDRATICO", "CATEDRATICO_AD_HONOREM"])
             combo_tipo.set("PLANTA")
             combo_tipo.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 8))
             self.widgets_rol["tipo_profesor"] = combo_tipo
@@ -185,7 +186,7 @@ class DialogNuevaPersona(ctk.CTkToplevel):
             ctk.CTkLabel(self.sub_rol, text="Dedicación *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=4, column=0, sticky="w", padx=5, pady=(2, 0))
             ctk.CTkLabel(self.sub_rol, text="Horas Semanales", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=4, column=1, sticky="w", padx=5, pady=(2, 0))
 
-            combo_ded = ctk.CTkComboBox(self.sub_rol, values=["TIEMPO_COMPLETO", "MEDIO_TIEMPO", "CATEDRA"])
+            combo_ded = ctk.CTkComboBox(self.sub_rol, values=["TIEMPO_COMPLETO", "MEDIO_TIEMPO", "HORA_CATEDRA"])
             combo_ded.set("TIEMPO_COMPLETO")
             combo_ded.grid(row=5, column=0, sticky="ew", padx=5, pady=(2, 8))
             self.widgets_rol["dedicacion"] = combo_ded
@@ -292,7 +293,7 @@ class DialogNuevaPersona(ctk.CTkToplevel):
             plan_sel = self.widgets_rol["plan"].get().split(" - ")[0] if "plan" in self.widgets_rol else "1"
             datos_rol["idPlanEstudio"] = int(plan_sel) if plan_sel.isdigit() else 1
 
-            est_acad_str = self.widgets_rol["estado_academico"].get() if "estado_academico" in self.widgets_rol else "ACTIVO"
+            est_acad_str = clean_enum(self.widgets_rol["estado_academico"].get() if "estado_academico" in self.widgets_rol else "ACTIVO")
             try:
                 datos_rol["estadoAcademico"] = EstadoAcademico[est_acad_str]
             except KeyError:
@@ -308,13 +309,13 @@ class DialogNuevaPersona(ctk.CTkToplevel):
             prog_sel = self.widgets_rol["programa"].get().split(" - ")[0] if "programa" in self.widgets_rol else "1"
             datos_rol["idProgramaPrincipal"] = int(prog_sel) if prog_sel.isdigit() else 1
 
-            tipo_str = self.widgets_rol["tipo_profesor"].get() if "tipo_profesor" in self.widgets_rol else "PLANTA"
+            tipo_str = clean_enum(self.widgets_rol["tipo_profesor"].get() if "tipo_profesor" in self.widgets_rol else "PLANTA")
             try:
                 datos_rol["tipoProfesor"] = TipoProfesor[tipo_str]
             except KeyError:
                 datos_rol["tipoProfesor"] = TipoProfesor.PLANTA
 
-            ded_str = self.widgets_rol["dedicacion"].get() if "dedicacion" in self.widgets_rol else "TIEMPO_COMPLETO"
+            ded_str = clean_enum(self.widgets_rol["dedicacion"].get() if "dedicacion" in self.widgets_rol else "TIEMPO_COMPLETO")
             try:
                 datos_rol["dedicacion"] = Dedicacion[ded_str]
             except KeyError:
