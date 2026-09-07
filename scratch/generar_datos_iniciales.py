@@ -46,6 +46,7 @@ from dominio.modelo_datos import (
     Universidad,
 )
 from persistencia.gestor_persistencia import GestorPersistencia
+from nomina.gestor_nomina import GestorNomina
 
 
 def generar() -> None:
@@ -82,11 +83,11 @@ def generar() -> None:
     planes = [pe1, pe2]
 
     # 5. Cursos
-    c1 = Curso(idCurso=1, codigoCurso="INF-101", nombre="Estructura de Datos", descripcion="Listas, Árboles, Grafos", numeroCreditos=4, horasTeoricas=4, horasPracticas=2, horasTrabajoIndependiente=6, cupoSugerido=35, notaMinimaAprobatoria="3.0", estado="ACTIVO")
-    c2 = Curso(idCurso=2, codigoCurso="INF-102", nombre="Bases de Datos I", descripcion="Modelado relacional y SQL", numeroCreditos=3, horasTeoricas=3, horasPracticas=2, horasTrabajoIndependiente=4, cupoSugerido=30, notaMinimaAprobatoria="3.0", estado="ACTIVO")
-    c3 = Curso(idCurso=3, codigoCurso="INF-103", nombre="Programación Orientada a Objetos", descripcion="Paradigma POO en Java/Python", numeroCreditos=4, horasTeoricas=4, horasPracticas=2, horasTrabajoIndependiente=6, cupoSugerido=35, notaMinimaAprobatoria="3.0", estado="ACTIVO")
-    c4 = Curso(idCurso=4, codigoCurso="ENF-101", nombre="Anatomía Humana", descripcion="Morfología general", numeroCreditos=4, horasTeoricas=3, horasPracticas=3, horasTrabajoIndependiente=4, cupoSugerido=25, notaMinimaAprobatoria="3.0", estado="ACTIVO")
-    c5 = Curso(idCurso=5, codigoCurso="ADM-101", nombre="Fundamentos de Administración", descripcion="Teoría administrativa", numeroCreditos=3, horasTeoricas=3, horasPracticas=0, horasTrabajoIndependiente=6, cupoSugerido=40, notaMinimaAprobatoria="3.0", estado="ACTIVO")
+    c1 = Curso(idCurso=1, codigoCurso="INF-101", nombre="Estructura de Datos", descripcion="Listas, Árboles, Grafos", numeroCreditos=4, horasTeoricas=4, horasPracticas=2, horasTrabajoIndependiente=6, cupoSugerido=35, notaMinimaAprobatoria=Decimal("3.0"), estado="ACTIVO")
+    c2 = Curso(idCurso=2, codigoCurso="INF-102", nombre="Bases de Datos I", descripcion="Modelado relacional y SQL", numeroCreditos=3, horasTeoricas=3, horasPracticas=2, horasTrabajoIndependiente=4, cupoSugerido=30, notaMinimaAprobatoria=Decimal("3.0"), estado="ACTIVO")
+    c3 = Curso(idCurso=3, codigoCurso="INF-103", nombre="Programación Orientada a Objetos", descripcion="Paradigma POO en Java/Python", numeroCreditos=4, horasTeoricas=4, horasPracticas=2, horasTrabajoIndependiente=6, cupoSugerido=35, notaMinimaAprobatoria=Decimal("3.0"), estado="ACTIVO")
+    c4 = Curso(idCurso=4, codigoCurso="ENF-101", nombre="Anatomía Humana", descripcion="Morfología general", numeroCreditos=4, horasTeoricas=3, horasPracticas=3, horasTrabajoIndependiente=4, cupoSugerido=25, notaMinimaAprobatoria=Decimal("3.0"), estado="ACTIVO")
+    c5 = Curso(idCurso=5, codigoCurso="ADM-101", nombre="Fundamentos de Administración", descripcion="Teoría administrativa", numeroCreditos=3, horasTeoricas=3, horasPracticas=0, horasTrabajoIndependiente=6, cupoSugerido=40, notaMinimaAprobatoria=Decimal("3.0"), estado="ACTIVO")
     cursos = [c1, c2, c3, c4, c5]
 
     dp1 = DetallePlanEstudio(idDetallePlan=1, idPlanEstudio=1, idCurso=1, semestreSugerido=3, tipoCurso="OBLIGATORIO", numeroCreditos=4, esObligatorio=True, estado="ACTIVO")
@@ -163,7 +164,7 @@ def generar() -> None:
 
     calificaciones = [
         Calificacion(idCalificacion=1, idEvaluacion=1, idDetalleMatricula=1, nota=Decimal("2.5"), fechaRegistro=date(2026, 3, 16), observacion="Parcial 1", estado="ACTIVO"),
-        Calificacion(idCalificacion=2, idEvaluacion=1, idDetalleMatricula=3, nota=Decimal("4.5"), fechaRegistro=date(2026, 3, 16), observacion="Excelente", estado="ACTIVO"),
+        Calificacion(idCalificacion=2, idEvaluacion=1, idDetalleMatricula=3, nota=Decimal("4.5"), fechaRegistro=date(2026, 3, 16), observacion="Parcial 1", estado="ACTIVO"),
     ]
 
     alertas = [
@@ -171,7 +172,7 @@ def generar() -> None:
     ]
 
     contratos = [
-        Contrato(idContrato=1, idPersona=4, numeroContrato="CONT-2026-001", tipoContrato="DOCENTE_PLANTA", fechaInicio=date(2026, 1, 1), fechaFin=date(2026, 12, 31), dedicacion=Dedicacion.TIEMPO_COMPLETO, horasSemanales=Decimal("40"), salarioBase=Decimal("8932500"), estado="ACTIVO"),
+        Contrato(idContrato=1, idPersona=4, numeroContrato="CONT-2026-001", tipoContrato="DOCENTE_PLANTA", fechaInicio=date(2026, 1, 1), fechaFin=date(2026, 12, 31), dedicacion=Dedicacion.TIEMPO_COMPLETO, horasSemanales=Decimal("40"), salarioBase=Decimal("10765800"), estado="ACTIVO"),
         Contrato(idContrato=2, idPersona=5, numeroContrato="CONT-2026-002", tipoContrato="DOCENTE_CATEDRATICO", fechaInicio=date(2026, 2, 1), fechaFin=date(2026, 6, 30), dedicacion=Dedicacion.HORA_CATEDRA, horasSemanales=Decimal("12"), salarioBase=Decimal("1848000"), estado="ACTIVO"),
         Contrato(idContrato=3, idPersona=6, numeroContrato="CONT-2026-003", tipoContrato="DOCENTE_OCASIONAL", fechaInicio=date(2026, 1, 15), fechaFin=date(2026, 12, 15), dedicacion=Dedicacion.TIEMPO_COMPLETO, horasSemanales=Decimal("40"), salarioBase=Decimal("3800000"), estado="ACTIVO"),
     ]
@@ -196,37 +197,6 @@ def generar() -> None:
         PeriodoNomina(idPeriodoNomina=1, anio=2026, mes=3, fechaInicio=date(2026, 3, 1), fechaFin=date(2026, 3, 31), estado="ABIERTO"),
     ]
 
-    liquidaciones = [
-        LiquidacionNomina(idLiquidacion=1, idProfesor=1, idContrato=1, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("8932500"), totalDevengado=Decimal("8932500"), totalDescuentos=Decimal("803925"), netoPagar=Decimal("8128575"), totalPrestaciones=Decimal("1860640"), estado="LIQUIDADO"),
-        LiquidacionNomina(idLiquidacion=2, idProfesor=2, idContrato=2, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("1848000"), totalDevengado=Decimal("1848000"), totalDescuentos=Decimal("147840"), netoPagar=Decimal("1700160"), totalPrestaciones=Decimal("385000"), estado="LIQUIDADO"),
-        LiquidacionNomina(idLiquidacion=3, idProfesor=3, idContrato=3, idPeriodoNomina=1, fechaLiquidacion=date(2026, 3, 25), salarioBase=Decimal("3800000"), totalDevengado=Decimal("3800000"), totalDescuentos=Decimal("304000"), netoPagar=Decimal("3496000"), totalPrestaciones=Decimal("791540"), estado="LIQUIDADO"),
-    ]
-
-    conceptos = [
-        ConceptoNomina(idConcepto=1, codigo="DEV-01", nombre="Sueldo Básico", tipoConcepto="DEVENGADO", naturaleza="DEVENGADO", esSalarial=True, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=2, codigo="DEV-02", nombre="Bonificación Posgrado", tipoConcepto="DEVENGADO", naturaleza="DEVENGADO", esSalarial=True, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=3, codigo="DED-01", nombre="Descuento Salud (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=4, codigo="DED-02", nombre="Descuento Pensión (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=5, codigo="DED-03", nombre="Fondo Solidaridad Pensional (1%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=6, codigo="PAT-01", nombre="Aporte Patronal Salud (8.5%)", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=7, codigo="PAT-02", nombre="Aporte Patronal Pensión (12%)", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=8, codigo="PAT-03", nombre="Aporte ARL Riesgos Laborales", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=9, codigo="PAT-04", nombre="Caja de Compensación Familiar (4%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=10, codigo="PAT-05", nombre="Aporte Parafiscal SENA (2%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=11, codigo="PAT-06", nombre="Aporte Parafiscal ICBF (3%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=12, codigo="PRE-01", nombre="Cesantías", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=13, codigo="PRE-02", nombre="Intereses sobre Cesantías", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=14, codigo="PRE-03", nombre="Prima de Servicios", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=15, codigo="PRE-04", nombre="Vacaciones", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
-    ]
-
-    detalles_liq = [
-        DetalleLiquidacion(idDetalleLiquidacion=1, idLiquidacion=1, idConcepto=1, tipoMovimiento="SALARIO_ORDINARIO", valorCalculado=Decimal("8932500"), observaciones="Sueldo básico mensual"),
-        DetalleLiquidacion(idDetalleLiquidacion=2, idLiquidacion=1, idConcepto=3, tipoMovimiento="DESCUENTO_SALUD", valorCalculado=Decimal("357300"), observaciones="Aporte Salud Trabajador (4%)"),
-        DetalleLiquidacion(idDetalleLiquidacion=3, idLiquidacion=1, idConcepto=4, tipoMovimiento="DESCUENTO_PENSION", valorCalculado=Decimal("357300"), observaciones="Aporte Pensión Trabajador (4%)"),
-        DetalleLiquidacion(idDetalleLiquidacion=4, idLiquidacion=1, idConcepto=5, tipoMovimiento="FONDO_SOLIDARIDAD", valorCalculado=Decimal("89325"), observaciones="Fondo de Solidaridad Pensional (1%)"),
-    ]
-
     parametros = [
         ParametroNormativo(idParametro=1, codigo=PNC.SALARIO_MINIMO, nombre="Salario Mínimo Legal Vigente", descripcion="SMMLV Colombia", tipoDato="MONETARIO", valor="1750905", unidad="COP", normaOrigen="Decreto Nacional Salarial", articulo="Art. 1", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
         ParametroNormativo(idParametro=2, codigo=PNC.VALOR_PUNTO_SALARIAL, nombre="Valor Punto Salarial", descripcion="Punto Salarial Dec. 1279", tipoDato="MONETARIO", valor="23924", unidad="COP", normaOrigen="Decreto 1279 de 2002", articulo="Art. 27", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="PLANTA", estado="ACTIVO"),
@@ -249,6 +219,41 @@ def generar() -> None:
         ParametroNormativo(idParametro=19, codigo=PNC.PROMEDIO_MINIMO_EBRA, nombre="Promedio Mínimo EBRA", descripcion="Umbral de riesgo EBRA", tipoDato="DECIMAL", valor="3.0", unidad="puntos", normaOrigen="Reglamento Estudiantil", articulo="Art. 52", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="ESTUDIANTES", estado="ACTIVO"),
         ParametroNormativo(idParametro=20, codigo=PNC.MAXIMO_CREDITOS_PERIODO, nombre="Máximo Créditos Período", descripcion="Límite máximo de créditos semestrales", tipoDato="DECIMAL", valor="22", unidad="créditos", normaOrigen="Reglamento Estudiantil", articulo="Art. 30", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="ESTUDIANTES", estado="ACTIVO"),
     ]
+
+    conceptos = [
+        ConceptoNomina(idConcepto=1, codigo="DEV-01", nombre="Sueldo Básico", tipoConcepto="DEVENGADO", naturaleza="DEVENGADO", esSalarial=True, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=2, codigo="DEV-02", nombre="Bonificación Posgrado", tipoConcepto="DEVENGADO", naturaleza="DEVENGADO", esSalarial=True, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=3, codigo="DED-01", nombre="Descuento Salud (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=4, codigo="DED-02", nombre="Descuento Pensión (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=5, codigo="DED-03", nombre="Fondo Solidaridad Pensional (1%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=6, codigo="PAT-01", nombre="Aporte Patronal Salud (8.5%)", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=7, codigo="PAT-02", nombre="Aporte Patronal Pensión (12%)", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=8, codigo="PAT-03", nombre="Aporte ARL Riesgos Laborales", tipoConcepto="APORTE_PATRONAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=9, codigo="PAT-04", nombre="Caja de Compensación Familiar (4%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=10, codigo="PAT-05", nombre="Aporte Parafiscal SENA (2%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=11, codigo="PAT-06", nombre="Aporte Parafiscal ICBF (3%)", tipoConcepto="PARAFISCAL", naturaleza="APORTE", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=12, codigo="PRE-01", nombre="Cesantías", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=13, codigo="PRE-02", nombre="Intereses sobre Cesantías", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=14, codigo="PRE-03", nombre="Prima de Servicios", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=15, codigo="PRE-04", nombre="Vacaciones", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+    ]
+
+    # Generación reglamentaria de liquidaciones y detalles mediante GestorNomina
+    gestor_nom = GestorNomina(
+        contratos=contratos,
+        profesores=profesores,
+        periodos_nomina=periodos_nomina,
+        parametros=parametros,
+        categorias=categorias,
+        factores=factores,
+        producciones=producciones,
+    )
+    gestor_nom.liquidarProfesorPlanta(id_contrato=1, id_periodo_nomina=1, fecha_liquidacion=date(2026, 9, 6))
+    gestor_nom.liquidarProfesorCatedratico(id_contrato=2, id_periodo_nomina=1, fecha_liquidacion=date(2026, 9, 6))
+    gestor_nom.liquidarProfesorOcasional(id_contrato=3, id_periodo_nomina=1, fecha_liquidacion=date(2026, 9, 6))
+
+    liquidaciones = gestor_nom.liquidaciones
+    detalles_liq = gestor_nom.detalles_liquidacion
 
     gp = GestorPersistencia("datos")
     gp.guardar_todos_los_datos({
