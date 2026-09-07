@@ -295,7 +295,7 @@ void PITAApp::renderNomina() {
 
             ImGui::BeginChild("##CardNormatividad", ImVec2(0, 360), true);
             ImGui::TextColored(tema::WIN_BLUE(), "1. Profesores de Planta (Decreto 1279 de 2002):");
-            ImGui::BulletText("Sueldo Basico = Puntos Salariales Reconocidos x Valor Punto Salarial Vigente ($ 19.850 COP).");
+            ImGui::BulletText("Sueldo Basico = Puntos Salariales Reconocidos x Valor Punto Salarial Vigente ($ 23.924 COP).");
             ImGui::BulletText("Factores Salariales: Titulos academicos (Doctorado, Maestria), Categoria (Titular, Asociado), Produccion Academica.");
             ImGui::BulletText("Bonificaciones especiales por posgrado e investigacion.");
             ImGui::Spacing();
@@ -303,7 +303,7 @@ void PITAApp::renderNomina() {
             ImGui::TextColored(tema::WIN_BLUE(), "2. Profesores Ocasionales (Acuerdo 027 de 2024):");
             ImGui::BulletText("Vinculacion por periodo academico o meses laborados.");
             ImGui::BulletText("Pago proporcional al tiempo de dedicacion (Tiempo Completo / Medio Tiempo).");
-            ImGui::BulletText("Factor salarial indexado a SMMLV (por ejemplo factor 2.92).");
+            ImGui::BulletText("Factor salarial indexado a SMMLV ($ 1.750.905 COP, por ejemplo factor 2.92).");
             ImGui::Spacing();
 
             ImGui::TextColored(tema::WIN_BLUE(), "3. Profesores Catedraticos (Resolucion Rectoral):");
@@ -313,8 +313,8 @@ void PITAApp::renderNomina() {
             ImGui::TextColored(tema::WIN_BLUE(), "4. Descuentos Obligatorios de Ley:");
             ImGui::BulletText("Salud Trabajador: 4.0 %% del Ingreso Base de Cotizacion (IBC).");
             ImGui::BulletText("Pension Trabajador: 4.0 %% del Ingreso Base de Cotizacion (IBC).");
-            ImGui::BulletText("Fondo de Solidaridad Pensional (FSP): 1.0 %% adicional cuando el IBC sea mayor o igual a 4 SMMLV.");
-            ImGui::BulletText("Auxilio de Transporte: Aplica a docentes con ingreso inferior a 2 SMMLV ($ 162.000 COP).");
+            ImGui::BulletText("Fondo de Solidaridad Pensional (FSP): 1.0 %% adicional cuando el IBC sea mayor o igual a 4 SMMLV ($ 7.003.620 COP).");
+            ImGui::BulletText("Auxilio de Transporte: Aplica a docentes con ingreso inferior a 2 SMMLV ($ 249.095 COP).");
             ImGui::Spacing();
 
             ImGui::TextColored(tema::WIN_BLUE(), "5. Prestaciones Sociales Proyectadas:");
@@ -632,8 +632,54 @@ void PITAApp::renderModalDesprendible() {
                               obsLower.find("sena") != std::string::npos || obsLower.find("icbf") != std::string::npos ||
                               obsLower.find("caja") != std::string::npos);
 
-                std::string label = obs.empty() ? tm : obs;
-                if (label.empty()) label = "Concepto Salarial";
+                std::string label = tm;
+                if (tmUpper == "SALARIO_ORDINARIO") {
+                    double pts = liqPtr->puntosSalarialesUsados.value_or(0.0);
+                    if (tipoDocente == "PLANTA" && pts > 0) {
+                        char buf[128];
+                        snprintf(buf, sizeof(buf), "Asignacion Basica Mensual (%.0f Pts - Dec. 1279)", pts);
+                        label = buf;
+                    } else if (tipoDocente == "PLANTA") {
+                        label = "Asignacion Basica Mensual (Dec. 1279)";
+                    } else {
+                        label = "Sueldo Basico Ordinario";
+                    }
+                } else if (tmUpper == "AUXILIO_TRANSPORTE") {
+                    label = "Auxilio Legal de Transporte";
+                } else if (tmUpper == "BONIFICACION_POSGRADO") {
+                    label = "Bonificacion por Posgrado (Dec. 1279)";
+                } else if (tmUpper == "BONIFICACION_INVESTIGACION") {
+                    label = "Bonificacion por Investigacion";
+                } else if (tmUpper == "DESCUENTO_SALUD") {
+                    label = "Aporte Salud Trabajador (4%)";
+                } else if (tmUpper == "DESCUENTO_PENSION") {
+                    label = "Aporte Pension Trabajador (4%)";
+                } else if (tmUpper == "FONDO_SOLIDARIDAD") {
+                    label = "Fondo de Solidaridad Pensional (1%)";
+                } else if (tmUpper == "RETENCION_FUENTE") {
+                    label = "Retencion en la Fuente";
+                } else if (tmUpper == "DESCUENTO_INCUMPLIMIENTO") {
+                    label = "Descuento por Horas Incumplidas";
+                } else if (tmUpper == "APORTE_SALUD_PATRONAL") {
+                    label = "Aporte Patronal Salud (8.5%)";
+                } else if (tmUpper == "APORTE_PENSION_PATRONAL") {
+                    label = "Aporte Patronal Pension (12%)";
+                } else if (tmUpper == "APORTE_ARL") {
+                    label = "Aporte Riesgos Laborales (ARL)";
+                } else if (tmUpper == "APORTE_CAJA") {
+                    label = "Caja de Compensacion Familiar (4%)";
+                } else if (tmUpper == "APORTE_SENA") {
+                    label = "Aporte Parafiscal SENA (2%)";
+                } else if (tmUpper == "APORTE_ICBF") {
+                    label = "Aporte Parafiscal ICBF (3%)";
+                } else if (!obs.empty()) {
+                    label = obs;
+                }
+
+                // Omitir conceptos en 0 que no sean el salario ordinario
+                if (val == 0.0 && tmUpper != "SALARIO_ORDINARIO" && tmUpper != "SUELDO") {
+                    continue;
+                }
 
                 if (esDed) {
                     deducciones.push_back({ label, tm, val });
@@ -651,7 +697,16 @@ void PITAApp::renderModalDesprendible() {
             double dev = liqPtr->totalDevengado.value_or(sb);
             double desc = liqPtr->totalDescuentos.value_or(0.0);
 
-            devengados.push_back({ "Sueldo Basico Mensual", "SALARIO_ORDINARIO", sb });
+            double pts = liqPtr->puntosSalarialesUsados.value_or(0.0);
+            if (tipoDocente == "PLANTA" && pts > 0) {
+                char buf[128];
+                snprintf(buf, sizeof(buf), "Asignacion Basica Mensual (%.0f Pts - Dec. 1279)", pts);
+                devengados.push_back({ buf, "SALARIO_ORDINARIO", sb });
+            } else if (tipoDocente == "PLANTA") {
+                devengados.push_back({ "Asignacion Basica Mensual (Dec. 1279)", "SALARIO_ORDINARIO", sb });
+            } else {
+                devengados.push_back({ "Sueldo Basico Mensual", "SALARIO_ORDINARIO", sb });
+            }
             if (dev > sb) {
                 devengados.push_back({ "Auxilio Legal de Transporte / Bonificaciones", "AUXILIO", dev - sb });
             }
@@ -900,8 +955,8 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
 
     // Fallback robusto respetando Decreto 1279 / Acuerdo 027 (fórmula idéntica a Python)
     if (!liquidado) {
-        double valPunto = 19850.0;
-        double smmlv = 1300000.0;
+        double valPunto = 23924.0;
+        double smmlv = 1750905.0;
         double valCat = 38500.0;
         double sueldoBase = 0.0;
 

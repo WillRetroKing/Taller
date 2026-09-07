@@ -27,7 +27,7 @@ public:
     double calcularRetencionFuente(double ibc, const std::string& fecha = "", std::map<std::string, std::string>* codigosUtilizados = nullptr);
 
     // Aportes patronales
-    double calcularAporteSaludPatronal(double ibc, double salarioMinimo, const std::string& fecha = "", std::map<std::string, std::string>* codigosUtilizados = nullptr);
+    double calcularAporteSaludPatronal(double ibc, double salarioMinimo, const std::string& fecha = "", std::map<std::string, std::string>* codigosUtilizados = nullptr, bool exonerado = false);
     double calcularAportePensionPatronal(double ibc, const std::string& fecha = "", std::map<std::string, std::string>* codigosUtilizados = nullptr);
     double calcularAporteArl(double ibc, const std::optional<std::string>& claseArl, const std::string& fecha = "", std::map<std::string, std::string>* codigosUtilizados = nullptr);
     double calcularAporteCaja(double ibc, const std::string& fecha = "", std::map<std::string, std::string>* codigosUtilizados = nullptr);

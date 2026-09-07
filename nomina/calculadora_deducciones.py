@@ -81,9 +81,22 @@ class CalculadoraDeducciones:
     # ------------------------------------------------------------------
     # APORTES PATRONALES
     # ------------------------------------------------------------------
-    def calcular_aporte_salud_patronal(self, ibc: Decimal, salario_minimo: Decimal, fecha: date | None = None, codigos_utilizados: dict[str, str] | None = None) -> Decimal:
-        if ibc < self.DIEZ * salario_minimo:
-            return self.CERO  # Exoneración tributaria
+    def calcular_aporte_salud_patronal(
+        self,
+        ibc: Decimal,
+        salario_minimo: Decimal,
+        fecha: date | None = None,
+        codigos_utilizados: dict[str, str] | None = None,
+        exonerado: bool = False,
+    ) -> Decimal:
+        """
+        Calcula el aporte patronal a salud (8.5%).
+        Nota: Según el Art. 114-1 Parágrafo 2 del Estatuto Tributario, las entidades de derecho
+        público (como universidades públicas del Estado, e.g. Universidad Popular del Cesar - UPC)
+        no son beneficiarias de la exoneración de aportes patronales. Por defecto exonerado=False.
+        """
+        if exonerado and ibc < self.DIEZ * salario_minimo:
+            return self.CERO  # Exoneración tributaria sólo para entidades privadas beneficiarias
         pct = self.obtener_porcentaje("PORCENTAJE_SALUD_EMPLEADOR", Decimal("0.085"), fecha, codigos_utilizados)
         return self.redondear(ibc * pct)
 

@@ -55,7 +55,6 @@ Taller/
 │   ├── gui/                       # GUI modularizada en Dear ImGui + GLFW + OpenGL3
 │   └── main.cpp                   # Backend CLI para verificación en consola
 │
-├── pita_gui.exe                   # Binario ejecutable compilado de la GUI C++ para Windows
 ├── .gitignore                     # Configuración de exclusiones de Git
 └── README.md                      # Este documento
 ```
@@ -64,60 +63,131 @@ Taller/
 
 ## 🚀 Guía de Inicio Rápido
 
-### Opción A: Ejecución del Proyecto en Python
+El proyecto cuenta con **dos versiones funcionales independientes** que comparten la misma base de datos plana en `datos/`:
+- **Opción A (Python)**: Lista para usar de inmediato, sin necesidad de compilar.
+- **Opción B (C++)**: Alto rendimiento gráfico con Dear ImGui; requiere compilar una vez con CMake.
 
-#### Requisitos Previos:
-- Python 3.10 o superior instalado.
-- Administrador de paquetes `pip`.
+---
 
-#### 1. Instalar Dependencias:
-Abre una terminal en la raíz del proyecto y ejecuta:
+### Opción A: Ejecutar la Versión en Python (Inmediata)
+
+Esta es la forma más rápida de probar el sistema sin instalar compiladores.
+
+#### 1. Requisitos Previos:
+- **Python 3.10** o superior instalado ([python.org](https://www.python.org/downloads/)).
+  > ⚠️ *Al instalar Python en Windows, asegúrate de marcar la casilla **"Add python.exe to PATH"**.*
+- Administrador de paquetes `pip` (incluido por defecto con Python).
+
+#### 2. Instalar Dependencias:
+Abre una terminal (PowerShell o CMD) en la raíz del proyecto y ejecuta:
 ```bash
 pip install -r requirements.txt
 ```
 
-#### 2. Iniciar la Interfaz Gráfica (CustomTkinter):
+#### 3. Iniciar la Interfaz Gráfica (CustomTkinter):
 ```bash
 python gui_main.py
 ```
-*(Opcionalmente: `python main.py`)*
 
-#### 3. Ejecutar las Pruebas Automatizadas:
+*(Opcionalmente, para ejecutar el backend de consola interactivo: `python main.py`)*
+
+#### 4. Ejecutar las Pruebas Automatizadas:
 ```bash
 pytest -v test_pita.py
 ```
 
 ---
 
-### Opción B: Ejecución y Compilación del Proyecto en C++
+### Opción B: Compilar y Ejecutar la Versión en C++17
 
-Para más detalles específicos sobre la arquitectura interna en C++, consulta el [README de C++](file:///c:/Users/Chick/Desktop/Taller/cpp/README.md).
+> ℹ️ **Nota importante sobre los archivos ejecutables (`.exe`):**  
+> Por buenas prácticas de desarrollo en Git, los binarios `.exe` compilados no se suben al repositorio (están en `.gitignore`). Por esta razón, si clonaste o descargaste el proyecto por primera vez, **debes compilar el binario** siguiendo los pasos a continuación. ¡Solo toma un par de minutos!
 
-#### Requisitos Previos:
-- Compilador con soporte para **C++17** (Visual Studio 2022 / MSVC v143+, GCC 11+ o Clang 13+).
-- **CMake** versión 3.20 o superior.
+Para detalles específicos sobre la arquitectura interna, consulta el [README de C++](cpp/README.md).
 
-#### 1. Ejecutar el Binario ya Compilado (Windows):
-Puedes ejecutar directamente el binario generado en la raíz:
-```powershell
-.\pita_gui.exe
-```
+---
 
-#### 2. Compilar desde el Código Fuente con CMake:
+#### Paso 1: Instalar Herramientas de Compilación (Solo una vez)
+
+Para compilar C++ en Windows necesitas dos herramientas: **CMake** y un **Compilador C++17**.
+
+##### 1.1 Instalar CMake (versión 3.20 o superior):
+- **Método A (Recomendado vía consola con Winget):**
+  Abre PowerShell como administrador o usuario normal y ejecuta:
+  ```powershell
+  winget install Kitware.CMake
+  ```
+- **Método B (Instalador Oficial con GUI):**
+  1. Descarga el instalador de Windows x64 (`.msi`) desde: [cmake.org/download](https://cmake.org/download/).
+  2. Ejecuta el instalador.
+  3. ⚠️ **Muy importante:** En el asistente de instalación, selecciona la opción:  
+     **"Add CMake to the system PATH for all users"** (o *"for the current user"*).
+  4. Finaliza la instalación.
+
+> 🔍 **Verificación:** Cierra y vuelve a abrir tu terminal, luego ejecuta:
+> ```powershell
+> cmake --version
+> ```
+> Deberías ver un mensaje como `cmake version 3.xx.x`. Si aparece este mensaje, ¡CMake está listo!
+
+##### 1.2 Instalar Compilador C++17:
+- **En Windows (Recomendado):**
+  - Si tienes instalado **Visual Studio 2022** (Community o Professional), abre el *Visual Studio Installer*, haz clic en *Modificar* y asegúrate de tener marcada la carga de trabajo:  
+    👉 **"Desarrollo para el escritorio con C++"** (*Desktop development with C++*).
+  - Si no tienes Visual Studio, puedes instalar las herramientas de compilación con Winget:
+    ```powershell
+    winget install Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+    ```
+- **Alternativa con MinGW (GCC 11+):**
+  Si utilizas MinGW-w64 o MSYS2, asegúrate de que `g++` esté disponible en tu `PATH`.
+
+---
+
+#### Paso 2: Compilar el Proyecto con CMake
+
+Una vez instaladas las herramientas, compilar es muy sencillo. CMake descargará automáticamente las bibliotecas gráficas (**GLFW** y **Dear ImGui**) a través de internet:
+
 ```powershell
 # 1. Ingresar a la carpeta de C++
 cd cpp
 
-# 2. Configurar el proyecto (descargará GLFW e ImGui vía FetchContent)
+# 2. Configurar el proyecto (descarga GLFW e ImGui vía FetchContent)
 cmake -B build -S .
 
-# 3. Compilar en modo Release
+# 3. Compilar los ejecutables en modo optimizado (Release)
 cmake --build build --config Release
 ```
 
-Los ejecutables generados se ubicarán en `cpp/build/Release/`:
-- **`pita_gui.exe`**: Interfaz gráfica interactiva completa.
-- **`pita_backend.exe`**: Verificador de consola para persistencia e integridad de datos.
+---
+
+#### Paso 3: Ejecutar los Programas Compilados
+
+Una vez finalizada la compilación exitosamente, los ejecutables estarán listos en la subcarpeta `build/Release/`:
+
+##### Iniciar la Interfaz Gráfica (Dear ImGui + GLFW):
+```powershell
+# Estando dentro de la carpeta 'cpp':
+.\build\Release\pita_gui.exe
+```
+
+##### Iniciar la Consola de Verificación del Backend:
+```powershell
+# Estando dentro de la carpeta 'cpp':
+.\build\Release\pita_backend.exe
+```
+
+*(Opcional: Si deseas tener el ejecutable `pita_gui.exe` en la raíz del proyecto para ejecutarlo como `.\pita_gui.exe`, puedes copiarlo ejecutando: `copy .\build\Release\pita_gui.exe ..\`)*.
+
+---
+
+### ❓ Solución de Problemas Frecuentes (Troubleshooting C++)
+
+| Error / Síntoma | Causa | Solución |
+|---|---|---|
+| `cmake : El término 'cmake' no se reconoce...` | CMake no está instalado o no se agregó al `PATH`. | Instala CMake y asegúrate de reiniciar la terminal para que refresque las variables de entorno. |
+| `No CMAKE_CXX_COMPILER could be found` | No hay un compilador C++ detectado por CMake. | Abre el instalador de Visual Studio 2022 y marca la opción **"Desarrollo para el escritorio con C++"**. |
+| `Failed to clone repository: 'glfw'` | No hay conexión a internet durante la primera configuración. | Asegúrate de tener conexión a internet activa la primera vez que ejecutas `cmake -B build -S .` para descargar GLFW e ImGui. |
+| La ventana se abre pero no encuentra datos | El ejecutable se inició fuera del contexto de carpetas. | Ejecuta siempre desde `cpp` (`.\build\Release\pita_gui.exe`) o copia el ejecutable a la raíz del repositorio. |
 
 ---
 

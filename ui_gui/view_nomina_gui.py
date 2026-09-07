@@ -432,7 +432,16 @@ class NominaViewGUI(ctk.CTkFrame):
                     cat = "DEVENGADO"
 
                 # Nombre descriptivo formal
-                if tm in MAPA_CONCEPTOS:
+                if tm == "SALARIO_ORDINARIO":
+                    pts = getattr(liq, "puntosSalarialesUsados", None) or (getattr(prof, "puntosSalariales", None) if prof else None)
+                    es_planta = (tipo_prof.upper() == "PLANTA") or (prof and "PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper())
+                    if es_planta and pts:
+                        label_nombre = f"💵 Asignación Básica Mensual ({pts} Pts - Dec. 1279)"
+                    elif es_planta:
+                        label_nombre = "💵 Asignación Básica Mensual (Dec. 1279)"
+                    else:
+                        label_nombre = "💵 Sueldo Básico Ordinario"
+                elif tm in MAPA_CONCEPTOS:
                     label_nombre = MAPA_CONCEPTOS[tm][0]
                 elif obs and obs.strip():
                     label_nombre = obs.strip()
@@ -458,7 +467,15 @@ class NominaViewGUI(ctk.CTkFrame):
             dev = Decimal(str(getattr(liq, "totalDevengado", sb) or sb))
             desc = Decimal(str(getattr(liq, "totalDescuentos", 0) or 0))
 
-            devengados.append(("💵 Sueldo Básico Mensual", "SALARIO_ORDINARIO", sb))
+            pts = getattr(liq, "puntosSalarialesUsados", None) or (getattr(prof, "puntosSalariales", None) if prof else None)
+            es_planta = (tipo_prof.upper() == "PLANTA") or (prof and "PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper())
+            if es_planta and pts:
+                devengados.append((f"💵 Asignación Básica Mensual ({pts} Pts - Dec. 1279)", "SALARIO_ORDINARIO", sb))
+            elif es_planta:
+                devengados.append(("💵 Asignación Básica Mensual (Dec. 1279)", "SALARIO_ORDINARIO", sb))
+            else:
+                devengados.append(("💵 Sueldo Básico Mensual", "SALARIO_ORDINARIO", sb))
+
             if dev > sb:
                 devengados.append(("🚌 Auxilio de Transporte / Bonificaciones", "AUXILIO", dev - sb))
 
@@ -470,6 +487,11 @@ class NominaViewGUI(ctk.CTkFrame):
             resto_desc = desc - (salud + pension)
             if resto_desc > 0:
                 deducciones.append(("🤝 Fondo Solidaridad Pensional (1%)", "RETENCION", resto_desc))
+
+            patronales.append(("🏢 Aporte Patronal Salud (8.5%)", "APORTE_SALUD_PATRONAL", (dev * Decimal("0.085")).quantize(Decimal("1"))))
+            patronales.append(("🏢 Aporte Patronal Pensión (12%)", "APORTE_PENSION_PATRONAL", (dev * Decimal("0.12")).quantize(Decimal("1"))))
+            patronales.append(("🛡️ Aporte Riesgos Laborales (ARL)", "APORTE_ARL", (dev * Decimal("0.00522")).quantize(Decimal("0.01"))))
+            patronales.append(("👨‍👩‍👧 Caja de Compensación Familiar (4%)", "APORTE_CAJA", (dev * Decimal("0.04")).quantize(Decimal("1"))))
 
         def _render_section(titulo: str, items: list[tuple[str, str, Decimal]], color_titulo: str, es_deduccion: bool = False, es_patronal: bool = False):
             if not items:

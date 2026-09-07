@@ -76,9 +76,27 @@ cpp/
 | **Sistema Operativo** | Windows 10/11, Linux o macOS | Windows 11 64-bit |
 | **Librerías Externas** | Ninguna manual | Se descargan automáticamente vía `FetchContent` (GLFW y Dear ImGui) |
 
+### 📥 Instalación Rápida de Herramientas (Windows)
+
+Si no tienes instaladas las herramientas de compilación en tu equipo:
+
+1. **Instalar CMake:**
+   - Vía consola (PowerShell): `winget install Kitware.CMake`
+   - O descargando el instalador desde [cmake.org/download](https://cmake.org/download/) (asegúrate de marcar **"Add CMake to the system PATH"**).
+   - Verifica en una nueva consola con: `cmake --version`.
+
+2. **Instalar Compilador C++17 (MSVC):**
+   - Abre el **Visual Studio Installer** y marca la carga de trabajo **"Desarrollo para el escritorio con C++"**.
+   - O vía consola con Winget:
+     ```powershell
+     winget install Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+     ```
+
 ---
 
 ## 🚀 Instrucciones de Compilación y Ejecución
+
+> ℹ️ **Nota:** Los ejecutables (`.exe`) no se incluyen en el repositorio Git por estándar de exclusión (`.gitignore`), por lo que deben compilarse localmente una vez.
 
 ### 1. Configurar el Entorno con CMake
 
@@ -88,7 +106,7 @@ Abre una consola (PowerShell o Command Prompt) en el directorio `cpp/`:
 cmake -B build -S .
 ```
 
-> **Nota**: Durante este paso, CMake descargará automáticamente **GLFW** y **Dear ImGui** sin requerir que el usuario instale bibliotecas en el sistema.
+> **Nota**: Durante este paso, CMake descargará automáticamente las bibliotecas **GLFW** y **Dear ImGui** sin requerir que el usuario configure rutas ni descargue librerías manualmente. Requiere conexión a internet activa en la primera ejecución.
 
 ### 2. Compilar el Proyecto
 
@@ -99,8 +117,8 @@ cmake --build build --config Release
 ```
 
 La compilación generará dos ejecutables independientes en `build/Release/`:
-1. `pita_gui.exe` (Interfaz Gráfica completa)
-2. `pita_backend.exe` (Consola y verificación)
+1. `pita_gui.exe` (Interfaz Gráfica completa con Dear ImGui)
+2. `pita_backend.exe` (Consola y verificación de integridad)
 
 ### 3. Ejecutar la Interfaz Gráfica
 
@@ -108,7 +126,7 @@ La compilación generará dos ejecutables independientes en `build/Release/`:
 .\build\Release\pita_gui.exe
 ```
 
-*(O ejecuta `..\pita_gui.exe` directamente desde la raíz del proyecto).*
+*(Opcional: Si copias el binario a la raíz del repositorio con `copy .\build\Release\pita_gui.exe ..\`, podrás ejecutarlo directamente desde la raíz como `.\pita_gui.exe`).*
 
 ### 4. Ejecutar la Verificación en Consola (Backend CLI)
 
@@ -120,6 +138,16 @@ El verificador de consola realiza una auditoría completa:
 - Carga de todas las tablas de persistencia en `datos/`.
 - Verificación de consistencia e integridad referencial.
 - Simulación del cálculo de nómina y liquidación de docentes con desglose salarial.
+
+---
+
+### ❓ Solución de Problemas Frecuentes
+
+| Error / Mensaje | Causa | Solución |
+|---|---|---|
+| `'cmake' no se reconoce como un comando interno o externo` | CMake no está instalado o no se añadió al PATH. | Instala CMake y reinicia la terminal para actualizar las variables de entorno. |
+| `No CMAKE_CXX_COMPILER could be found` | No se encontró el compilador de C++ (cl.exe / g++). | Instala Visual Studio 2022 con la carga "Desarrollo para el escritorio con C++". |
+| Error clonando GLFW o ImGui | Fallo de conexión o Git no disponible. | Verifica tu conexión a internet durante el primer `cmake -B build -S .`. |
 
 ---
 

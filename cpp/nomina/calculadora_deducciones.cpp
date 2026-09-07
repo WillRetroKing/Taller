@@ -92,9 +92,11 @@ double CalculadoraDeducciones::calcularRetencionFuente(double ibc, const std::st
     return redondear(ibc * pct);
 }
 
-double CalculadoraDeducciones::calcularAporteSaludPatronal(double ibc, double salarioMinimo, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
-    if (ibc < 10.0 * salarioMinimo) {
-        return 0.0; // Exoneración tributaria
+double CalculadoraDeducciones::calcularAporteSaludPatronal(double ibc, double salarioMinimo, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados, bool exonerado) {
+    // Según Art. 114-1 Parágrafo 2 E.T., las entidades de derecho público (e.g. UPC)
+    // no son beneficiarias de la exoneración. Por defecto exonerado = false.
+    if (exonerado && ibc < 10.0 * salarioMinimo) {
+        return 0.0;
     }
     double pct = obtenerPorcentaje("PORCENTAJE_SALUD_EMPLEADOR", 0.085, fecha, codigosUtilizados);
     return redondear(ibc * pct);

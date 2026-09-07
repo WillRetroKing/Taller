@@ -69,7 +69,11 @@ class MotorLiquidacionBase:
         fondo_solidaridad = calc_ded.calcular_fondo_solidaridad(ibc, salario_minimo, fecha_param, codigos_utilizados)
         retencion = calc_ded.calcular_retencion_fuente(ibc, fecha_param, codigos_utilizados=codigos_utilizados)
 
-        aporte_salud = calc_ded.calcular_aporte_salud_patronal(ibc, salario_minimo, fecha_param, codigos_utilizados)
+        # En universidades públicas (UPC), los docentes de planta (servidores públicos bajo Dec. 1279)
+        # no están exonerados de salud patronal (Art. 114-1 Par. 2 E.T.), aportando el 8.5%.
+        # Para otras modalidades aplica la exoneración tributaria de la Ley 1819 si IBC < 10 SMMLV.
+        es_exonerado_salud = (tipo != TipoProfesor.PLANTA)
+        aporte_salud = calc_ded.calcular_aporte_salud_patronal(ibc, salario_minimo, fecha_param, codigos_utilizados, exonerado=es_exonerado_salud)
         aporte_pension = calc_ded.calcular_aporte_pension_patronal(ibc, fecha_param, codigos_utilizados)
         aporte_arl = calc_ded.calcular_aporte_arl(ibc, contrato.claseARL, fecha_param, codigos_utilizados)
         aporte_caja = calc_ded.calcular_aporte_caja(ibc, fecha_param, codigos_utilizados)

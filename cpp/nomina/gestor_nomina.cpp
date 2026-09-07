@@ -77,7 +77,8 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     double fondoSolidaridad = calcDed.calcularFondoSolidaridad(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
     double retencion = calcDed.calcularRetencionFuente(ibc, fechaParam, &codigosUtilizados);
 
-    double aporteSalud = calcDed.calcularAporteSaludPatronal(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
+    bool esExoneradoSalud = (tipo != TipoProfesor::PLANTA);
+    double aporteSalud = calcDed.calcularAporteSaludPatronal(ibc, salarioMinimo, fechaParam, &codigosUtilizados, esExoneradoSalud);
     double aportePension = calcDed.calcularAportePensionPatronal(ibc, fechaParam, &codigosUtilizados);
     double aporteArl = calcDed.calcularAporteArl(ibc, contrato.claseARL, fechaParam, &codigosUtilizados);
     double aporteCaja = calcDed.calcularAporteCaja(ibc, fechaParam, &codigosUtilizados);
