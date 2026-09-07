@@ -582,13 +582,79 @@ void PITAApp::renderModalDesprendible() {
         std::string nomProf = getNombreDocente(ctrl, idProf);
         std::string tipoDocente = liqPtr->tipoProfesorLiquidado ? to_string(*liqPtr->tipoProfesorLiquidado) : "PLANTA";
 
+        const Profesor* profPtr = nullptr;
+        for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+            auto& p = ctrl.datos.profesores.obtener(i);
+            if (p.idProfesor && *p.idProfesor == idProf) {
+                profPtr = &p;
+                break;
+            }
+        }
+
+        const PeriodoNomina* periodoPtr = nullptr;
+        int idPer = liqPtr->idPeriodoNomina.value_or(0);
+        for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+            auto& p = ctrl.datos.periodosNomina.obtener(i);
+            if (p.idPeriodoNomina && *p.idPeriodoNomina == idPer) {
+                periodoPtr = &p;
+                break;
+            }
+        }
+
+        static const char* MESES_ES[] = { "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre" };
+        std::string txtPeriodo = "Periodo N° " + std::to_string(idPer);
+        if (periodoPtr && periodoPtr->mes && periodoPtr->anio) {
+            int m = *periodoPtr->mes;
+            int a = *periodoPtr->anio;
+            std::string nomMes = (m >= 1 && m <= 12) ? MESES_ES[m] : ("Mes " + std::to_string(m));
+            txtPeriodo = nomMes + " " + std::to_string(a);
+            if (periodoPtr->fechaInicio && periodoPtr->fechaFin) {
+                txtPeriodo += " (" + *periodoPtr->fechaInicio + " - " + *periodoPtr->fechaFin + ")";
+            }
+        }
+
+        // Puntos salariales, valor punto e IBC
+        double puntosTotales = liqPtr->puntosSalarialesUsados.value_or(0.0);
+        if (puntosTotales <= 0.0 && profPtr && profPtr->puntosSalariales) {
+            puntosTotales = *profPtr->puntosSalariales;
+        }
+
+        double valorPto = liqPtr->valorPuntoUsado.value_or(0.0);
+        if (valorPto <= 0.0) {
+            for (size_t i = 0; i < ctrl.datos.parametrosNormativos.tamano(); ++i) {
+                auto& param = ctrl.datos.parametrosNormativos.obtener(i);
+                if (param.codigo && *param.codigo == ParametroNormativoCodigo::VALOR_PUNTO_SALARIAL) {
+                    if (param.valor) {
+                        try { valorPto = std::stod(*param.valor); } catch (...) {}
+                    }
+                    break;
+                }
+            }
+        }
+        if (valorPto <= 0.0) valorPto = 23924.0;
+
+        double ibcVal = liqPtr->baseCotizacionSeguridadSocial.value_or(
+            liqPtr->salarioBase.value_or(liqPtr->totalDevengado.value_or(0.0)));
+
+        std::string labelAsignacion = "Asignacion Basica Mensual";
+        if (tipoDocente == "PLANTA" && puntosTotales > 0) {
+            char bufAsig[128];
+            snprintf(bufAsig, sizeof(bufAsig), "Asignacion Basica Mensual (%.0f pts x %s)", puntosTotales, formatearMoneda(valorPto).c_str());
+            labelAsignacion = bufAsig;
+        } else if (tipoDocente == "PLANTA") {
+            labelAsignacion = "Asignacion Basica Mensual (Dec. 1279)";
+        } else {
+            labelAsignacion = "Sueldo Basico Ordinario";
+        }
+
         // Cabecera informativa estilo tarjeta
-        ImGui::BeginChild("##HeaderCardDesprendible", ImVec2(0, 70), true);
+        ImGui::BeginChild("##HeaderCardDesprendible", ImVec2(0, 85), true);
         if (fuenteTitulo) ImGui::PushFont(fuenteTitulo);
         ImGui::TextColored(tema::TEXT_MAIN(), "Desprendible Oficial de Pago de Nomina");
         if (fuenteTitulo) ImGui::PopFont();
         ImGui::TextColored(tema::TEXT_MUTED(), "Docente: %s  |  Modalidad: %s  |  Liquidacion N° %d",
             nomProf.c_str(), tipoDocente.c_str(), idLiquidacionDesprendible);
+        ImGui::TextColored(tema::WIN_BLUE(), "Periodo Liquidado: %s", txtPeriodo.c_str());
         ImGui::EndChild();
 
         ImGui::Spacing();
@@ -634,11 +700,7 @@ void PITAApp::renderModalDesprendible() {
 
                 std::string label = tm;
                 if (tmUpper == "SALARIO_ORDINARIO") {
-                    if (tipoDocente == "PLANTA") {
-                        label = "Asignacion Basica Mensual (Dec. 1279)";
-                    } else {
-                        label = "Sueldo Basico Ordinario";
-                    }
+                    label = labelAsignacion;
                 } else if (tmUpper == "AUXILIO_TRANSPORTE") {
                     label = "Auxilio Legal de Transporte";
                 } else if (tmUpper == "BONIFICACION_POSGRADO") {
@@ -693,7 +755,7 @@ void PITAApp::renderModalDesprendible() {
             double desc = liqPtr->totalDescuentos.value_or(0.0);
 
             if (tipoDocente == "PLANTA") {
-                devengados.push_back({ "Asignacion Basica Mensual (Dec. 1279)", "SALARIO_ORDINARIO", sb });
+                devengados.push_back({ labelAsignacion, "SALARIO_ORDINARIO", sb });
             } else {
                 devengados.push_back({ "Sueldo Basico Mensual", "SALARIO_ORDINARIO", sb });
             }
@@ -720,14 +782,21 @@ void PITAApp::renderModalDesprendible() {
         }
 
         // Área scrolleable para las secciones
-        ImGui::BeginChild("##ScrollDetalleSecciones", ImVec2(0, 460), false);
+        ImGui::BeginChild("##ScrollDetalleSecciones", ImVec2(0, 445), false);
 
-        auto renderSeccion = [](const char* titulo, const std::vector<ConceptoItem>& items, ImVec4 colorTitulo, bool esDeduccion) {
+        auto renderSeccion = [](const char* titulo, const std::vector<ConceptoItem>& items, ImVec4 colorTitulo, bool esDeduccion, double ibc = 0.0) {
             if (items.empty()) return;
 
             ImGui::Spacing();
             ImGui::TextColored(colorTitulo, "%s", titulo);
             ImGui::Separator();
+
+            if (esDeduccion && ibc > 0.0) {
+                ImGui::TextColored(tema::TEXT_MUTED(), "  IBC Seguridad Social (Base Cotizacion):");
+                ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+                ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(ibc).c_str());
+                ImGui::Separator();
+            }
 
             for (const auto& item : items) {
                 ImGui::Text("  %s", item.nombre.c_str());
@@ -743,7 +812,7 @@ void PITAApp::renderModalDesprendible() {
         renderSeccion("DEVENGADOS Y ASIGNACIONES (+)", devengados, tema::WIN_BLUE(), false);
 
         // 2. Deducciones de Ley
-        renderSeccion("DEDUCCIONES OBLIGATORIAS DE LEY (-)", deducciones, tema::ACCENT_DANGER(), true);
+        renderSeccion("DEDUCCIONES OBLIGATORIAS DE LEY (-)", deducciones, tema::ACCENT_DANGER(), true, ibcVal);
 
         // 3. Costo Total Empleador (UPC)
         double devVal = liqPtr->totalDevengado.value_or(liqPtr->salarioBase.value_or(0.0));
@@ -773,16 +842,7 @@ void PITAApp::renderModalDesprendible() {
         ImGui::TextColored(tema::WIN_BLUE(), "%s", formatearMoneda(totalCostoUPC).c_str());
         ImGui::Spacing();
 
-        // 4. Información Escalafón Docente (Decreto 1279)
-        const Profesor* profPtr = nullptr;
-        for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
-            auto& p = ctrl.datos.profesores.obtener(i);
-            if (p.idProfesor && *p.idProfesor == idProf) {
-                profPtr = &p;
-                break;
-            }
-        }
-
+        // 4. Información Salarial Docente (Decreto 1279)
         std::string categoriaDoc = liqPtr->categoriaLiquidada.value_or("");
         if (categoriaDoc.empty() && profPtr && profPtr->categoriaDocente) {
             categoriaDoc = *profPtr->categoriaDocente;
@@ -791,45 +851,40 @@ void PITAApp::renderModalDesprendible() {
             categoriaDoc = (tipoDocente == "PLANTA") ? "Titular" : "Docente Catedra";
         }
 
-        double puntosTotales = liqPtr->puntosSalarialesUsados.value_or(0.0);
-        if (puntosTotales <= 0.0 && profPtr && profPtr->puntosSalariales) {
-            puntosTotales = *profPtr->puntosSalariales;
-        }
-
-        double valorPto = liqPtr->valorPuntoUsado.value_or(0.0);
-        if (valorPto <= 0.0) {
-            for (size_t i = 0; i < ctrl.datos.parametrosNormativos.tamano(); ++i) {
-                auto& param = ctrl.datos.parametrosNormativos.obtener(i);
-                if (param.codigo && *param.codigo == ParametroNormativoCodigo::VALOR_PUNTO_SALARIAL) {
-                    if (param.valor) {
-                        try { valorPto = std::stod(*param.valor); } catch (...) {}
-                    }
-                    break;
-                }
-            }
-        }
-        if (valorPto <= 0.0) valorPto = 23924.0;
-
         ImGui::Spacing();
-        ImGui::TextColored(tema::WIN_BLUE(), "INFORMACION ESCALAFON DOCENTE");
+        ImGui::TextColored(tema::WIN_BLUE(), "INFORMACION SALARIAL DOCENTE (DECRETO 1279)");
         ImGui::Separator();
 
-        ImGui::Text("  Categoria:");
-        ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+        ImGui::Text("  Categoria Docente:");
+        ImGui::SameLine(ImGui::GetWindowWidth() - 240);
         ImGui::TextColored(tema::TEXT_MAIN(), "%s", categoriaDoc.c_str());
 
         if (puntosTotales > 0.0 || tipoDocente == "PLANTA") {
             ImGui::Text("  Total Puntos Salariales:");
-            ImGui::SameLine(ImGui::GetWindowWidth() - 180);
-            ImGui::TextColored(tema::TEXT_MAIN(), "%.0f", puntosTotales);
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%.0f pts", puntosTotales);
 
-            ImGui::Text("  Valor Punto:");
-            ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+            ImGui::Text("  Valor Punto Salarial:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
             ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(valorPto).c_str());
+
+            char bufCalculo[128];
+            snprintf(bufCalculo, sizeof(bufCalculo), "%.0f pts x %s", puntosTotales, formatearMoneda(valorPto).c_str());
+            ImGui::Text("  Calculo Asignacion Basica:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+            ImGui::TextColored(tema::WIN_BLUE(), "%s", bufCalculo);
+
+            ImGui::Text("  IBC Seguridad Social:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(ibcVal).c_str());
         } else {
             ImGui::Text("  Modalidad Vinculacion:");
-            ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
             ImGui::TextColored(tema::TEXT_MAIN(), "%s", tipoDocente.c_str());
+
+            ImGui::Text("  IBC Seguridad Social:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(ibcVal).c_str());
         }
         ImGui::Spacing();
 
