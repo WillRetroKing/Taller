@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from dominio.modelo_datos import (
+    Administrativo,
     Contrato,
     Dedicacion,
     FactorSalarial,
@@ -49,6 +50,11 @@ class ContratosService:
         if not id_persona:
             return None
         return next((p for p in self.controller.profesores if getattr(p, "idPersona", None) == id_persona), None)
+
+    def buscar_administrativo_por_id_persona(self, id_persona: int | None) -> Administrativo | None:
+        if not id_persona:
+            return None
+        return next((a for a in self.controller.administrativos if getattr(a, "idPersona", None) == id_persona), None)
 
     # ------------------------------------------------------------------
     # ASISTENTE DE CÁLCULO SALARIAL
@@ -126,26 +132,42 @@ class ContratosService:
         ded_val = Dedicacion.TIEMPO_COMPLETO if "COMPLETO" in str(datos.get("dedicacion", "TIEMPO_COMPLETO")) else (
             Dedicacion.MEDIO_TIEMPO if "MEDIO" in str(datos.get("dedicacion", "")) else Dedicacion.HORA_CATEDRA
         )
+        sal_base_dec = Decimal(str(datos.get("salarioBase", "0")))
+        es_admin = "ADMIN" in str(datos.get("tipoContrato", "")).upper() or "CST" in str(datos.get("regimenAplicable", "")).upper()
+        regimen_default = "CST_LEY100_ADMINISTRATIVO" if es_admin else (
+            "Decreto 1279 de 2002" if "PLANTA" in str(datos.get("tipoContrato", "")) else "Acuerdo 027 de 2024"
+        )
+        aplica_aux = bool(es_admin and sal_base_dec <= Decimal("3501810"))
+
         nuevo = Contrato(
             idContrato=siguiente_id,
             numeroContrato=datos["numeroContrato"],
             idPersona=datos["idPersona"],
             tipoContrato=datos["tipoContrato"],
             modalidadProfesor=datos.get("modalidadProfesor", datos["tipoContrato"]),
-            regimenAplicable=datos.get("regimenAplicable", "Decreto 1279 de 2002" if "PLANTA" in datos.get("tipoContrato", "") else "Acuerdo 027 de 2024"),
+            regimenAplicable=datos.get("regimenAplicable", regimen_default),
             fechaInicio=datos["fechaInicio"],
             fechaFin=datos.get("fechaFin"),
             dedicacion=ded_val,
             horasSemanales=Decimal(str(datos.get("horasSemanales", 40))),
-            salarioBase=Decimal(str(datos.get("salarioBase", "0"))),
+            salarioBase=sal_base_dec,
             salarioMensualPactado=Decimal(str(datos.get("salarioMensualPactado", datos.get("salarioBase", "0")))),
+            aplicaAuxilioTransporte=datos.get("aplicaAuxilioTransporte", aplica_aux),
             estado="ACTIVO",
             esAdHonorem=datos.get("esAdHonorem", False),
             numeroCDP=datos.get("numeroCDP") or None,
             resolucionRectoral=datos.get("resolucionNombramiento") or None,
             claseARL=datos.get("claseRiesgoARL", "CLASE I"),
+            observaciones=datos.get("observaciones") or None,
         )
         self.controller.contratos.append(nuevo)
+
+        # Si el contrato pertenece a un administrativo, sincronizar su salario base
+        adm = self.buscar_administrativo_por_id_persona(nuevo.idPersona)
+        if adm:
+            adm.salarioBase = sal_base_dec
+            adm.estado = "ACTIVO"
+
         self.controller._recrear_gestores()
         return nuevo
 
@@ -153,6 +175,16 @@ class ContratosService:
         for k, v in datos.items():
             if hasattr(contrato, k):
                 setattr(contrato, k, v)
+
+        # Sincronizar automáticamente con perfil administrativo si aplica
+        adm = self.buscar_administrativo_por_id_persona(contrato.idPersona)
+        if adm:
+            if "salarioBase" in datos and datos["salarioBase"] is not None:
+                adm.salarioBase = Decimal(str(datos["salarioBase"]))
+                contrato.aplicaAuxilioTransporte = bool(adm.salarioBase <= Decimal("3501810"))
+            if "estado" in datos and datos["estado"]:
+                adm.estado = datos["estado"]
+
         self.controller._recrear_gestores()
 
     def terminar_contrato(self, contrato: Contrato, motivo: str, fecha_terminacion: date) -> None:
@@ -160,6 +192,9 @@ class ContratosService:
         contrato.fechaFin = fecha_terminacion
         if hasattr(contrato, "observaciones"):
             contrato.observaciones = f"Terminado: {motivo}"
+        adm = self.buscar_administrativo_por_id_persona(contrato.idPersona)
+        if adm:
+            adm.estado = "INACTIVO"
         self.controller._recrear_gestores()
 
     # ------------------------------------------------------------------

@@ -55,8 +55,8 @@ class ContratosTabsRenderer:
 
         combo_mod = ctk.CTkComboBox(
             filter_bar,
-            values=["TODAS LAS MODALIDADES", "PLANTA", "OCASIONAL", "CATEDRATICO", "AD_HONOREM"],
-            width=180,
+            values=["TODAS LAS MODALIDADES", "ADMINISTRATIVO (CST)", "PLANTA (Dec. 1279)", "OCASIONAL (Ac. 027)", "CATEDRATICO", "AD_HONOREM"],
+            width=200,
             command=_cambiar_mod,
         )
         combo_mod.set(self.filtro_modalidad)
@@ -77,8 +77,8 @@ class ContratosTabsRenderer:
 
         entry_buscar = ctk.CTkEntry(
             filter_bar,
-            placeholder_text="Buscar docente o número de contrato...",
-            width=240,
+            placeholder_text="Buscar empleado, cargo o número de contrato...",
+            width=260,
         )
         if self.busqueda_texto:
             entry_buscar.insert(0, self.busqueda_texto)
@@ -114,9 +114,9 @@ class ContratosTabsRenderer:
             command=_limpiar,
         ).pack(side="left", padx=4, pady=8)
 
-        headers = ["N° Contrato", "Docente", "Modalidad / Régimen", "Dedicación / Horas", "Asignación Básica", "Vigencia", "Estado", "Acciones"]
+        headers = ["N° Contrato", "Empleado / Funcionario", "Modalidad / Régimen", "Dedicación / Cargo", "Asignación Básica", "Vigencia", "Estado", "Acciones"]
         col_weights = [2, 3, 3, 2, 2, 3, 2, 3]
-        col_mins = [110, 160, 140, 90, 120, 130, 90, 170]
+        col_mins = [110, 160, 150, 110, 120, 130, 90, 170]
 
         table = PITAGridTable(container, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=4, pady=4)
@@ -130,12 +130,20 @@ class ContratosTabsRenderer:
         for cont in contratos:
             mod = clean_enum(getattr(cont, "modalidadProfesor", "") or getattr(cont, "tipoContrato", "")).upper()
             est = clean_enum(getattr(cont, "estado", "ACTIVO")).upper()
+            adm = self.service.buscar_administrativo_por_id_persona(cont.idPersona)
+            es_admin = "ADMIN" in mod or (getattr(cont, "regimenAplicable", "") == "CST_LEY100_ADMINISTRATIVO") or (adm is not None)
 
             if self.filtro_modalidad not in ("TODAS LAS MODALIDADES", "TODAS"):
-                if self.filtro_modalidad == "AD_HONOREM" and not (getattr(cont, "esAdHonorem", False) or "AD_HONOREM" in mod):
-                    continue
-                elif self.filtro_modalidad != "AD_HONOREM" and self.filtro_modalidad not in mod:
-                    continue
+                if "ADMIN" in self.filtro_modalidad:
+                    if not es_admin:
+                        continue
+                elif self.filtro_modalidad == "AD_HONOREM":
+                    if not (getattr(cont, "esAdHonorem", False) or "AD_HONOREM" in mod):
+                        continue
+                else:
+                    filtro_clave = "PLANTA" if "PLANTA" in self.filtro_modalidad else ("OCASIONAL" if "OCASIONAL" in self.filtro_modalidad else ("CATEDRA" if "CATEDRA" in self.filtro_modalidad else self.filtro_modalidad))
+                    if es_admin or filtro_clave not in mod:
+                        continue
 
             if self.filtro_estado not in ("TODOS LOS ESTADOS", "TODOS"):
                 if self.filtro_estado == "ACTIVO" and est != "ACTIVO":
@@ -147,7 +155,8 @@ class ContratosTabsRenderer:
                 pers = self.service.buscar_persona_por_id(cont.idPersona)
                 nom = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}".lower()
                 num = str(getattr(cont, "numeroContrato", "")).lower()
-                if self.busqueda_texto not in nom and self.busqueda_texto not in num:
+                adm_cargo = str(getattr(adm, "cargo", "")).lower() if adm else ""
+                if self.busqueda_texto not in nom and self.busqueda_texto not in num and self.busqueda_texto not in adm_cargo:
                     continue
 
             filtrados.append(cont)
@@ -158,7 +167,8 @@ class ContratosTabsRenderer:
 
         for cont in filtrados:
             pers = self.service.buscar_persona_por_id(cont.idPersona)
-            nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else f"Persona #{cont.idPersona}"
+            adm = self.service.buscar_administrativo_por_id_persona(cont.idPersona)
+            nom_empleado = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else f"Persona #{cont.idPersona}"
 
             asig = str(getattr(cont, "salarioBase", "0") or getattr(cont, "salarioMensualPactado", "0") or "0")
             try:
@@ -170,22 +180,38 @@ class ContratosTabsRenderer:
             badge_est = "cancelado" if est in ("TERMINADO", "INACTIVO") else "active"
 
             mod = clean_enum(getattr(cont, "modalidadProfesor", "") or getattr(cont, "tipoContrato", "DOCENTE")).upper()
-            if "PLANTA" in mod:
+            es_admin = "ADMIN" in mod or (getattr(cont, "regimenAplicable", "") == "CST_LEY100_ADMINISTRATIVO") or (adm is not None)
+
+            if es_admin:
+                badge_mod_type = "info"
+                mod_desc = "💼 Administrativo (CST)"
+                cargo_label = getattr(adm, "cargo", "") if adm else ""
+                ded_fmt = cargo_label if cargo_label else "Administrativo"
+            elif "PLANTA" in mod:
                 badge_mod_type = "planta"
                 mod_desc = "🏛️ Planta (D.1279)"
+                horas = getattr(cont, "horasSemanales", 40)
+                ded = clean_enum(getattr(cont, "dedicacion", "TC"))
+                ded_fmt = "TC (40h)" if "COMPLETO" in ded else ("MT (20h)" if "MEDIO" in ded else f"HC ({horas}h)")
             elif "OCASIONAL" in mod:
                 badge_mod_type = "ocasional"
                 mod_desc = "⏱️ Ocasional (Ac.027)"
+                horas = getattr(cont, "horasSemanales", 40)
+                ded = clean_enum(getattr(cont, "dedicacion", "TC"))
+                ded_fmt = "TC (40h)" if "COMPLETO" in ded else ("MT (20h)" if "MEDIO" in ded else f"HC ({horas}h)")
             elif "CATEDRATICO" in mod or "CATEDRA" in mod:
                 badge_mod_type = "catedra"
                 mod_desc = "📚 Cátedra (Ac.027)"
-            else:
+                horas = getattr(cont, "horasSemanales", 40)
+                ded_fmt = f"HC ({horas}h)"
+            elif getattr(cont, "esAdHonorem", False) or "AD_HONOREM" in mod:
                 badge_mod_type = "neutral"
                 mod_desc = "🤝 Ad-Honorem"
-
-            horas = getattr(cont, "horasSemanales", 40)
-            ded = clean_enum(getattr(cont, "dedicacion", "TC"))
-            ded_fmt = "TC (40h)" if "COMPLETO" in ded else ("MT (20h)" if "MEDIO" in ded else f"HC ({horas}h)")
+                ded_fmt = "Ad-Honorem"
+            else:
+                badge_mod_type = "neutral"
+                mod_desc = mod.title()
+                ded_fmt = clean_enum(getattr(cont, "dedicacion", "TC"))
 
             f_ini = getattr(cont, "fechaInicio", "") or "N/D"
             f_fin = getattr(cont, "fechaFin", "") or "Indefinido"
@@ -200,7 +226,7 @@ class ContratosTabsRenderer:
 
             cells = [
                 (getattr(cont, "numeroContrato", "N/A"), "#F59E0B"),
-                (nom_prof, "#F8FAFC"),
+                (nom_empleado, "#F8FAFC"),
                 ("badge", mod_desc, badge_mod_type),
                 ded_fmt,
                 (asig_fmt, "#10B981"),

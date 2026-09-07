@@ -203,6 +203,7 @@ class PITAController:
             categorias=self.categorias,
             factores=self.factores,
             producciones=self.producciones,
+            administrativos=self.administrativos,
         )
         self.gestor_matriculas = GestorMatriculas(
             self.estudiantes,

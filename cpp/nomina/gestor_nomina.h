@@ -101,6 +101,17 @@ public:
     );
 };
 
+class LiquidadorAdministrativo : public MotorLiquidacionBase {
+public:
+    explicit LiquidadorAdministrativo(GestorNomina& gestor) : MotorLiquidacionBase(gestor) {}
+
+    LiquidacionNomina liquidar(
+        int idContrato,
+        int idPeriodoNomina,
+        const std::string& fechaLiquidacion = ""
+    );
+};
+
 class CicloVidaNomina {
 public:
     GestorNomina& gestor;
@@ -136,12 +147,14 @@ public:
     ListaEnlazada<CategoriaDocente>& categorias;
     ListaEnlazada<FactorSalarial>& factores;
     ListaEnlazada<ProduccionAcademica>& producciones;
+    ListaEnlazada<Administrativo>* administrativos;
 
     CalculadoraDeducciones calcDeducciones;
     CalculadoraPrestaciones calcPrestaciones;
     LiquidadorPlanta liquidadorPlanta;
     LiquidadorOcasional liquidadorOcasional;
     LiquidadorCatedratico liquidadorCatedratico;
+    LiquidadorAdministrativo liquidadorAdministrativo;
     CicloVidaNomina cicloVida;
 
     GestorNomina(
@@ -153,13 +166,15 @@ public:
         ListaEnlazada<DetalleLiquidacion>& detallesLiquidacion,
         ListaEnlazada<CategoriaDocente>& categorias,
         ListaEnlazada<FactorSalarial>& factores,
-        ListaEnlazada<ProduccionAcademica>& producciones
+        ListaEnlazada<ProduccionAcademica>& producciones,
+        ListaEnlazada<Administrativo>* administrativos = nullptr
     );
 
     // Liquidaciones principales
     LiquidacionNomina liquidarProfesorOcasional(int idContrato, int idPeriodoNomina, std::optional<double> horasIncumplidas = std::nullopt, const std::string& fechaLiquidacion = "");
     LiquidacionNomina liquidarProfesorPlanta(int idContrato, int idPeriodoNomina, const std::string& fechaLiquidacion = "");
     LiquidacionNomina liquidarProfesorCatedratico(int idContrato, int idPeriodoNomina, const std::string& fechaLiquidacion = "");
+    LiquidacionNomina liquidarAdministrativo(int idContrato, int idPeriodoNomina, const std::string& fechaLiquidacion = "");
     LiquidacionNomina crearLiquidacion(LiquidacionNomina liquidacion);
 
     // Ciclo de vida
@@ -181,6 +196,7 @@ public:
     Contrato& contrato(int idContrato);
     PeriodoNomina& periodo(int idPeriodo);
     Profesor& profesor(std::optional<int> idPersona);
+    Administrativo* administrativo(std::optional<int> idPersona);
     LiquidacionNomina& liquidacion(int idLiquidacion);
 
     int siguienteId();

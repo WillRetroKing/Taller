@@ -49,6 +49,27 @@ static std::string getNombreDocente(const GUIController& ctrl, int idProfesor) {
     return "Docente #" + std::to_string(idProfesor);
 }
 
+static std::string getNombreEmpleado(const GUIController& ctrl, const LiquidacionNomina& liq) {
+    if (liq.idProfesor.has_value() && *liq.idProfesor > 0) {
+        return getNombreDocente(ctrl, *liq.idProfesor);
+    }
+    if (liq.idContrato.has_value()) {
+        for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+            auto& c = ctrl.datos.contratos.obtener(i);
+            if (c.idContrato && *c.idContrato == *liq.idContrato && c.idPersona) {
+                for (size_t j = 0; j < ctrl.datos.personas.tamano(); ++j) {
+                    auto& p = ctrl.datos.personas.obtener(j);
+                    if (p.idPersona && *p.idPersona == *c.idPersona) {
+                        std::string nombre = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
+                        if (!nombre.empty() && nombre != " ") return nombre;
+                    }
+                }
+            }
+        }
+    }
+    return "Funcionario #" + std::to_string(liq.idContrato.value_or(0));
+}
+
 // ======================================================================
 // VISTA: NÓMINA & LIQUIDACIÓN
 // ======================================================================
@@ -73,7 +94,7 @@ void PITAApp::renderNomina() {
         modalPeriodoNominaAbierto = true;
     }
     ImGui::SameLine();
-    if (ImGui::Button("Liquidar Docente", ImVec2(165, 34))) {
+    if (ImGui::Button("Liquidar Empleado", ImVec2(165, 34))) {
         mensajeModal[0] = '\0';
         errorModal = false;
         modalLiquidarIndividualAbierto = true;
@@ -84,16 +105,65 @@ void PITAApp::renderNomina() {
     }
 
     ImGui::Spacing();
+
+    // Selector de Período Activo
+    ImGui::TextColored(tema::TEXT_MUTED(), "Periodo de Nomina Activo:");
+    ImGui::SameLine();
+
+    std::string previewFiltro = (nomFiltroPeriodoId == 0) ? "Todos los Periodos Registrados" : ("Periodo #" + std::to_string(nomFiltroPeriodoId));
+    std::string estadoPeriodoSel = "";
+    for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+        auto& p = ctrl.datos.periodosNomina.obtener(i);
+        if (p.idPeriodoNomina && *p.idPeriodoNomina == nomFiltroPeriodoId) {
+            estadoPeriodoSel = p.estado.value_or("ABIERTO");
+            previewFiltro = "Periodo #" + std::to_string(*p.idPeriodoNomina) + " (" +
+                            std::to_string(p.anio.value_or(2026)) + "-" + std::to_string(p.mes.value_or(1)) + ") [" +
+                            estadoPeriodoSel + "]";
+            break;
+        }
+    }
+    ImGui::SetNextItemWidth(360);
+    if (ImGui::BeginCombo("##FiltroPeriodoNomina", previewFiltro.c_str())) {
+        if (ImGui::Selectable("Todos los Periodos Registrados", nomFiltroPeriodoId == 0)) {
+            nomFiltroPeriodoId = 0;
+        }
+        for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+            auto& p = ctrl.datos.periodosNomina.obtener(i);
+            if (!p.idPeriodoNomina) continue;
+            bool sel = (*p.idPeriodoNomina == nomFiltroPeriodoId);
+            std::string lbl = "Periodo #" + std::to_string(*p.idPeriodoNomina) + " (" +
+                              std::to_string(p.anio.value_or(2026)) + "-" + std::to_string(p.mes.value_or(1)) + ") [" +
+                              (p.estado ? *p.estado : "ABIERTO") + "]";
+            if (ImGui::Selectable(lbl.c_str(), sel)) {
+                nomFiltroPeriodoId = *p.idPeriodoNomina;
+            }
+            if (sel) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    if (!estadoPeriodoSel.empty()) {
+        ImGui::SameLine();
+        if (estadoPeriodoSel == "ABIERTO") {
+            ImGui::TextColored(ImVec4(0.10f, 0.80f, 0.45f, 1.0f), "[PERIODO EN PROCESO - ABIERTO]");
+        } else {
+            ImGui::TextColored(tema::ACCENT_DANGER(), "[PERIODO AUDITADO - CERRADO]");
+        }
+    }
+
+    ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
 
-    // Cálculo de acumulados financieros (KPIs)
+    // Cálculo de acumulados financieros (KPIs) filtrados por período
     double tot_dev = 0.0;
     double tot_desc = 0.0;
     double tot_neto = 0.0;
     double tot_prest = 0.0;
     for (size_t i = 0; i < ctrl.datos.liquidacionesNomina.tamano(); ++i) {
         auto& l = ctrl.datos.liquidacionesNomina.obtener(i);
+        if (nomFiltroPeriodoId > 0 && l.idPeriodoNomina.value_or(0) != nomFiltroPeriodoId) {
+            continue;
+        }
         tot_dev += l.totalDevengado.value_or(0.0);
         tot_desc += l.totalDescuentos.value_or(0.0);
         tot_neto += l.netoPagar.value_or(0.0);
@@ -142,8 +212,8 @@ void PITAApp::renderNomina() {
                     ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                     ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                    ImGui::TableSetupColumn("Docente", ImGuiTableColumnFlags_WidthStretch, 2.0f);
-                    ImGui::TableSetupColumn("Tipo Profesor", ImGuiTableColumnFlags_WidthFixed, 110.0f);
+                    ImGui::TableSetupColumn("Empleado / Funcionario", ImGuiTableColumnFlags_WidthStretch, 2.0f);
+                    ImGui::TableSetupColumn("Tipo / Cargo", ImGuiTableColumnFlags_WidthFixed, 140.0f);
                     ImGui::TableSetupColumn("Sueldo Basico", ImGuiTableColumnFlags_WidthFixed, 120.0f);
                     ImGui::TableSetupColumn("Devengado", ImGuiTableColumnFlags_WidthFixed, 120.0f);
                     ImGui::TableSetupColumn("Descuentos Ley", ImGuiTableColumnFlags_WidthFixed, 120.0f);
@@ -154,20 +224,30 @@ void PITAApp::renderNomina() {
 
                     for (size_t i = 0; i < ctrl.datos.liquidacionesNomina.tamano(); ++i) {
                         auto& l = ctrl.datos.liquidacionesNomina.obtener(i);
+                        if (nomFiltroPeriodoId > 0 && l.idPeriodoNomina.value_or(0) != nomFiltroPeriodoId) {
+                            continue;
+                        }
                         int idLiq = l.idLiquidacion.value_or(0);
-                        int idProf = l.idProfesor.value_or(0);
 
-                        std::string nombre = getNombreDocente(ctrl, idProf);
+                        std::string nombre = getNombreEmpleado(ctrl, l);
+                        bool esAdmin = (!l.idProfesor.has_value() || *l.idProfesor == 0 ||
+                                       (l.regimenLiquidado && (l.regimenLiquidado->find("CST") != std::string::npos || l.regimenLiquidado->find("ADMINISTRATIVO") != std::string::npos)));
                         std::string tipoDocente = l.tipoProfesorLiquidado ? to_string(*l.tipoProfesorLiquidado) : "PLANTA";
 
                         ImGui::TableNextRow();
-                        // 1. Docente
+                        // 1. Empleado
                         ImGui::TableNextColumn();
                         ImGui::TextColored(tema::TEXT_MAIN(), "%s", nombre.c_str());
 
-                        // 2. Tipo Profesor (Badge)
+                        // 2. Tipo / Cargo (Badge)
                         ImGui::TableNextColumn();
-                        if (tipoDocente.find("PLANTA") != std::string::npos) {
+                        if (esAdmin) {
+                            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.06f, 0.40f, 0.35f, 0.35f));
+                            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.30f, 0.90f, 0.75f, 1.0f));
+                            std::string badgeCargo = l.categoriaLiquidada.value_or("ADMINISTRATIVO");
+                            ImGui::SmallButton(badgeCargo.c_str());
+                            ImGui::PopStyleColor(2);
+                        } else if (tipoDocente.find("PLANTA") != std::string::npos) {
                             ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
                             ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_ACTIVE_TXT());
                             ImGui::SmallButton("PLANTA");
@@ -211,9 +291,22 @@ void PITAApp::renderNomina() {
                             idLiquidacionDesprendible = idLiq;
                             modalDesprendibleAbierto = true;
                         }
-                        ImGui::SameLine();
-                        if (ImGui::SmallButton("Anular")) {
-                            eliminarLiquidacion(idLiq);
+
+                        bool perCerrado = false;
+                        if (l.idPeriodoNomina) {
+                            for (size_t pidx = 0; pidx < ctrl.datos.periodosNomina.tamano(); ++pidx) {
+                                auto& pcheck = ctrl.datos.periodosNomina.obtener(pidx);
+                                if (pcheck.idPeriodoNomina && *pcheck.idPeriodoNomina == *l.idPeriodoNomina) {
+                                    perCerrado = pcheck.estaCerrado.value_or(false) || (pcheck.estado && *pcheck.estado == "CERRADO");
+                                    break;
+                                }
+                            }
+                        }
+                        if (!perCerrado) {
+                            ImGui::SameLine();
+                            if (ImGui::SmallButton("Anular")) {
+                                eliminarLiquidacion(idLiq);
+                            }
                         }
                         ImGui::PopID();
                     }
@@ -334,42 +427,133 @@ void PITAApp::renderNomina() {
 
 void PITAApp::renderModalPeriodoNomina() {
     if (modalPeriodoNominaAbierto) {
-        ImGui::OpenPopup("Nuevo Periodo de Nomina");
+        ImGui::OpenPopup("Gestion de Periodos de Nomina y Cierre Contable");
     }
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(420, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(740, 0), ImGuiCond_Always);
 
-    if (ImGui::BeginPopupModal("Nuevo Periodo de Nomina", &modalPeriodoNominaAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal("Gestion de Periodos de Nomina y Cierre Contable", &modalPeriodoNominaAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (strlen(mensajeModal) > 0) {
             ImGui::TextColored(errorModal ? tema::ACCENT_DANGER() : tema::ACCENT_SUCCESS(), "%s", mensajeModal);
             ImGui::Separator();
         }
 
+        ImGui::TextColored(tema::TEXT_MAIN(), "Periodos de Nomina Registrados");
+        ImGui::TextColored(tema::TEXT_MUTED(), "Administracion de cortes mensuales, estado de auditoria contable y consolidacion de costos.");
+        ImGui::Spacing();
+
+        if (ImGui::BeginTable("##TablaPeriodosList", 6, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+            ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 35.0f);
+            ImGui::TableSetupColumn("Periodo", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+            ImGui::TableSetupColumn("Rango de Fechas", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 85.0f);
+            ImGui::TableSetupColumn("Costo Acumulado", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Accion", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+            ImGui::TableHeadersRow();
+
+            for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+                auto& p = ctrl.datos.periodosNomina.obtener(i);
+                int pId = p.idPeriodoNomina.value_or(0);
+                std::string perStr = std::to_string(p.anio.value_or(2026)) + "-" + ((p.mes.value_or(1) < 10) ? "0" : "") + std::to_string(p.mes.value_or(1));
+                std::string rangoFechas = p.fechaInicio.value_or("") + " al " + p.fechaFin.value_or("");
+                std::string est = p.estado.value_or("ABIERTO");
+                bool cerrado = p.estaCerrado.value_or(false) || (est == "CERRADO");
+
+                double costo = p.costoTotalPeriodo.value_or(0.0);
+                if (costo <= 0.0) {
+                    for (size_t li = 0; li < ctrl.datos.liquidacionesNomina.tamano(); ++li) {
+                        auto& l = ctrl.datos.liquidacionesNomina.obtener(li);
+                        if (l.idPeriodoNomina && *l.idPeriodoNomina == pId) {
+                            costo += l.costoTotalEmpleador.value_or(l.totalDevengado.value_or(0.0));
+                        }
+                    }
+                }
+
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("%d", pId);
+
+                ImGui::TableNextColumn();
+                ImGui::TextColored(tema::TEXT_MAIN(), "%s", perStr.c_str());
+
+                ImGui::TableNextColumn();
+                ImGui::TextColored(tema::TEXT_MUTED(), "%s", rangoFechas.c_str());
+
+                ImGui::TableNextColumn();
+                if (!cerrado) {
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_ACTIVE_TXT());
+                    ImGui::SmallButton("ABIERTO");
+                    ImGui::PopStyleColor(2);
+                } else {
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.25f, 0.25f, 0.28f, 0.5f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.70f, 0.70f, 0.75f, 1.0f));
+                    ImGui::SmallButton("CERRADO");
+                    ImGui::PopStyleColor(2);
+                }
+
+                ImGui::TableNextColumn();
+                ImGui::TextColored(tema::WIN_BLUE(), "%s", formatearMoneda(costo).c_str());
+
+                ImGui::TableNextColumn();
+                ImGui::PushID(static_cast<int>(i + 500));
+                if (!cerrado) {
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::ACCENT_DANGER());
+                    if (ImGui::SmallButton("Cerrar Periodo")) {
+                        try {
+                            ctrl.gestorNomina->cerrarPeriodoNomina(pId);
+                            ctrl.guardarDatos();
+                            ctrl.setMensaje("Periodo de nomina cerrado y auditado con exito.");
+                            strncpy(mensajeModal, "Periodo cerrado y auditado exitosamente.", sizeof(mensajeModal) - 1);
+                            errorModal = false;
+                        } catch (const std::exception& ex) {
+                            strncpy(mensajeModal, ex.what(), sizeof(mensajeModal) - 1);
+                            errorModal = true;
+                        }
+                    }
+                    ImGui::PopStyleColor();
+                } else {
+                    ImGui::TextColored(tema::TEXT_MUTED(), "Auditado");
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndTable();
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::TextColored(tema::TEXT_MAIN(), "Crear Nuevo Periodo Mensual:");
+        ImGui::SetNextItemWidth(110);
         ImGui::InputInt("Ano *", &perAnio);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(110);
         ImGui::InputInt("Mes (1-12) *", &perMes);
         if (perMes < 1) perMes = 1;
         if (perMes > 12) perMes = 12;
 
-        ImGui::Spacing();
-        ImGui::Separator();
-
-        if (ImGui::Button("Crear Periodo", ImVec2(140, 0))) {
+        ImGui::SameLine();
+        if (ImGui::Button("Registrar Periodo", ImVec2(140, 0))) {
             try {
                 ctrl.gestorNomina->cicloVida.crearPeriodoNominaMensual(perAnio, perMes);
                 ctrl.guardarDatos();
-                ctrl.setMensaje("Periodo de nomina creado con exito.");
-                modalPeriodoNominaAbierto = false;
-                ImGui::CloseCurrentPopup();
+                ctrl.setMensaje("Periodo de nomina registrado con exito.");
+                strncpy(mensajeModal, "Nuevo periodo registrado exitosamente.", sizeof(mensajeModal) - 1);
+                errorModal = false;
             } catch (const std::exception& e) {
                 strncpy(mensajeModal, e.what(), sizeof(mensajeModal) - 1);
                 errorModal = true;
             }
         }
 
-        ImGui::SameLine();
-        if (ImGui::Button("Cancelar", ImVec2(120, 0))) {
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Cerrar Ventana", ImVec2(140, 0))) {
             modalPeriodoNominaAbierto = false;
             ImGui::CloseCurrentPopup();
         }
@@ -425,7 +609,17 @@ void PITAApp::renderModalLiquidar() {
                 auto& c = ctrl.datos.contratos.obtener(i);
                 if (c.idContrato && c.estado && *c.estado == "ACTIVO") {
                     bool isSelected = (*c.idContrato == liqContratoId);
-                    std::string label = "Contrato #" + std::to_string(*c.idContrato) + " (" + (c.tipoContrato ? *c.tipoContrato : "") + ")";
+                    std::string persNom = "";
+                    if (c.idPersona) {
+                        for (size_t j = 0; j < ctrl.datos.personas.tamano(); ++j) {
+                            auto& p = ctrl.datos.personas.obtener(j);
+                            if (p.idPersona && *p.idPersona == *c.idPersona) {
+                                persNom = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
+                                break;
+                            }
+                        }
+                    }
+                    std::string label = "Contrato #" + std::to_string(*c.idContrato) + " - " + persNom + " (" + (c.tipoContrato ? *c.tipoContrato : "") + ")";
                     if (ImGui::Selectable(label.c_str(), isSelected)) {
                         liqContratoId = *c.idContrato;
                     }
@@ -449,6 +643,8 @@ void PITAApp::renderModalLiquidar() {
                                 ctrl.gestorNomina->liquidarProfesorPlanta(liqContratoId, liqPeriodoId);
                             } else if (c.tipoContrato && *c.tipoContrato == "DOCENTE_OCASIONAL") {
                                 ctrl.gestorNomina->liquidarProfesorOcasional(liqContratoId, liqPeriodoId);
+                            } else if (c.tipoContrato && (*c.tipoContrato == "ADMINISTRATIVO" || *c.tipoContrato == "PERSONAL_ADMINISTRATIVO")) {
+                                ctrl.gestorNomina->liquidarAdministrativo(liqContratoId, liqPeriodoId);
                             } else {
                                 ctrl.gestorNomina->liquidarProfesorCatedratico(liqContratoId, liqPeriodoId);
                             }
@@ -465,6 +661,8 @@ void PITAApp::renderModalLiquidar() {
                                     ctrl.gestorNomina->liquidarProfesorPlanta(*c.idContrato, liqPeriodoId);
                                 } else if (c.tipoContrato && *c.tipoContrato == "DOCENTE_OCASIONAL") {
                                     ctrl.gestorNomina->liquidarProfesorOcasional(*c.idContrato, liqPeriodoId);
+                                } else if (c.tipoContrato && (*c.tipoContrato == "ADMINISTRATIVO" || *c.tipoContrato == "PERSONAL_ADMINISTRATIVO")) {
+                                    ctrl.gestorNomina->liquidarAdministrativo(*c.idContrato, liqPeriodoId);
                                 } else {
                                     ctrl.gestorNomina->liquidarProfesorCatedratico(*c.idContrato, liqPeriodoId);
                                 }
@@ -578,17 +776,53 @@ void PITAApp::renderModalDesprendible() {
             return;
         }
 
+        bool esAdmin = (!liqPtr->idProfesor.has_value() || *liqPtr->idProfesor == 0 ||
+                        (liqPtr->regimenLiquidado && liqPtr->regimenLiquidado->find("ADMINISTRATIVO") != std::string::npos));
+
+        const Contrato* conLiq = nullptr;
+        if (liqPtr->idContrato) {
+            for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+                if (ctrl.datos.contratos.obtener(i).idContrato == liqPtr->idContrato) {
+                    conLiq = &ctrl.datos.contratos.obtener(i);
+                    break;
+                }
+            }
+        }
+        const Administrativo* admPtr = nullptr;
+        std::string nomEmpleado = "";
+        std::string cargoEmp = liqPtr->categoriaLiquidada.value_or("ADMINISTRATIVO");
+        std::string dependenciaEmp = "Administracion Central";
+        std::string tipoContratoStr = (conLiq && conLiq->tipoContrato) ? *conLiq->tipoContrato : "TERMINO_INDEFINIDO";
+
         int idProf = liqPtr->idProfesor.value_or(0);
-        std::string nomProf = getNombreDocente(ctrl, idProf);
         std::string tipoDocente = liqPtr->tipoProfesorLiquidado ? to_string(*liqPtr->tipoProfesorLiquidado) : "PLANTA";
 
         const Profesor* profPtr = nullptr;
-        for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
-            auto& p = ctrl.datos.profesores.obtener(i);
-            if (p.idProfesor && *p.idProfesor == idProf) {
-                profPtr = &p;
-                break;
+        if (!esAdmin) {
+            nomEmpleado = getNombreDocente(ctrl, idProf);
+            for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+                auto& p = ctrl.datos.profesores.obtener(i);
+                if (p.idProfesor && *p.idProfesor == idProf) {
+                    profPtr = &p;
+                    break;
+                }
             }
+        } else {
+            nomEmpleado = getNombreEmpleado(ctrl, *liqPtr);
+            if (conLiq) {
+                for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); ++i) {
+                    auto& a = ctrl.datos.administrativos.obtener(i);
+                    if (a.idPersona == conLiq->idPersona) {
+                        admPtr = &a;
+                        break;
+                    }
+                }
+            }
+            if (admPtr) {
+                if (admPtr->cargo) cargoEmp = *admPtr->cargo;
+                if (admPtr->dependencia) dependenciaEmp = *admPtr->dependencia;
+            }
+            if (nomEmpleado.empty()) nomEmpleado = "Funcionario Administrativo";
         }
 
         const PeriodoNomina* periodoPtr = nullptr;
@@ -652,8 +886,13 @@ void PITAApp::renderModalDesprendible() {
         if (fuenteTitulo) ImGui::PushFont(fuenteTitulo);
         ImGui::TextColored(tema::TEXT_MAIN(), "Desprendible Oficial de Pago de Nomina");
         if (fuenteTitulo) ImGui::PopFont();
-        ImGui::TextColored(tema::TEXT_MUTED(), "Docente: %s  |  Modalidad: %s  |  Liquidacion N° %d",
-            nomProf.c_str(), tipoDocente.c_str(), idLiquidacionDesprendible);
+        if (esAdmin) {
+            ImGui::TextColored(tema::TEXT_MUTED(), "Funcionario: %s  |  Cargo: %s  |  Liquidacion N° %d",
+                nomEmpleado.c_str(), cargoEmp.c_str(), idLiquidacionDesprendible);
+        } else {
+            ImGui::TextColored(tema::TEXT_MUTED(), "Docente: %s  |  Modalidad: %s  |  Liquidacion N° %d",
+                nomEmpleado.c_str(), tipoDocente.c_str(), idLiquidacionDesprendible);
+        }
         ImGui::TextColored(tema::WIN_BLUE(), "Periodo Liquidado: %s", txtPeriodo.c_str());
         ImGui::EndChild();
 
@@ -842,51 +1081,79 @@ void PITAApp::renderModalDesprendible() {
         ImGui::TextColored(tema::WIN_BLUE(), "%s", formatearMoneda(totalCostoUPC).c_str());
         ImGui::Spacing();
 
-        // 4. Información Salarial Docente (Decreto 1279)
-        std::string categoriaDoc = liqPtr->categoriaLiquidada.value_or("");
-        if (categoriaDoc.empty() && profPtr && profPtr->categoriaDocente) {
-            categoriaDoc = *profPtr->categoriaDocente;
-        }
-        if (categoriaDoc.empty()) {
-            categoriaDoc = (tipoDocente == "PLANTA") ? "Titular" : "Docente Catedra";
-        }
+        // 4. Información Salarial Docente o Laboral Administrativa
+        if (esAdmin) {
+            ImGui::Spacing();
+            ImGui::TextColored(tema::WIN_BLUE(), "INFORMACION LABORAL Y SALARIAL (CST / LEY 100)");
+            ImGui::Separator();
 
-        ImGui::Spacing();
-        ImGui::TextColored(tema::WIN_BLUE(), "INFORMACION SALARIAL DOCENTE (DECRETO 1279)");
-        ImGui::Separator();
-
-        ImGui::Text("  Categoria Docente:");
-        ImGui::SameLine(ImGui::GetWindowWidth() - 240);
-        ImGui::TextColored(tema::TEXT_MAIN(), "%s", categoriaDoc.c_str());
-
-        if (puntosTotales > 0.0 || tipoDocente == "PLANTA") {
-            ImGui::Text("  Total Puntos Salariales:");
+            ImGui::Text("  Cargo Institucional:");
             ImGui::SameLine(ImGui::GetWindowWidth() - 240);
-            ImGui::TextColored(tema::TEXT_MAIN(), "%.0f pts", puntosTotales);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", cargoEmp.c_str());
 
-            ImGui::Text("  Valor Punto Salarial:");
+            ImGui::Text("  Dependencia Adscrita:");
             ImGui::SameLine(ImGui::GetWindowWidth() - 240);
-            ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(valorPto).c_str());
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", dependenciaEmp.c_str());
 
-            char bufCalculo[128];
-            snprintf(bufCalculo, sizeof(bufCalculo), "%.0f pts x %s", puntosTotales, formatearMoneda(valorPto).c_str());
-            ImGui::Text("  Calculo Asignacion Basica:");
+            ImGui::Text("  Tipo de Contratacion:");
             ImGui::SameLine(ImGui::GetWindowWidth() - 240);
-            ImGui::TextColored(tema::WIN_BLUE(), "%s", bufCalculo);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", tipoContratoStr.c_str());
+
+            ImGui::Text("  Sueldo Basico Ordinario:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+            double sBase = liqPtr->salarioBase.value_or(0.0);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(sBase).c_str());
 
             ImGui::Text("  IBC Seguridad Social:");
             ImGui::SameLine(ImGui::GetWindowWidth() - 240);
-            ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(ibcVal).c_str());
+            ImGui::TextColored(tema::WIN_BLUE(), "%s", formatearMoneda(ibcVal).c_str());
+            ImGui::Spacing();
         } else {
-            ImGui::Text("  Modalidad Vinculacion:");
-            ImGui::SameLine(ImGui::GetWindowWidth() - 240);
-            ImGui::TextColored(tema::TEXT_MAIN(), "%s", tipoDocente.c_str());
+            std::string categoriaDoc = liqPtr->categoriaLiquidada.value_or("");
+            if (categoriaDoc.empty() && profPtr && profPtr->categoriaDocente) {
+                categoriaDoc = *profPtr->categoriaDocente;
+            }
+            if (categoriaDoc.empty()) {
+                categoriaDoc = (tipoDocente == "PLANTA") ? "Titular" : "Docente Catedra";
+            }
 
-            ImGui::Text("  IBC Seguridad Social:");
+            ImGui::Spacing();
+            ImGui::TextColored(tema::WIN_BLUE(), "INFORMACION SALARIAL DOCENTE (DECRETO 1279)");
+            ImGui::Separator();
+
+            ImGui::Text("  Categoria Docente:");
             ImGui::SameLine(ImGui::GetWindowWidth() - 240);
-            ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(ibcVal).c_str());
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", categoriaDoc.c_str());
+
+            if (puntosTotales > 0.0 || tipoDocente == "PLANTA") {
+                ImGui::Text("  Total Puntos Salariales:");
+                ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+                ImGui::TextColored(tema::TEXT_MAIN(), "%.0f pts", puntosTotales);
+
+                ImGui::Text("  Valor Punto Salarial:");
+                ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+                ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(valorPto).c_str());
+
+                char bufCalculo[128];
+                snprintf(bufCalculo, sizeof(bufCalculo), "%.0f pts x %s", puntosTotales, formatearMoneda(valorPto).c_str());
+                ImGui::Text("  Calculo Asignacion Basica:");
+                ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+                ImGui::TextColored(tema::WIN_BLUE(), "%s", bufCalculo);
+
+                ImGui::Text("  IBC Seguridad Social:");
+                ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+                ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(ibcVal).c_str());
+            } else {
+                ImGui::Text("  Modalidad Vinculacion:");
+                ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+                ImGui::TextColored(tema::TEXT_MAIN(), "%s", tipoDocente.c_str());
+
+                ImGui::Text("  IBC Seguridad Social:");
+                ImGui::SameLine(ImGui::GetWindowWidth() - 240);
+                ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(ibcVal).c_str());
+            }
+            ImGui::Spacing();
         }
-        ImGui::Spacing();
 
         ImGui::EndChild();
 
@@ -1012,11 +1279,26 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
 
     // Buscar periodo abierto
     PeriodoNomina* periodoPtr = nullptr;
-    for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
-        auto& p = ctrl.datos.periodosNomina.obtener(i);
-        if (p.estado && *p.estado == "ABIERTO") {
-            periodoPtr = &p;
-            break;
+    if (nomFiltroPeriodoId > 0) {
+        for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+            auto& p = ctrl.datos.periodosNomina.obtener(i);
+            if (p.idPeriodoNomina && *p.idPeriodoNomina == nomFiltroPeriodoId) {
+                if (p.estaCerrado.value_or(false) || (p.estado && *p.estado == "CERRADO")) {
+                    ctrl.setMensaje("Operacion denegada: El periodo #" + std::to_string(nomFiltroPeriodoId) + " esta CERRADO y auditado.");
+                    return;
+                }
+                periodoPtr = &p;
+                break;
+            }
+        }
+    }
+    if (!periodoPtr) {
+        for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+            auto& p = ctrl.datos.periodosNomina.obtener(i);
+            if (p.estado && *p.estado == "ABIERTO") {
+                periodoPtr = &p;
+                break;
+            }
         }
     }
     if (!periodoPtr && ctrl.datos.periodosNomina.tamano() > 0) {
@@ -1231,24 +1513,358 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
     ctrl.guardarDatos();
 }
 
-void PITAApp::ejecutarLiquidacionGeneral() {
-    if (ctrl.datos.profesores.tamano() == 0) {
-        ctrl.setMensaje("No hay profesores registrados para liquidar.", true);
-        return;
+void PITAApp::liquidarAdministrativoEspecifico(int idAdministrativo) {
+    Administrativo* admPtr = nullptr;
+    for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); ++i) {
+        if (ctrl.datos.administrativos.obtener(i).idAdministrativo && *ctrl.datos.administrativos.obtener(i).idAdministrativo == idAdministrativo) {
+            admPtr = &ctrl.datos.administrativos.obtener(i);
+            break;
+        }
+    }
+    if (!admPtr) return;
+
+    Contrato* contratoPtr = nullptr;
+    for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+        auto& c = ctrl.datos.contratos.obtener(i);
+        if (c.idPersona == admPtr->idPersona) {
+            if (c.estado && *c.estado == "ACTIVO") {
+                contratoPtr = &c;
+                break;
+            }
+            if (!contratoPtr) contratoPtr = &c;
+        }
     }
 
-    int count = 0;
+    // Buscar periodo abierto
+    PeriodoNomina* periodoPtr = nullptr;
+    if (nomFiltroPeriodoId > 0) {
+        for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+            auto& p = ctrl.datos.periodosNomina.obtener(i);
+            if (p.idPeriodoNomina && *p.idPeriodoNomina == nomFiltroPeriodoId) {
+                if (p.estaCerrado.value_or(false) || (p.estado && *p.estado == "CERRADO")) {
+                    ctrl.setMensaje("Operacion denegada: El periodo #" + std::to_string(nomFiltroPeriodoId) + " esta CERRADO y auditado.");
+                    return;
+                }
+                periodoPtr = &p;
+                break;
+            }
+        }
+    }
+    if (!periodoPtr) {
+        for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+            auto& p = ctrl.datos.periodosNomina.obtener(i);
+            if (p.estado && *p.estado == "ABIERTO") {
+                periodoPtr = &p;
+                break;
+            }
+        }
+    }
+    if (!periodoPtr && ctrl.datos.periodosNomina.tamano() > 0) {
+        periodoPtr = &ctrl.datos.periodosNomina.obtener(0);
+    }
+    if (!periodoPtr) {
+        PeriodoNomina pNuevo;
+        pNuevo.idPeriodoNomina = 1;
+        pNuevo.anio = 2026;
+        pNuevo.mes = 3;
+        pNuevo.fechaInicio = "2026-03-01";
+        pNuevo.fechaFin = "2026-03-31";
+        pNuevo.estado = "ABIERTO";
+        ctrl.datos.periodosNomina.push_back(pNuevo);
+        ctrl.inicializarGestores();
+        periodoPtr = &ctrl.datos.periodosNomina.obtener(0);
+    }
+
+    int idPeriodo = periodoPtr->idPeriodoNomina.value_or(1);
+    int idContr = contratoPtr ? contratoPtr->idContrato.value_or(0) : 0;
+
+    // Limpiar liquidación previa de este contrato administrativo en este periodo
+    std::vector<int> idsBorrados;
+    ListaEnlazada<LiquidacionNomina> liqFiltradas;
+    for (size_t i = 0; i < ctrl.datos.liquidacionesNomina.tamano(); ++i) {
+        auto& l = ctrl.datos.liquidacionesNomina.obtener(i);
+        bool coincide = false;
+        if (idContr > 0 && l.idContrato && *l.idContrato == idContr && l.idPeriodoNomina && *l.idPeriodoNomina == idPeriodo) {
+            coincide = true;
+        } else if ((!l.idProfesor || *l.idProfesor == 0) && l.idPeriodoNomina && *l.idPeriodoNomina == idPeriodo) {
+            for (size_t cIdx = 0; cIdx < ctrl.datos.contratos.tamano(); ++cIdx) {
+                auto& c = ctrl.datos.contratos.obtener(cIdx);
+                if (c.idContrato && l.idContrato && *c.idContrato == *l.idContrato) {
+                    if (c.idPersona == admPtr->idPersona) coincide = true;
+                    break;
+                }
+            }
+        }
+        if (coincide) {
+            if (l.idLiquidacion) idsBorrados.push_back(*l.idLiquidacion);
+        } else {
+            liqFiltradas.push_back(l);
+        }
+    }
+    ctrl.datos.liquidacionesNomina = std::move(liqFiltradas);
+
+    if (!idsBorrados.empty()) {
+        ListaEnlazada<DetalleLiquidacion> detFiltrados;
+        for (size_t i = 0; i < ctrl.datos.detallesLiquidacion.tamano(); ++i) {
+            auto& d = ctrl.datos.detallesLiquidacion.obtener(i);
+            bool borrar = false;
+            for (int idB : idsBorrados) {
+                if (d.idLiquidacion && *d.idLiquidacion == idB) {
+                    borrar = true;
+                    break;
+                }
+            }
+            if (!borrar) detFiltrados.push_back(d);
+        }
+        ctrl.datos.detallesLiquidacion = std::move(detFiltrados);
+    }
+    ctrl.inicializarGestores();
+
+    bool liquidado = false;
+    if (contratoPtr && contratoPtr->idContrato) {
+        try {
+            ctrl.gestorNomina->liquidarAdministrativo(*contratoPtr->idContrato, idPeriodo);
+            liquidado = true;
+        } catch (...) {
+            liquidado = false;
+        }
+    }
+
+    if (!liquidado) {
+        // Fallback CST / Ley 100
+        double smmlv = 1750905.0;
+        double auxTransporteVal = 249095.0;
+        double sueldoBase = admPtr->salarioBase.value_or(2500000.0);
+        if (contratoPtr && contratoPtr->salarioBase && *contratoPtr->salarioBase > 0) {
+            sueldoBase = *contratoPtr->salarioBase;
+        }
+        double auxTrans = (sueldoBase <= 2.0 * smmlv) ? auxTransporteVal : 0.0;
+        double ibc = sueldoBase;
+        double devengado = sueldoBase + auxTrans;
+
+        double salTrab = std::round(ibc * 0.04);
+        double penTrab = std::round(ibc * 0.04);
+        double fsp = (ibc >= 4.0 * smmlv) ? std::round(ibc * 0.01) : 0.0;
+        double deducciones = salTrab + penTrab + fsp;
+        double neto = devengado - deducciones;
+
+        double salPat = (ibc < 10.0 * smmlv) ? 0.0 : std::round(ibc * 0.085);
+        double penPat = std::round(ibc * 0.12);
+        double arl = std::round(ibc * 0.00522);
+        double ccf = std::round(ibc * 0.04);
+        double sena = (ibc < 10.0 * smmlv) ? 0.0 : std::round(ibc * 0.02);
+        double icbf = (ibc < 10.0 * smmlv) ? 0.0 : std::round(ibc * 0.03);
+
+        double basePres = devengado;
+        double prima = std::round(basePres * 0.0833);
+        double cesantias = std::round(basePres * 0.0833);
+        double intCesantias = std::round(cesantias * 0.12);
+        double vacaciones = std::round(sueldoBase * 0.0417);
+        double prestaciones = prima + cesantias + intCesantias + vacaciones;
+
+        int maxLiqId = 0;
+        for (size_t i = 0; i < ctrl.datos.liquidacionesNomina.tamano(); ++i) {
+            int curId = ctrl.datos.liquidacionesNomina.obtener(i).idLiquidacion.value_or(0);
+            if (curId > maxLiqId) maxLiqId = curId;
+        }
+        int nuevoIdLiq = maxLiqId + 1;
+
+        LiquidacionNomina liq;
+        liq.idLiquidacion = nuevoIdLiq;
+        liq.idContrato = contratoPtr ? contratoPtr->idContrato.value_or(1) : 1;
+        liq.idPeriodoNomina = idPeriodo;
+        liq.fechaLiquidacion = "2026-03-31";
+        liq.salarioBase = sueldoBase;
+        liq.totalDevengado = devengado;
+        liq.totalDescuentos = deducciones;
+        liq.netoPagar = neto;
+        liq.totalPrestaciones = prestaciones;
+        liq.estado = "LIQUIDADO";
+        liq.regimenLiquidado = "CST_LEY100_ADMINISTRATIVO";
+        liq.baseCotizacionSeguridadSocial = ibc;
+        liq.categoriaLiquidada = admPtr->cargo.value_or("ADMINISTRATIVO");
+
+        ctrl.datos.liquidacionesNomina.push_back(liq);
+
+        int maxDetId = 0;
+        for (size_t i = 0; i < ctrl.datos.detallesLiquidacion.tamano(); ++i) {
+            int curD = ctrl.datos.detallesLiquidacion.obtener(i).idDetalleLiquidacion.value_or(0);
+            if (curD > maxDetId) maxDetId = curD;
+        }
+
+        DetalleLiquidacion d1;
+        d1.idDetalleLiquidacion = ++maxDetId;
+        d1.idLiquidacion = nuevoIdLiq;
+        d1.idConcepto = 1;
+        d1.tipoMovimiento = "DEVENGADO";
+        d1.valorCalculado = sueldoBase;
+        d1.observaciones = "Sueldo Basico Ordinario";
+        ctrl.datos.detallesLiquidacion.push_back(d1);
+
+        if (auxTrans > 0.0) {
+            DetalleLiquidacion dAux;
+            dAux.idDetalleLiquidacion = ++maxDetId;
+            dAux.idLiquidacion = nuevoIdLiq;
+            dAux.idConcepto = 2;
+            dAux.tipoMovimiento = "DEVENGADO";
+            dAux.valorCalculado = auxTrans;
+            dAux.observaciones = "Auxilio Legal de Transporte";
+            ctrl.datos.detallesLiquidacion.push_back(dAux);
+        }
+
+        DetalleLiquidacion d2;
+        d2.idDetalleLiquidacion = ++maxDetId;
+        d2.idLiquidacion = nuevoIdLiq;
+        d2.idConcepto = 3;
+        d2.tipoMovimiento = "DEDUCCION";
+        d2.valorCalculado = salTrab;
+        d2.observaciones = "Salud Trabajador (4%)";
+        ctrl.datos.detallesLiquidacion.push_back(d2);
+
+        DetalleLiquidacion d3;
+        d3.idDetalleLiquidacion = ++maxDetId;
+        d3.idLiquidacion = nuevoIdLiq;
+        d3.idConcepto = 4;
+        d3.tipoMovimiento = "DEDUCCION";
+        d3.valorCalculado = penTrab;
+        d3.observaciones = "Pension Trabajador (4%)";
+        ctrl.datos.detallesLiquidacion.push_back(d3);
+
+        if (fsp > 0.0) {
+            DetalleLiquidacion dFsp;
+            dFsp.idDetalleLiquidacion = ++maxDetId;
+            dFsp.idLiquidacion = nuevoIdLiq;
+            dFsp.idConcepto = 5;
+            dFsp.tipoMovimiento = "DEDUCCION";
+            dFsp.valorCalculado = fsp;
+            dFsp.observaciones = "Fondo de Solidaridad Pensional (1%)";
+            ctrl.datos.detallesLiquidacion.push_back(dFsp);
+        }
+
+        if (salPat > 0.0) {
+            DetalleLiquidacion d4;
+            d4.idDetalleLiquidacion = ++maxDetId;
+            d4.idLiquidacion = nuevoIdLiq;
+            d4.idConcepto = 6;
+            d4.tipoMovimiento = "APORTE_PATRONAL";
+            d4.valorCalculado = salPat;
+            d4.observaciones = "Aporte Patronal Salud (8.5%)";
+            ctrl.datos.detallesLiquidacion.push_back(d4);
+        }
+
+        DetalleLiquidacion d5;
+        d5.idDetalleLiquidacion = ++maxDetId;
+        d5.idLiquidacion = nuevoIdLiq;
+        d5.idConcepto = 7;
+        d5.tipoMovimiento = "APORTE_PATRONAL";
+        d5.valorCalculado = penPat;
+        d5.observaciones = "Aporte Patronal Pension (12%)";
+        ctrl.datos.detallesLiquidacion.push_back(d5);
+
+        DetalleLiquidacion d6;
+        d6.idDetalleLiquidacion = ++maxDetId;
+        d6.idLiquidacion = nuevoIdLiq;
+        d6.idConcepto = 8;
+        d6.tipoMovimiento = "APORTE_ARL";
+        d6.valorCalculado = arl;
+        d6.observaciones = "Riesgos Laborales ARL (Clase I 0.522%)";
+        ctrl.datos.detallesLiquidacion.push_back(d6);
+
+        DetalleLiquidacion d7;
+        d7.idDetalleLiquidacion = ++maxDetId;
+        d7.idLiquidacion = nuevoIdLiq;
+        d7.idConcepto = 9;
+        d7.tipoMovimiento = "APORTE_CAJA";
+        d7.valorCalculado = ccf;
+        d7.observaciones = "Caja de Compensacion Familiar (4%)";
+        ctrl.datos.detallesLiquidacion.push_back(d7);
+
+        if (sena > 0.0) {
+            DetalleLiquidacion d8;
+            d8.idDetalleLiquidacion = ++maxDetId;
+            d8.idLiquidacion = nuevoIdLiq;
+            d8.idConcepto = 10;
+            d8.tipoMovimiento = "APORTE_PATRONAL";
+            d8.valorCalculado = sena;
+            d8.observaciones = "Parafiscal SENA (2%)";
+            ctrl.datos.detallesLiquidacion.push_back(d8);
+        }
+
+        if (icbf > 0.0) {
+            DetalleLiquidacion d9;
+            d9.idDetalleLiquidacion = ++maxDetId;
+            d9.idLiquidacion = nuevoIdLiq;
+            d9.idConcepto = 11;
+            d9.tipoMovimiento = "APORTE_PATRONAL";
+            d9.valorCalculado = icbf;
+            d9.observaciones = "Parafiscal ICBF (3%)";
+            ctrl.datos.detallesLiquidacion.push_back(d9);
+        }
+
+        ctrl.inicializarGestores();
+    }
+
+    ctrl.guardarDatos();
+}
+
+void PITAApp::ejecutarLiquidacionGeneral() {
+    if (nomFiltroPeriodoId > 0) {
+        for (size_t i = 0; i < ctrl.datos.periodosNomina.tamano(); ++i) {
+            auto& p = ctrl.datos.periodosNomina.obtener(i);
+            if (p.idPeriodoNomina && *p.idPeriodoNomina == nomFiltroPeriodoId) {
+                if (p.estaCerrado.value_or(false) || (p.estado && *p.estado == "CERRADO")) {
+                    ctrl.setMensaje("Operacion cancelada: El periodo #" + std::to_string(nomFiltroPeriodoId) +
+                                    " esta CERRADO y auditado. No admite nuevas liquidaciones.");
+                    return;
+                }
+                break;
+            }
+        }
+    }
+
+    int countDoc = 0;
     for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
         auto& p = ctrl.datos.profesores.obtener(i);
         if (p.idProfesor) {
             liquidarProfesorEspecifico(*p.idProfesor);
-            count++;
+            countDoc++;
         }
     }
-    ctrl.setMensaje("Liquidacion de periodo procesada exitosamente (" + std::to_string(count) + " docentes calculados).");
+
+    int countAdm = 0;
+    for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); ++i) {
+        auto& a = ctrl.datos.administrativos.obtener(i);
+        if (a.idAdministrativo) {
+            liquidarAdministrativoEspecifico(*a.idAdministrativo);
+            countAdm++;
+        }
+    }
+
+    ctrl.setMensaje("Liquidacion general procesada exitosamente (" + 
+                    std::to_string(countDoc) + " docentes, " + 
+                    std::to_string(countAdm) + " administrativos calculados).");
 }
 
 void PITAApp::eliminarLiquidacion(int idLiquidacion) {
+    for (size_t i = 0; i < ctrl.datos.liquidacionesNomina.tamano(); ++i) {
+        auto& l = ctrl.datos.liquidacionesNomina.obtener(i);
+        if (l.idLiquidacion.value_or(0) == idLiquidacion) {
+            int pId = l.idPeriodoNomina.value_or(0);
+            for (size_t j = 0; j < ctrl.datos.periodosNomina.tamano(); ++j) {
+                auto& per = ctrl.datos.periodosNomina.obtener(j);
+                if (per.idPeriodoNomina && *per.idPeriodoNomina == pId) {
+                    if (per.estaCerrado.value_or(false) || (per.estado && *per.estado == "CERRADO")) {
+                        ctrl.setMensaje("Operacion denegada: La liquidacion #" + std::to_string(idLiquidacion) +
+                                        " pertenece a un periodo CERRADO y auditado.");
+                        return;
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
     ListaEnlazada<LiquidacionNomina> liqFiltradas;
     for (size_t i = 0; i < ctrl.datos.liquidacionesNomina.tamano(); ++i) {
         auto& l = ctrl.datos.liquidacionesNomina.obtener(i);

@@ -87,7 +87,8 @@ void GUIController::inicializarGestores() {
         datos.contratos, datos.profesores, datos.periodosNomina,
         datos.liquidacionesNomina, datos.parametrosNormativos,
         datos.detallesLiquidacion, datos.categoriasDocentes,
-        datos.factoresSalariales, datos.produccionesAcademicas
+        datos.factoresSalariales, datos.produccionesAcademicas,
+        &datos.administrativos
     );
 }
 

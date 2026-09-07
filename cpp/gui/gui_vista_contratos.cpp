@@ -50,19 +50,20 @@ void PITAApp::renderContratos() {
     if (fuenteTitulo) ImGui::PopFont();
 
     if (fuentePequena) ImGui::PushFont(fuentePequena);
-    ImGui::TextColored(tema::TEXT_MUTED(), "Regimen de Carrera (Dec. 1279/2002) y Profesores Transitorios (Acuerdo 027/2024)");
+    ImGui::TextColored(tema::TEXT_MUTED(), "Regimen Docente (Dec. 1279 / Ac. 027) y Personal Administrativo (CST / Ley 100)");
     if (fuentePequena) ImGui::PopFont();
 
     ImGui::Spacing();
 
     // Botones de acción principales en cabecera
-    if (ImGui::Button("+ Registrar Contrato Docente", ImVec2(210, 32))) {
+    if (ImGui::Button("+ Registrar Contrato", ImVec2(180, 32))) {
+        conTipoPersonalIdx = 0;
         if (ctrl.datos.profesores.tamano() > 0) {
             conPersonaId = ctrl.datos.profesores.obtener(0).idPersona.value_or(1);
         }
         conTipoIdx = 0;
         conSalarioBase = 3500000.0;
-        conHoras = 16.0;
+        conHoras = 40.0;
         mensajeModal[0] = '\0';
         errorModal = false;
         modalContratoAbierto = true;
@@ -88,7 +89,8 @@ void PITAApp::renderContratos() {
     // ------------------------------------------------------------------
     int totalContratos = static_cast<int>(ctrl.datos.contratos.tamano());
     int contratosActivos = 0;
-    int plantaCount = 0, transitorioCount = 0, catedraCount = 0, adHonoremCount = 0;
+    int adminCount = 0, docenteCount = 0;
+    int plantaCount = 0, transitorioCount = 0;
     double totalNominaMensual = 0.0;
 
     for (int i = 0; i < ctrl.datos.contratos.tamano(); i++) {
@@ -100,17 +102,26 @@ void PITAApp::renderContratos() {
 
             std::string tipo = c.tipoContrato ? *c.tipoContrato : "";
             std::string mod = c.modalidadProfesor ? *c.modalidadProfesor : "";
-            std::string fullType = tipo + " " + mod;
+            std::string reg = c.regimenAplicable ? *c.regimenAplicable : "";
+            std::string fullType = tipo + " " + mod + " " + reg;
             for (auto& ch : fullType) ch = (char)toupper(ch);
 
-            if (fullType.find("PLANTA") != std::string::npos) plantaCount++;
-            else if (fullType.find("OCASIONAL") != std::string::npos) transitorioCount++;
-            else if (fullType.find("CATEDRA") != std::string::npos || fullType.find("CATEDRATICO") != std::string::npos) {
-                transitorioCount++;
-                catedraCount++;
+            bool esAdmin = (fullType.find("ADMIN") != std::string::npos || fullType.find("CST") != std::string::npos);
+            if (!esAdmin && c.idPersona) {
+                for (size_t aIdx = 0; aIdx < ctrl.datos.administrativos.tamano(); ++aIdx) {
+                    if (ctrl.datos.administrativos.obtener(aIdx).idPersona == c.idPersona) {
+                        esAdmin = true;
+                        break;
+                    }
+                }
             }
-            if (c.esAdHonorem.value_or(false) || fullType.find("AD_HONOREM") != std::string::npos) {
-                adHonoremCount++;
+
+            if (esAdmin) {
+                adminCount++;
+            } else {
+                docenteCount++;
+                if (fullType.find("PLANTA") != std::string::npos) plantaCount++;
+                else transitorioCount++;
             }
         }
     }
@@ -126,8 +137,8 @@ void PITAApp::renderContratos() {
     snprintf(bufSubActivos, sizeof(bufSubActivos), "%d vinculaciones totales", totalContratos);
 
     char bufDist[48], bufSubDist[64];
-    snprintf(bufDist, sizeof(bufDist), "%d Planta | %d Trans.", plantaCount, transitorioCount);
-    snprintf(bufSubDist, sizeof(bufSubDist), "%d Catedra - %d Ad-Honorem", catedraCount, adHonoremCount);
+    snprintf(bufDist, sizeof(bufDist), "%d Docentes | %d Adm.", docenteCount, adminCount);
+    snprintf(bufSubDist, sizeof(bufSubDist), "%d Planta · %d Transitorios", plantaCount, transitorioCount);
 
     char bufPts[32], bufSubPts[64];
     snprintf(bufPts, sizeof(bufPts), "%.0f Pts", totalPuntosDocentes);
@@ -141,7 +152,7 @@ void PITAApp::renderContratos() {
         tarjetaKPI("CONTRATOS ACTIVOS", bufActivos, tema::WIN_BLUE(), bufSubActivos);
 
         ImGui::TableNextColumn();
-        tarjetaKPI("DISTRIBUCION DOCENTE", bufDist, tema::ACCENT_INDIGO(), bufSubDist);
+        tarjetaKPI("DISTRIBUCION PERSONAL", bufDist, tema::ACCENT_INDIGO(), bufSubDist);
 
         ImGui::TableNextColumn();
         tarjetaKPI("PUNTOS SALARIALES TOTALES", bufPts, tema::ACCENT_WARNING(), bufSubPts);
@@ -159,8 +170,8 @@ void PITAApp::renderContratos() {
     // ------------------------------------------------------------------
     if (ImGui::BeginTabBar("##TabsContratosPrincipal")) {
 
-        // TAB 1: CONTRATOS DOCENTES VIGENTES
-        if (ImGui::BeginTabItem("Contratos Docentes Vigentes")) {
+        // TAB 1: CONTRATOS VIGENTES
+        if (ImGui::BeginTabItem("Contratos Vigentes")) {
             ImGui::Spacing();
 
             // Barra de Filtros
@@ -176,12 +187,13 @@ void PITAApp::renderContratos() {
 
             const char* opcionesModalidad[] = {
                 "TODAS LAS MODALIDADES",
-                "PLANTA",
-                "OCASIONAL",
+                "ADMINISTRATIVO (CST)",
+                "PLANTA (Dec. 1279)",
+                "OCASIONAL (Ac. 027)",
                 "CATEDRA",
                 "AD_HONOREM"
             };
-            ImGui::SetNextItemWidth(190);
+            ImGui::SetNextItemWidth(195);
             ImGui::Combo("##FiltroModalidad", &conFiltroModalidadIdx, opcionesModalidad, IM_ARRAYSIZE(opcionesModalidad));
             ImGui::SameLine(0, 10);
 
@@ -194,8 +206,8 @@ void PITAApp::renderContratos() {
             ImGui::Combo("##FiltroEstado", &conFiltroEstadoIdx, opcionesEstado, IM_ARRAYSIZE(opcionesEstado));
             ImGui::SameLine(0, 10);
 
-            ImGui::SetNextItemWidth(240);
-            ImGui::InputTextWithHint("##BuscarContrato", "Buscar docente o No. contrato...", conFiltroBusqueda, sizeof(conFiltroBusqueda));
+            ImGui::SetNextItemWidth(260);
+            ImGui::InputTextWithHint("##BuscarContrato", "Buscar empleado, cargo o No. contrato...", conFiltroBusqueda, sizeof(conFiltroBusqueda));
             ImGui::SameLine(0, 10);
 
             if (ImGui::Button("Restablecer", ImVec2(90, 0))) {
@@ -215,10 +227,10 @@ void PITAApp::renderContratos() {
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("No. Contrato", ImGuiTableColumnFlags_WidthFixed, 105);
-                ImGui::TableSetupColumn("Docente", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("Modalidad / Regimen", ImGuiTableColumnFlags_WidthFixed, 150);
-                ImGui::TableSetupColumn("Dedicacion / Horas", ImGuiTableColumnFlags_WidthFixed, 125);
+                ImGui::TableSetupColumn("No. Contrato", ImGuiTableColumnFlags_WidthFixed, 115);
+                ImGui::TableSetupColumn("Empleado / Funcionario", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Modalidad / Regimen", ImGuiTableColumnFlags_WidthFixed, 160);
+                ImGui::TableSetupColumn("Dedicacion / Cargo", ImGuiTableColumnFlags_WidthFixed, 145);
                 ImGui::TableSetupColumn("Asignacion Basica", ImGuiTableColumnFlags_WidthFixed, 130);
                 ImGui::TableSetupColumn("Vigencia", ImGuiTableColumnFlags_WidthFixed, 160);
                 ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 85);
@@ -239,25 +251,43 @@ void PITAApp::renderContratos() {
                     // Filtrado por modalidad
                     std::string tipoStr = c.tipoContrato ? *c.tipoContrato : "";
                     std::string modStr = c.modalidadProfesor ? *c.modalidadProfesor : "";
-                    std::string fullType = tipoStr + " " + modStr;
+                    std::string regStr = c.regimenAplicable ? *c.regimenAplicable : "";
+                    std::string fullType = tipoStr + " " + modStr + " " + regStr;
                     for (auto& ch : fullType) ch = (char)toupper(ch);
 
-                    if (conFiltroModalidadIdx == 1 && fullType.find("PLANTA") == std::string::npos) continue;
-                    if (conFiltroModalidadIdx == 2 && fullType.find("OCASIONAL") == std::string::npos) continue;
-                    if (conFiltroModalidadIdx == 3 && fullType.find("CATEDRA") == std::string::npos) continue;
-                    if (conFiltroModalidadIdx == 4 && (!c.esAdHonorem.value_or(false) && fullType.find("AD_HONOREM") == std::string::npos)) continue;
+                    bool esAdmin = (fullType.find("ADMIN") != std::string::npos || fullType.find("CST") != std::string::npos);
+                    const Administrativo* admPtr = nullptr;
+                    if (c.idPersona) {
+                        for (size_t aIdx = 0; aIdx < ctrl.datos.administrativos.tamano(); ++aIdx) {
+                            if (ctrl.datos.administrativos.obtener(aIdx).idPersona == c.idPersona) {
+                                admPtr = &ctrl.datos.administrativos.obtener(aIdx);
+                                esAdmin = true;
+                                break;
+                            }
+                        }
+                    }
 
-                    // Nombre docente
-                    std::string nomDocente = getNombreDocente(ctrl, c.idPersona.value_or(0));
+                    if (conFiltroModalidadIdx == 1 && !esAdmin) continue;
+                    if (conFiltroModalidadIdx == 2 && (esAdmin || fullType.find("PLANTA") == std::string::npos)) continue;
+                    if (conFiltroModalidadIdx == 3 && (esAdmin || fullType.find("OCASIONAL") == std::string::npos)) continue;
+                    if (conFiltroModalidadIdx == 4 && (esAdmin || fullType.find("CATEDRA") == std::string::npos)) continue;
+                    if (conFiltroModalidadIdx == 5 && (!c.esAdHonorem.value_or(false) && fullType.find("AD_HONOREM") == std::string::npos)) continue;
+
+                    // Nombre empleado / funcionario
+                    std::string nomEmpleado = getNombreDocente(ctrl, c.idPersona.value_or(0));
                     std::string numContrato = c.numeroContrato ? *c.numeroContrato : ("CNT-" + std::to_string(c.idContrato.value_or(i + 1)));
 
                     // Filtrado por búsqueda de texto
                     if (!busq.empty()) {
-                        std::string nomLower = nomDocente;
+                        std::string nomLower = nomEmpleado;
                         std::string numLower = numContrato;
+                        std::string cargoLower = (admPtr && admPtr->cargo) ? *admPtr->cargo : "";
                         for (auto& ch : nomLower) ch = (char)tolower(ch);
                         for (auto& ch : numLower) ch = (char)tolower(ch);
-                        if (nomLower.find(busq) == std::string::npos && numLower.find(busq) == std::string::npos) {
+                        for (auto& ch : cargoLower) ch = (char)tolower(ch);
+                        if (nomLower.find(busq) == std::string::npos && 
+                            numLower.find(busq) == std::string::npos &&
+                            cargoLower.find(busq) == std::string::npos) {
                             continue;
                         }
                     }
@@ -268,13 +298,15 @@ void PITAApp::renderContratos() {
                     ImGui::TableNextColumn();
                     ImGui::TextColored(tema::ACCENT_WARNING(), "%s", numContrato.c_str());
 
-                    // Docente
+                    // Empleado / Funcionario
                     ImGui::TableNextColumn();
-                    ImGui::Text("%s", nomDocente.c_str());
+                    ImGui::Text("%s", nomEmpleado.c_str());
 
                     // Modalidad / Régimen
                     ImGui::TableNextColumn();
-                    if (fullType.find("PLANTA") != std::string::npos) {
+                    if (esAdmin) {
+                        ImGui::TextColored(ImVec4(0.20f, 0.70f, 0.90f, 1.0f), "Administrativo (CST)");
+                    } else if (fullType.find("PLANTA") != std::string::npos) {
                         ImGui::TextColored(tema::WIN_BLUE(), "Planta (D.1279)");
                     } else if (fullType.find("OCASIONAL") != std::string::npos) {
                         ImGui::TextColored(tema::ACCENT_INDIGO(), "Ocasional (Ac.027)");
@@ -284,22 +316,27 @@ void PITAApp::renderContratos() {
                         ImGui::TextColored(tema::TEXT_MUTED(), "Ad-Honorem");
                     }
 
-                    // Dedicación / Horas
+                    // Dedicación / Cargo
                     ImGui::TableNextColumn();
-                    std::string ded = c.dedicacion ? to_string(*c.dedicacion) : "TIEMPO_COMPLETO";
-                    double h = c.horasSemanales.value_or(40.0);
-                    if (ded.find("COMPLETO") != std::string::npos) {
-                        ImGui::Text("TC (%.0fh)", h);
-                    } else if (ded.find("MEDIO") != std::string::npos) {
-                        ImGui::Text("MT (%.0fh)", h);
+                    if (esAdmin) {
+                        std::string cTxt = (admPtr && admPtr->cargo) ? *admPtr->cargo : "Administrativo";
+                        ImGui::Text("%s", cTxt.c_str());
                     } else {
-                        ImGui::Text("HC (%.0fh)", h);
+                        std::string ded = c.dedicacion ? to_string(*c.dedicacion) : "TIEMPO_COMPLETO";
+                        double h = c.horasSemanales.value_or(40.0);
+                        if (ded.find("COMPLETO") != std::string::npos) {
+                            ImGui::Text("TC (%.0fh)", h);
+                        } else if (ded.find("MEDIO") != std::string::npos) {
+                            ImGui::Text("MT (%.0fh)", h);
+                        } else {
+                            ImGui::Text("HC (%.0fh)", h);
+                        }
                     }
 
                     // Asignación Básica
                     ImGui::TableNextColumn();
                     char bufSal[48];
-                    snprintf(bufSal, sizeof(bufSal), "$%.0f", c.salarioBase.value_or(0.0));
+                    snprintf(bufSal, sizeof(bufSal), "$%.0f COP", c.salarioBase.value_or(0.0));
                     ImGui::TextColored(tema::ACCENT_SUCCESS(), "%s", bufSal);
 
                     // Vigencia
@@ -474,47 +511,113 @@ void PITAApp::renderContratos() {
 
 void PITAApp::renderModalContrato() {
     if (modalContratoAbierto) {
-        ImGui::OpenPopup("Nuevo Contrato Docente");
+        ImGui::OpenPopup("Registrar Vinculacion Contractual");
     }
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(520, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(540, 0), ImGuiCond_Always);
 
-    if (ImGui::BeginPopupModal("Nuevo Contrato Docente", &modalContratoAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal("Registrar Vinculacion Contractual", &modalContratoAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (strlen(mensajeModal) > 0) {
             ImGui::TextColored(errorModal ? tema::ACCENT_DANGER() : tema::ACCENT_SUCCESS(), "%s", mensajeModal);
             ImGui::Separator();
         }
 
-        // Selector Profesor
-        std::string previewProf = "Seleccione Profesor";
-        for (int i = 0; i < ctrl.datos.profesores.tamano(); i++) {
-            auto& pr = ctrl.datos.profesores.obtener(i);
-            if (pr.idPersona && *pr.idPersona == conPersonaId) {
-                previewProf = getNombreDocente(ctrl, conPersonaId);
-                break;
+        // Selector Tipo de Personal
+        const char* tiposPersonal[] = { "Personal Docente (Dec. 1279 / Ac. 027)", "Personal Administrativo (CST / Ley 100)" };
+        int prevTipo = conTipoPersonalIdx;
+        if (ImGui::Combo("Tipo de Personal *", &conTipoPersonalIdx, tiposPersonal, IM_ARRAYSIZE(tiposPersonal))) {
+            if (conTipoPersonalIdx != prevTipo) {
+                if (conTipoPersonalIdx == 0) {
+                    if (ctrl.datos.profesores.tamano() > 0) {
+                        conPersonaId = ctrl.datos.profesores.obtener(0).idPersona.value_or(1);
+                    }
+                    conTipoIdx = 0;
+                    conSalarioBase = 3500000.0;
+                    conHoras = 40.0;
+                } else {
+                    if (ctrl.datos.administrativos.tamano() > 0) {
+                        auto& a0 = ctrl.datos.administrativos.obtener(0);
+                        conPersonaId = a0.idPersona.value_or(1);
+                        conSalarioBase = a0.salarioBase.value_or(2800000.0);
+                    }
+                    conTipoIdx = 0;
+                    conHoras = 40.0;
+                }
             }
         }
-        if (ImGui::BeginCombo("Docente *", previewProf.c_str())) {
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (conTipoPersonalIdx == 0) {
+            // DOCENTE
+            std::string previewProf = "Seleccione Profesor";
             for (int i = 0; i < ctrl.datos.profesores.tamano(); i++) {
                 auto& pr = ctrl.datos.profesores.obtener(i);
-                bool isSelected = (pr.idPersona && *pr.idPersona == conPersonaId);
-                std::string label = getNombreDocente(ctrl, pr.idPersona.value_or(0));
-                if (ImGui::Selectable(label.c_str(), isSelected)) {
-                    conPersonaId = pr.idPersona.value_or(1);
+                if (pr.idPersona && *pr.idPersona == conPersonaId) {
+                    previewProf = getNombreDocente(ctrl, conPersonaId);
+                    break;
                 }
-                if (isSelected) ImGui::SetItemDefaultFocus();
             }
-            ImGui::EndCombo();
-        }
+            if (ImGui::BeginCombo("Docente *", previewProf.c_str())) {
+                for (int i = 0; i < ctrl.datos.profesores.tamano(); i++) {
+                    auto& pr = ctrl.datos.profesores.obtener(i);
+                    bool isSelected = (pr.idPersona && *pr.idPersona == conPersonaId);
+                    std::string label = getNombreDocente(ctrl, pr.idPersona.value_or(0));
+                    if (ImGui::Selectable(label.c_str(), isSelected)) {
+                        conPersonaId = pr.idPersona.value_or(1);
+                    }
+                    if (isSelected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
 
-        const char* tipos[] = { "DOCENTE_PLANTA", "DOCENTE_OCASIONAL", "DOCENTE_CATEDRA" };
-        ImGui::Combo("Tipo de Contrato *", &conTipoIdx, tipos, IM_ARRAYSIZE(tipos));
+            const char* tiposDoc[] = { "DOCENTE_PLANTA", "DOCENTE_OCASIONAL", "DOCENTE_CATEDRA" };
+            ImGui::Combo("Modalidad Docente *", &conTipoIdx, tiposDoc, IM_ARRAYSIZE(tiposDoc));
 
-        ImGui::InputDouble("Horas Semanales", &conHoras, 1.0, 4.0, "%.1f");
-        if (conTipoIdx == 2 && conHoras > 18.0) {
-            ImGui::TextColored(tema::ACCENT_DANGER(), "Advertencia legal: Catedraticos maximo 18h/semana.");
+            ImGui::InputDouble("Horas Semanales", &conHoras, 1.0, 4.0, "%.1f");
+            if (conTipoIdx == 2 && conHoras > 18.0) {
+                ImGui::TextColored(tema::ACCENT_DANGER(), "Advertencia legal: Catedraticos maximo 18h/semana.");
+            }
+        } else {
+            // ADMINISTRATIVO
+            std::string previewAdm = "Seleccione Funcionario";
+            for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); i++) {
+                auto& a = ctrl.datos.administrativos.obtener(i);
+                if (a.idPersona && *a.idPersona == conPersonaId) {
+                    previewAdm = (a.codigoEmpleado ? *a.codigoEmpleado : "") + " - " + getNombreDocente(ctrl, conPersonaId) + " (" + a.cargo.value_or("Cargo") + ")";
+                    break;
+                }
+            }
+            if (ImGui::BeginCombo("Funcionario Administrativo *", previewAdm.c_str())) {
+                for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); i++) {
+                    auto& a = ctrl.datos.administrativos.obtener(i);
+                    int pId = a.idPersona.value_or(0);
+                    bool isSelected = (pId == conPersonaId);
+                    std::string label = (a.codigoEmpleado ? *a.codigoEmpleado : "") + " - " + getNombreDocente(ctrl, pId) + " (" + a.cargo.value_or("Cargo") + ")";
+                    if (ImGui::Selectable(label.c_str(), isSelected)) {
+                        conPersonaId = pId;
+                        conSalarioBase = a.salarioBase.value_or(2800000.0);
+                    }
+                    if (isSelected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            const char* tiposAdm[] = { "TERMINO_INDEFINIDO", "TERMINO_FIJO", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD" };
+            ImGui::Combo("Tipo de Contratacion *", &conTipoIdx, tiposAdm, IM_ARRAYSIZE(tiposAdm));
+
+            conHoras = 40.0;
+            ImGui::Text("Jornada: 40 horas / semana (Tiempo Completo)");
+
+            if (conSalarioBase <= 3501810.0) {
+                ImGui::TextColored(ImVec4(0.10f, 0.80f, 0.45f, 1.0f), "Aplica Auxilio Legal de Transporte ($249.095 COP)");
+            } else {
+                ImGui::TextColored(tema::TEXT_MUTED(), "Auxilio de Transporte: No Aplica (> 2 SMMLV)");
+            }
         }
 
         ImGui::InputDouble("Salario Base / Asignacion *", &conSalarioBase, 50000.0, 500000.0, "%.0f");
@@ -528,9 +631,32 @@ void PITAApp::renderModalContrato() {
             try {
                 Contrato c;
                 c.idPersona = conPersonaId;
-                c.tipoContrato = tipos[conTipoIdx];
+                if (conTipoPersonalIdx == 0) {
+                    const char* tiposDoc[] = { "DOCENTE_PLANTA", "DOCENTE_OCASIONAL", "DOCENTE_CATEDRA" };
+                    c.tipoContrato = tiposDoc[conTipoIdx];
+                    c.modalidadProfesor = tiposDoc[conTipoIdx];
+                    c.regimenAplicable = (conTipoIdx == 0) ? "Decreto 1279 de 2002" : "Acuerdo 027 de 2024";
+                } else {
+                    const char* tiposAdm[] = { "TERMINO_INDEFINIDO", "TERMINO_FIJO", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD" };
+                    c.tipoContrato = tiposAdm[conTipoIdx];
+                    c.modalidadProfesor = tiposAdm[conTipoIdx];
+                    c.regimenAplicable = "CST_LEY100_ADMINISTRATIVO";
+                    c.aplicaAuxilioTransporte = (conSalarioBase <= 3501810.0);
+
+                    // Sincronizar salario en perfil administrativo
+                    for (size_t aIdx = 0; aIdx < ctrl.datos.administrativos.tamano(); ++aIdx) {
+                        auto& a = ctrl.datos.administrativos.obtener(aIdx);
+                        if (a.idPersona && *a.idPersona == conPersonaId) {
+                            a.salarioBase = conSalarioBase;
+                            a.estado = "ACTIVO";
+                            c.observaciones = "Cargo: " + a.cargo.value_or("Administrativo") + " | Dependencia: " + a.dependencia.value_or("N/D");
+                            break;
+                        }
+                    }
+                }
                 c.horasSemanales = conHoras;
                 c.salarioBase = conSalarioBase;
+                c.salarioMensualPactado = conSalarioBase;
                 c.fechaInicio = conFechaInicio;
                 c.fechaFin = conFechaFin;
                 c.estado = "ACTIVO";
@@ -587,6 +713,20 @@ void PITAApp::renderModalTerminarContrato() {
         if (ImGui::Button("Confirmar Terminacion", ImVec2(170, 0))) {
             try {
                 ctrl.gestorContratos->terminarContrato(idContratoTerminando, conCausal, conDocumento);
+                // Sincronizar estado inactivo con administrativo si aplica
+                for (size_t cIdx = 0; cIdx < ctrl.datos.contratos.tamano(); ++cIdx) {
+                    auto& c = ctrl.datos.contratos.obtener(cIdx);
+                    if (c.idContrato && *c.idContrato == idContratoTerminando && c.idPersona) {
+                        for (size_t aIdx = 0; aIdx < ctrl.datos.administrativos.tamano(); ++aIdx) {
+                            auto& a = ctrl.datos.administrativos.obtener(aIdx);
+                            if (a.idPersona && *a.idPersona == *c.idPersona) {
+                                a.estado = "INACTIVO";
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
                 ctrl.guardarDatos();
                 ctrl.setMensaje("Contrato terminado conforme a la norma.");
                 modalTerminarContratoAbierto = false;

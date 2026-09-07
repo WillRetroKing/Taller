@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from dominio.modelo_datos import (
     Administrativo,
+    Contrato,
     Dedicacion,
     EstadoAcademico,
     Estudiante,
@@ -125,18 +126,47 @@ class PersonasService:
 
         elif rol == "ADMINISTRATIVO":
             new_id_adm = (max((getattr(a, "idAdministrativo", 0) or 0 for a in self.controller.administrativos), default=0)) + 1
+            cargo_str = datos_rol.get("cargo", "Profesional Universitario")
+            dep_str = datos_rol.get("dependencia", "Vicerrectoría Académica")
+            cat_str = datos_rol.get("categoria", "PROFESIONAL")
+            tipo_cont_str = datos_rol.get("tipoContratacion", "PLANTA")
+            f_vinc = datos_rol.get("fechaVinculacion", date.today())
+            sal_base = datos_rol.get("salarioBase", Decimal("2800000"))
+
             administrativo = Administrativo(
                 idAdministrativo=new_id_adm,
                 idPersona=new_id_p,
                 codigoEmpleado=datos_rol["codigo"],
-                cargo=datos_rol.get("cargo", "Profesional Universitario"),
-                dependencia=datos_rol.get("dependencia", "Vicerrectoría Académica"),
-                tipoContratacion=datos_rol.get("tipoContratacion", "PLANTA"),
-                fechaVinculacion=datos_rol.get("fechaVinculacion", date.today()),
-                salarioBase=datos_rol.get("salarioBase", Decimal("2800000")),
+                cargo=cargo_str,
+                dependencia=dep_str,
+                categoria=cat_str,
+                tipoContratacion=tipo_cont_str,
+                fechaVinculacion=f_vinc,
+                salarioBase=sal_base,
                 estado="ACTIVO",
             )
             self.controller.administrativos.append(administrativo)
+
+            # Generar inmediatamente su contrato laboral activo enlazado a la persona
+            new_id_c = (max((getattr(c, "idContrato", 0) or 0 for c in self.controller.contratos), default=0)) + 1
+            contrato = Contrato(
+                idContrato=new_id_c,
+                idPersona=new_id_p,
+                numeroContrato=f"ADM-CONTRATO-{new_id_c:03d}",
+                tipoContrato="TERMINO_INDEFINIDO",
+                fechaInicio=f_vinc,
+                salarioBase=sal_base,
+                aplicaAuxilioTransporte=bool(sal_base <= Decimal("3501810")),
+                estado="ACTIVO",
+                regimenAplicable="CST_LEY100_ADMINISTRATIVO",
+                esRemunerado=True,
+                esEmpleadoPublicoDocente=False,
+                perteneceCarreraProfesoral=False,
+                esTransitorio=False,
+                esAdHonorem=False,
+                observaciones=f"Cargo: {cargo_str} | Dependencia: {dep_str}",
+            )
+            self.controller.contratos.append(contrato)
 
         self.controller._recrear_gestores()
 
@@ -192,8 +222,19 @@ class PersonasService:
             self.actualizar_datos_persona(pers, datos_p)
         adm.cargo = datos_a["cargo"]
         adm.dependencia = datos_a["dependencia"]
+        if "categoria" in datos_a:
+            adm.categoria = datos_a["categoria"]
         adm.tipoContratacion = datos_a["tipoContratacion"]
         adm.salarioBase = datos_a["salarioBase"]
+
+        # Sincronizar automáticamente el salario base y observaciones en su contrato activo
+        for c in self.controller.contratos:
+            if c.idPersona == adm.idPersona and getattr(c, "estado", "") == "ACTIVO":
+                c.salarioBase = adm.salarioBase
+                c.aplicaAuxilioTransporte = bool(adm.salarioBase <= Decimal("3501810"))
+                c.observaciones = f"Cargo: {adm.cargo} | Dependencia: {adm.dependencia}"
+                break
+
         self.controller._recrear_gestores()
 
     # ------------------------------------------------------------------
@@ -219,6 +260,9 @@ class PersonasService:
         adm = next((a for a in self.controller.administrativos if getattr(a, "idAdministrativo", 0) == id_administrativo), None)
         if adm:
             adm.estado = "INACTIVO"
+            for c in self.controller.contratos:
+                if c.idPersona == adm.idPersona and getattr(c, "estado", "") == "ACTIVO":
+                    c.estado = "INACTIVO"
             self.controller._recrear_gestores()
             return True
         return False

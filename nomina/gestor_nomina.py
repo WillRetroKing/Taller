@@ -7,6 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Iterable
 
 from dominio.modelo_datos import (
+    Administrativo,
     CategoriaDocente,
     Contrato,
     Dedicacion,
@@ -26,6 +27,7 @@ from nomina.liquidadores import (
     LiquidadorPlanta,
     LiquidadorOcasional,
     LiquidadorCatedratico,
+    LiquidadorAdministrativo,
 )
 from nomina.ciclo_vida_nomina import CicloVidaNomina
 
@@ -51,6 +53,7 @@ class GestorNomina:
         categorias: list[CategoriaDocente] | None = None,
         factores: list[FactorSalarial] | None = None,
         producciones: list[ProduccionAcademica] | None = None,
+        administrativos: list[Administrativo] | None = None,
     ) -> None:
         self.contratos = contratos
         self.profesores = profesores
@@ -61,6 +64,7 @@ class GestorNomina:
         self.categorias = categorias if categorias is not None else []
         self.factores = factores if factores is not None else []
         self.producciones = producciones if producciones is not None else []
+        self.administrativos = administrativos if administrativos is not None else []
 
         # Inicializar submódulos especializados
         self.calc_deducciones = CalculadoraDeducciones(self.parametros)
@@ -68,6 +72,7 @@ class GestorNomina:
         self.liquidador_planta = LiquidadorPlanta(self)
         self.liquidador_ocasional = LiquidadorOcasional(self)
         self.liquidador_catedratico = LiquidadorCatedratico(self)
+        self.liquidador_administrativo = LiquidadorAdministrativo(self)
         self.ciclo_vida = CicloVidaNomina(self)
 
     # ------------------------------------------------------------------
@@ -103,16 +108,27 @@ class GestorNomina:
     ) -> LiquidacionNomina:
         return self.liquidador_catedratico.liquidar(id_contrato, id_periodo_nomina, fecha_liquidacion=fecha_liquidacion)
 
+    def liquidarAdministrativo(
+        self,
+        id_contrato: int,
+        id_periodo_nomina: int,
+        *,
+        fecha_liquidacion: date | None = None,
+    ) -> LiquidacionNomina:
+        return self.liquidador_administrativo.liquidar(id_contrato, id_periodo_nomina, fecha_liquidacion=fecha_liquidacion)
+
     def crear_liquidacion(self, liquidacion: LiquidacionNomina) -> LiquidacionNomina:
         contrato = self._contrato(liquidacion.idContrato)
         periodo = self._periodo(liquidacion.idPeriodoNomina)
         self._validar_periodo_abierto(periodo)
         self._evitar_liquidacion_duplicada(liquidacion.idContrato, liquidacion.idPeriodoNomina)
 
-        tipo = getattr(contrato, "modalidadProfesor", None)
+        tipo = getattr(contrato, "modalidadProfesor", None) or getattr(contrato, "tipoContrato", None)
         tipo = str(getattr(tipo, "value", tipo or "")).upper()
 
-        if "OCASIONAL" in tipo:
+        if "ADMINISTRATIVO" in tipo:
+            resultado = self.liquidarAdministrativo(liquidacion.idContrato, liquidacion.idPeriodoNomina)
+        elif "OCASIONAL" in tipo:
             resultado = self.liquidarProfesorOcasional(
                 liquidacion.idContrato, liquidacion.idPeriodoNomina,
                 horas_incumplidas=liquidacion.horasIncumplidas or self.CERO,
@@ -197,6 +213,11 @@ class GestorNomina:
 
     def _profesor(self, id_persona: int | None) -> Profesor:
         return self._buscar(self.profesores, "idPersona", id_persona, "profesor")
+
+    def _administrativo(self, id_persona: int | None) -> Administrativo | None:
+        if not self.administrativos or id_persona is None:
+            return None
+        return next((item for item in self.administrativos if item.idPersona == id_persona), None)
 
     def _liquidacion(self, id_liquidacion: int) -> LiquidacionNomina:
         return self._buscar(self.liquidaciones, "idLiquidacion", id_liquidacion, "liquidación")

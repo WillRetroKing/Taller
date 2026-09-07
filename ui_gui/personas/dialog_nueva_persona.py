@@ -234,29 +234,35 @@ class DialogNuevaPersona(ctk.CTkToplevel):
             self.widgets_rol["cargo"] = entry_cargo
 
             ctk.CTkLabel(self.sub_rol, text="Dependencia *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=0, sticky="w", padx=5, pady=(2, 0))
-            ctk.CTkLabel(self.sub_rol, text="Tipo Contratación", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=2, column=1, sticky="w", padx=5, pady=(2, 0))
+            ctk.CTkLabel(self.sub_rol, text="Nivel / Categoría *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=1, sticky="w", padx=5, pady=(2, 0))
 
             entry_dep = ctk.CTkEntry(self.sub_rol, placeholder_text="ej: Vicerrectoría Académica")
             entry_dep.insert(0, "Vicerrectoría Académica")
             entry_dep.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 8))
             self.widgets_rol["dependencia"] = entry_dep
 
-            combo_tcont = ctk.CTkComboBox(self.sub_rol, values=["PLANTA", "PROVISIONALIDAD", "PRESTACION_SERVICIOS"])
-            combo_tcont.set("PLANTA")
-            combo_tcont.grid(row=3, column=1, sticky="ew", padx=5, pady=(2, 8))
-            self.widgets_rol["tipo_contratacion"] = combo_tcont
+            combo_cat = ctk.CTkComboBox(self.sub_rol, values=["PROFESIONAL", "DIRECTIVO", "ASESOR", "TECNICO", "ASISTENCIAL"])
+            combo_cat.set("PROFESIONAL")
+            combo_cat.grid(row=3, column=1, sticky="ew", padx=5, pady=(2, 8))
+            self.widgets_rol["categoria"] = combo_cat
 
-            ctk.CTkLabel(self.sub_rol, text="Salario Base Mensual ($) *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=4, column=0, sticky="w", padx=5, pady=(2, 0))
-            ctk.CTkLabel(self.sub_rol, text="Fecha Vinculación (AAAA-MM-DD)", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=4, column=1, sticky="w", padx=5, pady=(2, 0))
+            ctk.CTkLabel(self.sub_rol, text="Tipo Contratación", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=4, column=0, sticky="w", padx=5, pady=(2, 0))
+            ctk.CTkLabel(self.sub_rol, text="Salario Base Mensual ($) *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=4, column=1, sticky="w", padx=5, pady=(2, 0))
+
+            combo_tcont = ctk.CTkComboBox(self.sub_rol, values=["PLANTA", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD", "PRESTACION_SERVICIOS"])
+            combo_tcont.set("PLANTA")
+            combo_tcont.grid(row=5, column=0, sticky="ew", padx=5, pady=(2, 8))
+            self.widgets_rol["tipo_contratacion"] = combo_tcont
 
             entry_sal = ctk.CTkEntry(self.sub_rol)
             entry_sal.insert(0, "2800000")
-            entry_sal.grid(row=5, column=0, sticky="ew", padx=5, pady=(2, 4))
+            entry_sal.grid(row=5, column=1, sticky="ew", padx=5, pady=(2, 8))
             self.widgets_rol["salario"] = entry_sal
 
+            ctk.CTkLabel(self.sub_rol, text="Fecha Vinculación (AAAA-MM-DD)", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=6, column=0, sticky="w", padx=5, pady=(2, 0))
             entry_fvin = ctk.CTkEntry(self.sub_rol)
             entry_fvin.insert(0, date.today().strftime("%Y-%m-%d"))
-            entry_fvin.grid(row=5, column=1, sticky="ew", padx=5, pady=(2, 4))
+            entry_fvin.grid(row=7, column=0, sticky="ew", padx=5, pady=(2, 4))
             self.widgets_rol["fecha_vinculacion"] = entry_fvin
 
     def _guardar(self) -> None:
@@ -335,6 +341,7 @@ class DialogNuevaPersona(ctk.CTkToplevel):
         elif rol == "ADMINISTRATIVO":
             datos_rol["cargo"] = self.widgets_rol["cargo"].get().strip() if "cargo" in self.widgets_rol else "Profesional Universitario"
             datos_rol["dependencia"] = self.widgets_rol["dependencia"].get().strip() if "dependencia" in self.widgets_rol else "Vicerrectoría Académica"
+            datos_rol["categoria"] = self.widgets_rol["categoria"].get().strip() if "categoria" in self.widgets_rol else "PROFESIONAL"
             datos_rol["tipoContratacion"] = self.widgets_rol["tipo_contratacion"].get() if "tipo_contratacion" in self.widgets_rol else "PLANTA"
 
             sal_str = self.widgets_rol["salario"].get().strip() if "salario" in self.widgets_rol else "2800000"

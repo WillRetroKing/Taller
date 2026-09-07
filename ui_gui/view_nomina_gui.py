@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from ui_gui.theme import Colors, Fonts, create_styled_tabview
 from ui_gui.components import PITAGridTable, create_badge, clean_enum
-from dominio.modelo_datos import ConceptoNomina, DetalleLiquidacion, LiquidacionNomina, PeriodoNomina, TipoProfesor
+from dominio.modelo_datos import ConceptoNomina, Contrato, Dedicacion, DetalleLiquidacion, LiquidacionNomina, PeriodoNomina, TipoProfesor
 from nomina import GestorNomina, ErrorNomina
 
 if TYPE_CHECKING:
@@ -22,13 +22,14 @@ class NominaViewGUI(ctk.CTkFrame):
     def __init__(self, parent: ctk.CTk, controller: PITAController) -> None:
         super().__init__(parent, fg_color="transparent")
         self.controller = controller
+        self.periodo_seleccionado_id: int | None = None
 
         self._crear_interfaz()
 
     def _crear_interfaz(self) -> None:
         # Header principal
         header = ctk.CTkFrame(self, fg_color="transparent")
-        header.pack(fill="x", padx=15, pady=(15, 10))
+        header.pack(fill="x", padx=15, pady=(15, 6))
 
         ctk.CTkLabel(
             header,
@@ -54,7 +55,7 @@ class NominaViewGUI(ctk.CTkFrame):
 
         btn_indiv = ctk.CTkButton(
             h_btns,
-            text="👤 Liquidar Docente",
+            text="👤 Liquidar Empleado",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             fg_color="#2563EB",
             hover_color="#1D4ED8",
@@ -76,6 +77,32 @@ class NominaViewGUI(ctk.CTkFrame):
         )
         btn_liquidar_todos.pack(side="left", padx=4)
 
+        # Barra de Selección y Filtro de Período Activo
+        filter_bar = ctk.CTkFrame(self, fg_color="transparent")
+        filter_bar.pack(fill="x", padx=15, pady=(0, 10))
+
+        ctk.CTkLabel(
+            filter_bar,
+            text="📅 Período de Nómina Activo:",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            text_color=Colors.TEXT_MUTED,
+        ).pack(side="left", padx=(0, 8))
+
+        self.combo_periodo_filtro = ctk.CTkComboBox(
+            filter_bar,
+            width=360,
+            values=["Todos los Períodos"],
+            command=self._cambiar_periodo_filtro,
+        )
+        self.combo_periodo_filtro.pack(side="left")
+
+        self.lbl_estado_periodo = ctk.CTkLabel(
+            filter_bar,
+            text="",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+        )
+        self.lbl_estado_periodo.pack(side="left", padx=12)
+
         # Contenedor de Tarjetas KPI de resumen
         self.kpi_container = ctk.CTkFrame(self, fg_color="transparent")
         self.kpi_container.pack(fill="x", padx=15, pady=(0, 10))
@@ -94,16 +121,47 @@ class NominaViewGUI(ctk.CTkFrame):
         self._llenar_tab_normatividad()
         self.actualizar()
 
+    def _obtener_liquidaciones_filtradas(self) -> list[Any]:
+        if not self.periodo_seleccionado_id or self.periodo_seleccionado_id == 0:
+            return self.controller.liquidaciones
+        return [l for l in self.controller.liquidaciones if getattr(l, "idPeriodoNomina", None) == self.periodo_seleccionado_id]
+
+    def _cambiar_periodo_filtro(self, seleccion: str) -> None:
+        if seleccion == "Todos los Períodos" or not seleccion:
+            self.periodo_seleccionado_id = None
+            if hasattr(self, "lbl_estado_periodo"):
+                self.lbl_estado_periodo.configure(text="")
+        else:
+            try:
+                p_id = int(seleccion.split(" - ")[0].replace("#", "").strip())
+                self.periodo_seleccionado_id = p_id
+                per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == p_id), None)
+                if per and hasattr(self, "lbl_estado_periodo"):
+                    est = str(getattr(per, "estado", "ABIERTO")).upper()
+                    if est == "ABIERTO":
+                        self.lbl_estado_periodo.configure(text="● PERÍODO EN PROCESO (ABIERTO)", text_color="#10B981")
+                    else:
+                        self.lbl_estado_periodo.configure(text="🔒 PERÍODO CERRADO / AUDITADO", text_color="#EF4444")
+            except Exception:
+                self.periodo_seleccionado_id = None
+                if hasattr(self, "lbl_estado_periodo"):
+                    self.lbl_estado_periodo.configure(text="")
+
+        self._crear_tarjetas_kpi()
+        self._llenar_tab_liquidaciones()
+        self._llenar_tab_parafiscales()
+
     def _crear_tarjetas_kpi(self) -> None:
         if not hasattr(self, "kpi_container"):
             return
         for w in self.kpi_container.winfo_children():
             w.destroy()
 
-        tot_dev = sum((Decimal(str(getattr(l, "totalDevengado", 0))) for l in self.controller.liquidaciones), Decimal("0"))
-        tot_desc = sum((Decimal(str(getattr(l, "totalDescuentos", 0))) for l in self.controller.liquidaciones), Decimal("0"))
-        tot_neto = sum((Decimal(str(getattr(l, "netoPagar", 0))) for l in self.controller.liquidaciones), Decimal("0"))
-        tot_prest = sum((Decimal(str(getattr(l, "totalPrestaciones", 0))) for l in self.controller.liquidaciones), Decimal("0"))
+        liq_list = self._obtener_liquidaciones_filtradas()
+        tot_dev = sum((Decimal(str(getattr(l, "totalDevengado", 0))) for l in liq_list), Decimal("0"))
+        tot_desc = sum((Decimal(str(getattr(l, "totalDescuentos", 0))) for l in liq_list), Decimal("0"))
+        tot_neto = sum((Decimal(str(getattr(l, "netoPagar", 0))) for l in liq_list), Decimal("0"))
+        tot_prest = sum((Decimal(str(getattr(l, "totalPrestaciones", 0))) for l in liq_list), Decimal("0"))
 
         kpis = [
             ("💵 Total Devengado (Bruto)", f"$ {tot_dev:,.0f} COP", Colors.WIN_BLUE, Colors.TEXT_MAIN),
@@ -147,32 +205,44 @@ class NominaViewGUI(ctk.CTkFrame):
         for w in self.tab_liquidaciones.winfo_children():
             w.destroy()
 
-        headers = ["Docente", "Tipo Profesor", "Sueldo Básico", "Devengado", "Descuentos Ley", "Neto a Pagar", "Prestaciones", "Acciones"]
+        headers = ["Empleado / Funcionario", "Tipo / Cargo", "Sueldo Básico", "Devengado", "Descuentos Ley", "Neto a Pagar", "Prestaciones", "Acciones"]
         col_weights = [3, 2, 3, 3, 3, 3, 3, 3]
-        col_mins = [140, 100, 110, 110, 110, 110, 110, 150]
+        col_mins = [140, 110, 110, 110, 110, 110, 110, 150]
 
         table = PITAGridTable(self.tab_liquidaciones, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
 
-        if not self.controller.liquidaciones:
+        liq_list = self._obtener_liquidaciones_filtradas()
+
+        if not liq_list:
             empty_frame = ctk.CTkFrame(table, fg_color="transparent")
             empty_frame.pack(pady=40)
-            ctk.CTkLabel(empty_frame, text="No se han generado liquidaciones de nómina en este periodo.", font=ctk.CTkFont(size=13), text_color="#94A3B8").pack(pady=5)
+            txt_vacio = "No se han generado liquidaciones de nómina en este período." if self.periodo_seleccionado_id else "No se han generado liquidaciones de nómina."
+            ctk.CTkLabel(empty_frame, text=txt_vacio, font=ctk.CTkFont(size=13), text_color="#94A3B8").pack(pady=5)
             ctk.CTkButton(empty_frame, text="🚀 Calcular Liquidaciones del Periodo Ahora", font=ctk.CTkFont(size=12, weight="bold"), fg_color="#10B981", hover_color="#059669", corner_radius=8, command=self._ejecutar_liquidacion_general).pack(pady=10)
             return
 
-        for liq in self.controller.liquidaciones:
+        for liq in liq_list:
             prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None)
-            pers = next((p for p in self.controller.personas if prof and getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
-            nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Docente"
-            tipo_prof = clean_enum(getattr(prof, "tipoProfesor", "DOCENTE"))
-            tipo_map = {
-                "PLANTA": ("🏛️ Planta", "planta"),
-                "OCASIONAL": ("⏱️ Ocasional", "ocasional"),
-                "CATEDRATICO": ("📚 Cátedra", "catedra"),
-                "CATEDRATICO_AD_HONOREM": ("🤝 Ad-Honorem", "neutral"),
-            }
-            tipo_label, b_type = tipo_map.get(tipo_prof, (tipo_prof.replace("_", " ").title(), "neutral"))
+            if prof:
+                pers = next((p for p in self.controller.personas if getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
+                nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Docente"
+                tipo_prof = clean_enum(getattr(prof, "tipoProfesor", "DOCENTE"))
+                tipo_map = {
+                    "PLANTA": ("🏛️ Planta", "planta"),
+                    "OCASIONAL": ("⏱️ Ocasional", "ocasional"),
+                    "CATEDRATICO": ("📚 Cátedra", "catedra"),
+                    "CATEDRATICO_AD_HONOREM": ("🤝 Ad-Honorem", "neutral"),
+                }
+                tipo_label, b_type = tipo_map.get(tipo_prof, (tipo_prof.replace("_", " ").title(), "neutral"))
+            else:
+                con = next((c for c in self.controller.contratos if c.idContrato == getattr(liq, "idContrato", None)), None)
+                pers = next((p for p in self.controller.personas if con and p.idPersona == con.idPersona), None)
+                adm = next((a for a in self.controller.administrativos if con and a.idPersona == con.idPersona), None)
+                nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Administrativo"
+                cargo_label = getattr(adm, "cargo", None) or getattr(liq, "categoriaLiquidada", "Administrativo")
+                tipo_label = f"👔 {cargo_label}"
+                b_type = "info"
 
             sueldo_b = str(getattr(liq, "salarioBase", "0") or getattr(liq, "sueldoBasico", "0"))
             sueldo_fmt = f"$ {int(float(sueldo_b)):,} COP" if sueldo_b.replace(".","").isdigit() else sueldo_b
@@ -191,13 +261,16 @@ class NominaViewGUI(ctk.CTkFrame):
 
             badge_tuple = ("badge", tipo_label, b_type)
 
-            act_spec = (
-                "actions",
-                [
-                    ("📋 Desglose", lambda l_id=liq.idLiquidacion: self._abrir_modal_detalle_liquidacion(l_id), "#6366F1", "#4F46E5", 85, 28),
-                    ("❌ Anular", lambda l_id=liq.idLiquidacion: self._eliminar_liquidacion(l_id), "#EF4444", "#DC2626", 75, 28),
-                ],
-            )
+            per_liq = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == getattr(liq, "idPeriodoNomina", None)), None)
+            es_cerrado = bool(per_liq and (getattr(per_liq, "estaCerrado", False) or str(getattr(per_liq, "estado", "")).upper() == "CERRADO"))
+
+            acciones_list: list[tuple[Any, ...]] = [
+                ("📋 Desglose", lambda l_id=liq.idLiquidacion: self._abrir_modal_detalle_liquidacion(l_id), "#6366F1", "#4F46E5", 85, 28),
+            ]
+            if not es_cerrado:
+                acciones_list.append(("❌ Anular", lambda l_id=liq.idLiquidacion: self._eliminar_liquidacion(l_id), "#EF4444", "#DC2626", 75, 28))
+
+            act_spec = ("actions", acciones_list)
 
             cells = [
                 (nom_prof, "#F8FAFC"),
@@ -222,7 +295,8 @@ class NominaViewGUI(ctk.CTkFrame):
 
         ctk.CTkLabel(scroll, text="🏢 Aportes Patronales a la Seguridad Social y Parafiscales", font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"), text_color=Colors.TEXT_MAIN).pack(anchor="w", pady=(0, 10))
 
-        tot_ibc = sum((Decimal(str(getattr(l, "totalDevengado", 0))) for l in self.controller.liquidaciones), Decimal("0"))
+        liq_list = self._obtener_liquidaciones_filtradas()
+        tot_ibc = sum((Decimal(str(getattr(l, "totalDevengado", 0))) for l in liq_list), Decimal("0"))
         
         salud_pat = tot_ibc * Decimal("0.085")
         pension_pat = tot_ibc * Decimal("0.12")
@@ -249,7 +323,8 @@ class NominaViewGUI(ctk.CTkFrame):
 
         summary_card = ctk.CTkFrame(scroll, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
         summary_card.pack(fill="x", pady=15)
-        ctk.CTkLabel(summary_card, text=f"💼 Carga Prestacional y Patronal Total Estimada: $ {total_patronal:,.0f} COP", font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color="#10B981").pack(padx=20, pady=15)
+        txt_costo_titulo = f"💼 Carga Prestacional y Patronal Estimada ({'Período Activo' if self.periodo_seleccionado_id else 'Total Registrado'}): $ {total_patronal:,.0f} COP"
+        ctk.CTkLabel(summary_card, text=txt_costo_titulo, font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"), text_color="#10B981").pack(padx=20, pady=15)
 
     def _llenar_tab_normatividad(self) -> None:
         if self.tab_normatividad.winfo_children():
@@ -283,77 +358,253 @@ class NominaViewGUI(ctk.CTkFrame):
         card.pack(fill="x", pady=5)
         ctk.CTkLabel(card, text=text_norma, font=ctk.CTkFont(family="Segoe UI", size=12), justify="left", text_color=Colors.TEXT_MAIN, anchor="w").pack(padx=20, pady=15)
 
+    def _cerrar_periodo(self, id_periodo: int, dialog: ctk.CTkToplevel | None = None) -> None:
+        try:
+            self.controller.gestor_nomina.ciclo_vida.cerrar_periodo_nomina(id_periodo)
+            self.controller.guardar_datos()
+            if dialog and dialog.winfo_exists():
+                dialog.destroy()
+                self._abrir_modal_periodos()
+            self.actualizar()
+        except Exception:
+            pass
+
     def _abrir_modal_periodos(self) -> None:
         dialog = ctk.CTkToplevel(self)
-        dialog.title("📅 Gestión de Periodos de Nómina")
-        dialog.geometry("520x400")
+        dialog.title("📅 Gestión de Periodos de Nómina y Cierre Contable")
+        dialog.geometry("740x550")
+        dialog.transient(self.winfo_toplevel())
         dialog.grab_set()
 
-        ctk.CTkLabel(dialog, text="Periodos de Nómina Registrados", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=10)
+        hdr = ctk.CTkFrame(dialog, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        hdr.pack(fill="x", padx=16, pady=(14, 8))
 
-        table = PITAGridTable(dialog, headers=["ID", "Año / Mes", "Fecha Inicio", "Fecha Fin", "Estado"], col_weights=[1, 2, 3, 3, 2], col_mins=[50, 90, 110, 110, 80])
-        table.pack(fill="both", expand=True, padx=15, pady=5)
+        ctk.CTkLabel(
+            hdr,
+            text="📅 Períodos de Nómina y Ciclo Contable PITA",
+            font=ctk.CTkFont(family="Segoe UI", size=16, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
+        ).pack(anchor="w", padx=14, pady=(10, 2))
+
+        ctk.CTkLabel(
+            hdr,
+            text="Administración de cortes mensuales, estado de auditoría contable y consolidación de costos.",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=Colors.TEXT_MUTED,
+        ).pack(anchor="w", padx=14, pady=(0, 10))
+
+        # Tabla de periodos
+        f_tabla = ctk.CTkFrame(dialog, fg_color="transparent")
+        f_tabla.pack(fill="both", expand=True, padx=16, pady=4)
+
+        headers = ["ID", "Período", "Rango de Fechas", "Estado", "Costo Total", "Acción Cierre"]
+        col_weights = [1, 2, 3, 2, 3, 3]
+        col_mins = [40, 90, 140, 90, 120, 130]
+
+        table = PITAGridTable(f_tabla, headers=headers, col_weights=col_weights, col_mins=col_mins)
+        table.pack(fill="both", expand=True)
+
+        MESES = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
 
         for p in self.controller.periodos_nomina:
+            pid = p.idPeriodoNomina
+            m_idx = getattr(p, "mes", 1) or 1
+            m_nom = MESES[m_idx] if 1 <= m_idx <= 12 else f"Mes {m_idx}"
+            txt_per = f"{getattr(p, 'anio', 2026)} - {m_nom}"
+            fi = str(getattr(p, "fechaInicio", ""))
+            ff = str(getattr(p, "fechaFin", ""))
+            rango = f"{fi} al {ff}" if (fi and ff) else "Mensual"
+            est = str(getattr(p, "estado", "ABIERTO")).upper()
+
+            # Costo acumulado
+            costo = getattr(p, "costoTotalPeriodo", None)
+            if costo is None:
+                liqs_p = [l for l in self.controller.liquidaciones if getattr(l, "idPeriodoNomina", None) == pid]
+                costo = sum((Decimal(str(getattr(l, "costoTotalEmpleador", None) or getattr(l, "totalDevengado", 0))) for l in liqs_p), Decimal("0"))
+            costo_fmt = f"$ {int(Decimal(str(costo))):,} COP".replace(",", ".")
+
+            if est == "ABIERTO":
+                badge_tup = ("badge", "ABIERTO", "active")
+                act_col = (
+                    "actions",
+                    [("🔒 Cerrar Período", lambda p_id=pid: self._cerrar_periodo(p_id, dialog), "#DC2626", "#B91C1C", 115, 26)]
+                )
+            else:
+                badge_tup = ("badge", "CERRADO", "cancelado")
+                act_col = ("Auditado / Cerrado", "#94A3B8")
+
             table.add_row_items([
-                str(getattr(p, "idPeriodoNomina", "1")),
-                f"{getattr(p, 'anio', 2026)} - {getattr(p, 'mes', 3):02d}",
-                str(getattr(p, "fechaInicio", "2026-03-01")),
-                str(getattr(p, "fechaFin", "2026-03-31")),
-                ("badge", getattr(p, "estado", "ABIERTO"), "active" if getattr(p, "estado", "ABIERTO") == "ABIERTO" else "cancelado"),
+                str(pid),
+                txt_per,
+                rango,
+                badge_tup,
+                (costo_fmt, "#38BDF8"),
+                act_col,
             ])
 
-        f_btn = ctk.CTkFrame(dialog, fg_color="transparent")
-        f_btn.pack(fill="x", padx=15, pady=10)
+        # Sección inferior: Formulario de Creación de Período Mensual
+        f_new = ctk.CTkFrame(dialog, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        f_new.pack(fill="x", padx=16, pady=(6, 14))
 
-        def _crear_nuevo():
-            n_id = max((p.idPeriodoNomina for p in self.controller.periodos_nomina), default=0) + 1
-            p_nuevo = PeriodoNomina(idPeriodoNomina=n_id, anio=2026, mes=4, fechaInicio=date(2026, 4, 1), fechaFin=date(2026, 4, 30), estado="ABIERTO")
-            self.controller.periodos_nomina.append(p_nuevo)
-            dialog.destroy()
-            self.actualizar()
+        f_new_inner = ctk.CTkFrame(f_new, fg_color="transparent")
+        f_new_inner.pack(fill="x", padx=14, pady=10)
 
-        ctk.CTkButton(f_btn, text="➕ Crear Periodo Mensual", fg_color="#10B981", hover_color="#059669", command=_crear_nuevo).pack(side="right")
+        ctk.CTkLabel(f_new_inner, text="➕ Crear Nuevo Período:", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left", padx=(0, 15))
+
+        ctk.CTkLabel(f_new_inner, text="Año:", font=ctk.CTkFont(size=11), text_color=Colors.TEXT_MUTED).pack(side="left", padx=(0, 4))
+        entry_anio = ctk.CTkEntry(f_new_inner, width=70)
+        entry_anio.pack(side="left", padx=(0, 12))
+        entry_anio.insert(0, "2026")
+
+        ctk.CTkLabel(f_new_inner, text="Mes:", font=ctk.CTkFont(size=11), text_color=Colors.TEXT_MUTED).pack(side="left", padx=(0, 4))
+        mes_opts = [f"{i:02d} - {MESES[i]}" for i in range(1, 13)]
+        meses_existentes = [getattr(p, "mes", 0) for p in self.controller.periodos_nomina if getattr(p, "anio", 0) == 2026]
+        next_m = 1
+        for m in range(1, 13):
+            if m not in meses_existentes:
+                next_m = m
+                break
+        combo_mes = ctk.CTkComboBox(f_new_inner, values=mes_opts, width=150)
+        combo_mes.pack(side="left", padx=(0, 15))
+        combo_mes.set(mes_opts[next_m - 1])
+
+        def _crear_periodo_accion():
+            try:
+                a_val = int(entry_anio.get().strip())
+                m_val = int(combo_mes.get().split(" - ")[0].strip())
+                self.controller.gestor_nomina.ciclo_vida.crear_periodo_nomina_mensual(a_val, m_val)
+                self.controller.guardar_datos()
+                dialog.destroy()
+                self._abrir_modal_periodos()
+                self.actualizar()
+            except Exception:
+                dialog.destroy()
+                self.actualizar()
+
+        ctk.CTkButton(
+            f_new_inner,
+            text="➕ Registrar Período",
+            font=ctk.CTkFont(weight="bold"),
+            fg_color="#10B981",
+            hover_color="#059669",
+            command=_crear_periodo_accion,
+        ).pack(side="right")
 
     def _abrir_modal_liquidar_individual(self) -> None:
         dialog = ctk.CTkToplevel(self)
-        dialog.title("👤 Liquidación Individual por Profesor")
-        dialog.geometry("450x300")
+        dialog.title("👤 Liquidación Individual de Nómina")
+        dialog.geometry("500x420")
+        dialog.transient(self.winfo_toplevel())
         dialog.grab_set()
 
-        ctk.CTkLabel(dialog, text="Seleccionar Docente a Liquidar", font=ctk.CTkFont(size=14, weight="bold")).pack(pady=15)
+        ctk.CTkLabel(dialog, text="Liquidación Individual de Empleado", font=ctk.CTkFont(size=15, weight="bold")).pack(pady=(15, 8))
+
+        tipo_var = ctk.StringVar(value="Docente")
 
         prof_options = [
             f"{p.codigoProfesor} - {next((pers.primerNombre + ' ' + pers.primerApellido for pers in self.controller.personas if pers.idPersona == p.idPersona), 'Profesor')}"
             for p in self.controller.profesores
         ] or ["Sin docentes"]
-        combo_prof = ctk.CTkComboBox(dialog, values=prof_options, width=350)
-        combo_prof.pack(padx=20, pady=10)
+
+        adm_options = [
+            f"{a.codigoEmpleado or f'ADM-{a.idAdministrativo}'} - {next((pers.primerNombre + ' ' + pers.primerApellido for pers in self.controller.personas if pers.idPersona == a.idPersona), 'Administrativo')} ({a.cargo or 'Cargo'})"
+            for a in self.controller.administrativos
+        ] or ["Sin administrativos"]
+
+        # Selector de Periodo de Nómina destino
+        lbl_per = ctk.CTkLabel(dialog, text="Seleccionar Período de Nómina (Abierto):", font=ctk.CTkFont(size=12, weight="bold"), text_color=Colors.TEXT_MUTED)
+        lbl_per.pack(anchor="w", padx=25, pady=(5, 2))
+
+        MESES = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+        periodos_abiertos = [p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"]
+        per_options = [f"#{p.idPeriodoNomina} - {getattr(p, 'anio', 2026)} {MESES[getattr(p, 'mes', 1)] if 1 <= getattr(p, 'mes', 1) <= 12 else ''} (Abierto)" for p in periodos_abiertos] or ["Sin periodos abiertos"]
+
+        combo_per = ctk.CTkComboBox(dialog, values=per_options, width=450)
+        combo_per.pack(padx=25, pady=(0, 8))
+        if self.periodo_seleccionado_id:
+            for opt in per_options:
+                if opt.startswith(f"#{self.periodo_seleccionado_id} "):
+                    combo_per.set(opt)
+                    break
+
+        lbl_sel = ctk.CTkLabel(dialog, text="Seleccionar Docente a Liquidar:", font=ctk.CTkFont(size=12, weight="bold"), text_color=Colors.TEXT_MUTED)
+        lbl_sel.pack(anchor="w", padx=25, pady=(5, 2))
+
+        combo_emp = ctk.CTkComboBox(dialog, values=prof_options, width=450)
+        combo_emp.pack(padx=25, pady=(0, 10))
+
+        def _cambiar_tipo(seleccion):
+            if seleccion == "Docente":
+                lbl_sel.configure(text="Seleccionar Docente a Liquidar:")
+                combo_emp.configure(values=prof_options)
+                combo_emp.set(prof_options[0] if prof_options else "")
+            else:
+                lbl_sel.configure(text="Seleccionar Administrativo a Liquidar:")
+                combo_emp.configure(values=adm_options)
+                combo_emp.set(adm_options[0] if adm_options else "")
+
+        seg = ctk.CTkSegmentedButton(dialog, values=["Docente", "Administrativo"], variable=tipo_var, command=_cambiar_tipo)
+        seg.pack(padx=25, pady=8)
 
         def _liquidar_uno():
-            if not self.controller.profesores:
-                return
-            sel_p = combo_prof.get()
-            cod_p = sel_p.split(" - ")[0]
-            prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod_p)
+            sel_p = combo_per.get()
+            target_pid = None
+            if sel_p and sel_p.startswith("#"):
+                try:
+                    target_pid = int(sel_p.split(" - ")[0].replace("#", "").strip())
+                except Exception:
+                    pass
 
-            if prof:
-                self._liquidar_profesor_especifico(prof)
-                self.controller.guardar_datos()
-                dialog.destroy()
-                self.actualizar()
+            sel = combo_emp.get()
+            cod = sel.split(" - ")[0]
+            if tipo_var.get() == "Docente":
+                prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
+                if not prof:
+                    prof = next((p for p in self.controller.profesores if str(p.codigoProfesor) == cod), None)
+                if prof:
+                    self._liquidar_profesor_especifico(prof, target_pid)
+            else:
+                adm = next((a for a in self.controller.administrativos if str(a.codigoEmpleado) == cod or f"ADM-{a.idAdministrativo}" == cod), None)
+                if adm:
+                    self._liquidar_administrativo_especifico(adm, target_pid)
 
-        ctk.CTkButton(dialog, text="⚙️ Liquidar Docente", fg_color="#059669", hover_color="#047857", command=_liquidar_uno).pack(pady=20)
+            self.controller.guardar_datos()
+            dialog.destroy()
+            self.actualizar()
+
+        ctk.CTkButton(dialog, text="⚙️ Ejecutar Liquidación", fg_color="#059669", hover_color="#047857", font=ctk.CTkFont(weight="bold"), command=_liquidar_uno).pack(pady=14)
 
     def _abrir_modal_detalle_liquidacion(self, id_liquidacion: int) -> None:
         liq = next((l for l in self.controller.liquidaciones if l.idLiquidacion == id_liquidacion), None)
         if not liq:
             return
 
-        prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None)
-        pers = next((p for p in self.controller.personas if prof and getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
-        nom_prof = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Docente"
-        tipo_prof = clean_enum(getattr(prof, "tipoProfesor", "PLANTA"))
+        prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) is not None and getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None) if getattr(liq, "idProfesor", None) is not None else None
+        con = next((c for c in self.controller.contratos if c.idContrato == getattr(liq, "idContrato", None)), None)
+        adm = None
+        pers = None
+
+        if prof:
+            pers = next((p for p in self.controller.personas if getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
+            nom_empleado = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Docente"
+            tipo_prof = clean_enum(getattr(prof, "tipoProfesor", "PLANTA"))
+            sub_info = f"Docente: {nom_empleado}  |  Modalidad: {tipo_prof}  |  Liquidación N° {liq.idLiquidacion}"
+        else:
+            tipo_prof = "ADMINISTRATIVO"
+            if con:
+                adm = next((a for a in self.controller.administrativos if a.idPersona == con.idPersona), None)
+                pers = next((p for p in self.controller.personas if p.idPersona == con.idPersona), None)
+            if not adm and getattr(liq, "categoriaLiquidada", None):
+                adm = next((a for a in self.controller.administrativos if getattr(a, "cargo", None) == getattr(liq, "categoriaLiquidada", None)), None)
+                if adm and not pers:
+                    pers = next((p for p in self.controller.personas if p.idPersona == adm.idPersona), None)
+            if not adm and self.controller.administrativos:
+                adm = self.controller.administrativos[0]
+                if not pers:
+                    pers = next((p for p in self.controller.personas if p.idPersona == adm.idPersona), None)
+            nom_empleado = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Funcionario Administrativo"
+            cargo_txt = getattr(adm, "cargo", None) or getattr(liq, "categoriaLiquidada", "Administrativo")
+            sub_info = f"Funcionario: {nom_empleado}  |  Cargo: {cargo_txt}  |  Liquidación N° {liq.idLiquidacion}"
 
         # 1. Resolver período de nómina liquidado
         id_periodo = getattr(liq, "idPeriodoNomina", None)
@@ -395,7 +646,7 @@ class NominaViewGUI(ctk.CTkFrame):
         val_pto_int = int(float(valor_pto)) if valor_pto else 0
 
         dialog = ctk.CTkToplevel(self)
-        dialog.title(f"📋 Desprendible de Liquidación - {nom_prof}")
+        dialog.title(f"📋 Desprendible de Liquidación - {nom_empleado}")
         dialog.geometry("580x680")
         dialog.transient(self.winfo_toplevel())
         dialog.grab_set()
@@ -411,7 +662,6 @@ class NominaViewGUI(ctk.CTkFrame):
             text_color=Colors.TEXT_MAIN,
         ).pack(anchor="w", padx=14, pady=(10, 2))
 
-        sub_info = f"Docente: {nom_prof}  |  Modalidad: {tipo_prof}  |  Liquidación N° {liq.idLiquidacion}"
         ctk.CTkLabel(
             header_card,
             text=sub_info,
@@ -454,7 +704,7 @@ class NominaViewGUI(ctk.CTkFrame):
         deducciones: list[tuple[str, str, Decimal]] = []
         patronales: list[tuple[str, str, Decimal]] = []
 
-        es_planta = (tipo_prof.upper() == "PLANTA") or (prof and "PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper())
+        es_planta = bool(prof and (tipo_prof.upper() == "PLANTA" or "PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper()))
         val_pto_str = f"${val_pto_int:,}".replace(",", ".")
         label_asignacion_basica = f"Asignación Básica Mensual ({pts_int} pts × {val_pto_str})" if (es_planta and pts_int > 0) else ("Asignación Básica Mensual (Dec. 1279)" if es_planta else "Sueldo Básico Ordinario")
 
@@ -522,22 +772,48 @@ class NominaViewGUI(ctk.CTkFrame):
 
             devengados.append((label_asignacion_basica, "SALARIO_ORDINARIO", sb))
 
-            if dev > sb:
-                devengados.append(("Auxilio Legal de Transporte / Bonificaciones", "AUXILIO", dev - sb))
+            aux_transporte = getattr(liq, "valorAuxilioTransporteCotizado", 0) or (dev - sb if dev > sb else 0)
+            if Decimal(str(aux_transporte)) > 0:
+                devengados.append(("Auxilio Legal de Transporte", "AUXILIO_TRANSPORTE", Decimal(str(aux_transporte))))
+            elif dev > sb:
+                devengados.append(("Bonificaciones / Devengados Adicionales", "BONIFICACION", dev - sb))
 
-            salud = (sb * Decimal("0.04")).quantize(Decimal("1"))
-            pension = (sb * Decimal("0.04")).quantize(Decimal("1"))
+            salud = Decimal(str(getattr(liq, "descuentoSalud", None) or (ibc_val * Decimal("0.04")).quantize(Decimal("1"))))
+            pension = Decimal(str(getattr(liq, "descuentoPension", None) or (ibc_val * Decimal("0.04")).quantize(Decimal("1"))))
             deducciones.append(("Aporte Salud Trabajador (4%)", "DESCUENTO_SALUD", salud))
             deducciones.append(("Aporte Pensión Trabajador (4%)", "DESCUENTO_PENSION", pension))
 
-            resto_desc = desc - (salud + pension)
-            if resto_desc > 0:
-                deducciones.append(("Fondo de Solidaridad Pensional (1%)", "RETENCION", resto_desc))
+            fsp = getattr(liq, "fondoSolidaridadPensional", None)
+            if fsp and Decimal(str(fsp)) > 0:
+                deducciones.append(("Fondo de Solidaridad Pensional (1%)", "FONDO_SOLIDARIDAD", Decimal(str(fsp))))
+            else:
+                resto_desc = desc - (salud + pension)
+                if resto_desc > 0:
+                    deducciones.append(("Fondo de Solidaridad Pensional (1%)", "FONDO_SOLIDARIDAD", resto_desc))
 
-            patronales.append(("Salud Patronal (8.5%)", "APORTE_SALUD_PATRONAL", (dev * Decimal("0.085")).quantize(Decimal("1"))))
-            patronales.append(("Pensión Patronal (12%)", "APORTE_PENSION_PATRONAL", (dev * Decimal("0.12")).quantize(Decimal("1"))))
-            patronales.append(("Aporte Riesgos Laborales (ARL)", "APORTE_ARL", (dev * Decimal("0.00522")).quantize(Decimal("0.01"))))
-            patronales.append(("Caja de Compensación Familiar (4%)", "APORTE_CAJA", (dev * Decimal("0.04")).quantize(Decimal("1"))))
+            # Aportes patronales
+            ap_salud = getattr(liq, "aportePatronalSalud", None)
+            if ap_salud is not None and Decimal(str(ap_salud)) > 0:
+                patronales.append(("Salud Patronal (8.5%)", "APORTE_SALUD_PATRONAL", Decimal(str(ap_salud))))
+            elif prof:
+                patronales.append(("Salud Patronal (8.5%)", "APORTE_SALUD_PATRONAL", (dev * Decimal("0.085")).quantize(Decimal("1"))))
+
+            ap_pension = getattr(liq, "aportePatronalPension", None) or (ibc_val * Decimal("0.12")).quantize(Decimal("1"))
+            patronales.append(("Pensión Patronal (12%)", "APORTE_PENSION_PATRONAL", Decimal(str(ap_pension))))
+
+            ap_arl = getattr(liq, "aporteRiesgosLaborales", None) or (ibc_val * Decimal("0.00522")).quantize(Decimal("0.01"))
+            patronales.append(("Aporte Riesgos Laborales (ARL)", "APORTE_ARL", Decimal(str(ap_arl))))
+
+            ap_caja = getattr(liq, "aporteCajaCompensacion", None) or (ibc_val * Decimal("0.04")).quantize(Decimal("1"))
+            patronales.append(("Caja de Compensación Familiar (4%)", "APORTE_CAJA", Decimal(str(ap_caja))))
+
+            ap_sena = getattr(liq, "aportePatronalSENA", None)
+            if ap_sena and Decimal(str(ap_sena)) > 0:
+                patronales.append(("Aporte Parafiscal SENA (2%)", "APORTE_SENA", Decimal(str(ap_sena))))
+
+            ap_icbf = getattr(liq, "aportePatronalICBF", None)
+            if ap_icbf and Decimal(str(ap_icbf)) > 0:
+                patronales.append(("Aporte Parafiscal ICBF (3%)", "APORTE_ICBF", Decimal(str(ap_icbf))))
 
         def _render_section(titulo: str, items: list[tuple[str, str, Decimal]], color_titulo: str, es_deduccion: bool = False, es_patronal: bool = False, base_ibc: Decimal | None = None):
             if not items:
@@ -597,7 +873,12 @@ class NominaViewGUI(ctk.CTkFrame):
         # 3. Costo Total Empleador (UPC)
         asig_basica_val = Decimal(str(getattr(liq, "totalDevengado", None) or getattr(liq, "salarioBase", 0) or 0))
         tot_patronal = sum((it[2] for it in patronales), Decimal("0"))
-        tot_costo_upc = asig_basica_val + tot_patronal
+        prest_val = Decimal(str(getattr(liq, "totalPrestaciones", 0) or 0))
+        tot_costo_upc = getattr(liq, "costoTotalEmpleador", None)
+        if tot_costo_upc is not None:
+            tot_costo_upc = Decimal(str(tot_costo_upc))
+        else:
+            tot_costo_upc = asig_basica_val + tot_patronal + prest_val
 
         card_costo = ctk.CTkFrame(scroll, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
         card_costo.pack(fill="x", pady=6)
@@ -609,10 +890,11 @@ class NominaViewGUI(ctk.CTkFrame):
 
         ctk.CTkFrame(card_costo, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
-        # Fila Asignación Básica
+        # Fila Asignación Básica / Devengados
         row_ab = ctk.CTkFrame(card_costo, fg_color="transparent")
         row_ab.pack(fill="x", padx=12, pady=3)
-        ctk.CTkLabel(row_ab, text="Asignación Básica", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left")
+        lbl_costo_dev = "Asignación Básica Devengada" if prof else "Sueldo y Devengados del Empleado"
+        ctk.CTkLabel(row_ab, text=lbl_costo_dev, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left")
         ctk.CTkLabel(row_ab, text=f"$ {int(asig_basica_val):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="right")
 
         for nom, _, val in patronales:
@@ -621,6 +903,12 @@ class NominaViewGUI(ctk.CTkFrame):
             ctk.CTkLabel(row_p, text=nom, font=ctk.CTkFont(family="Segoe UI", size=11), text_color=Colors.TEXT_MUTED).pack(side="left")
             ctk.CTkLabel(row_p, text=f"$ {int(val):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11), text_color=Colors.TEXT_MUTED).pack(side="right")
 
+        if prest_val > 0:
+            row_pr = ctk.CTkFrame(card_costo, fg_color="transparent")
+            row_pr.pack(fill="x", padx=12, pady=3)
+            ctk.CTkLabel(row_pr, text="Provisión Prestaciones Sociales (Cesantías, Primas, Vac.)", font=ctk.CTkFont(family="Segoe UI", size=11), text_color=Colors.TEXT_MUTED).pack(side="left")
+            ctk.CTkLabel(row_pr, text=f"$ {int(prest_val):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11), text_color=Colors.TEXT_MUTED).pack(side="right")
+
         ctk.CTkFrame(card_costo, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
         row_tot = ctk.CTkFrame(card_costo, fg_color="transparent")
@@ -628,24 +916,44 @@ class NominaViewGUI(ctk.CTkFrame):
         ctk.CTkLabel(row_tot, text="TOTAL COSTO UPC", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left")
         ctk.CTkLabel(row_tot, text=f"$ {int(tot_costo_upc):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="right")
 
-        # 4. Información Salarial Docente (Decreto 1279)
+        # 4. Información Salarial y Normativa (Docente Dec. 1279 vs Administrativo CST)
         card_escalafon = ctk.CTkFrame(scroll, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
         card_escalafon.pack(fill="x", pady=6)
 
         hdr_esc = ctk.CTkFrame(card_escalafon, fg_color="transparent")
         hdr_esc.pack(fill="x", padx=12, pady=(8, 4))
-        ctk.CTkLabel(hdr_esc, text="INFORMACIÓN SALARIAL DOCENTE (DECRETO 1279)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="left")
-        ctk.CTkFrame(card_escalafon, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
+        if prof:
+            ctk.CTkLabel(hdr_esc, text="INFORMACIÓN SALARIAL DOCENTE (DECRETO 1279)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="left")
+            ctk.CTkFrame(card_escalafon, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
-        calc_str = f"{pts_int} pts × ${val_pto_int:,} COP".replace(",", ".") if (pts_int > 0 and val_pto_int > 0) else "N/A"
+            calc_str = f"{pts_int} pts × ${val_pto_int:,} COP".replace(",", ".") if (pts_int > 0 and val_pto_int > 0) else "N/A"
 
-        rows_info = [
-            ("Categoría Docente:", str(categoria_doc)),
-            ("Total Puntos Salariales:", f"{pts_int} pts" if pts_int > 0 else "N/A"),
-            ("Valor Punto Salarial:", f"$ {val_pto_int:,} COP".replace(",", ".") if val_pto_int > 0 else "N/A"),
-            ("Cálculo Asignación Básica:", calc_str),
-            ("IBC Seguridad Social:", f"$ {int(ibc_val):,} COP".replace(",", ".")),
-        ]
+            rows_info = [
+                ("Categoría Docente:", str(categoria_doc)),
+                ("Total Puntos Salariales:", f"{pts_int} pts" if pts_int > 0 else "N/A"),
+                ("Valor Punto Salarial:", f"$ {val_pto_int:,} COP".replace(",", ".") if val_pto_int > 0 else "N/A"),
+                ("Cálculo Asignación Básica:", calc_str),
+                ("IBC Seguridad Social:", f"$ {int(ibc_val):,} COP".replace(",", ".")),
+            ]
+        else:
+            ctk.CTkLabel(hdr_esc, text="INFORMACIÓN LABORAL Y SALARIAL (CST / LEY 100)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#10B981").pack(side="left")
+            ctk.CTkFrame(card_escalafon, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
+
+            sueldo_adm = getattr(liq, "salarioBase", None) or (getattr(adm, "salarioBase", None) if adm else None) or 0
+            aux_adm = getattr(liq, "valorAuxilioTransporteCotizado", 0) or 0
+            sueldo_int = int(float(sueldo_adm)) if sueldo_adm else 0
+            aux_int = int(float(aux_adm)) if aux_adm else 0
+            aux_str = f"$ {aux_int:,} COP".replace(",", ".") if aux_int > 0 else "No Aplica (> 2 SMMLV)"
+
+            rows_info = [
+                ("Cargo Institucional:", str(getattr(adm, "cargo", None) or getattr(liq, "categoriaLiquidada", "Administrativo"))),
+                ("Dependencia Adscrita:", str(getattr(adm, "dependencia", "Administración Central") if adm else "Administración Central")),
+                ("Régimen y Tipo Vinculación:", f"CST / {getattr(adm, 'tipoContratacion', 'Contrato Laboral') if adm else 'Contrato'}"),
+                ("Sueldo Básico Ordinario:", f"$ {sueldo_int:,} COP".replace(",", ".")),
+                ("Auxilio Legal Transporte:", aux_str),
+                ("IBC Seguridad Social:", f"$ {int(float(ibc_val)):,} COP".replace(",", ".")),
+            ]
+
         for lbl, val_txt in rows_info:
             r = ctk.CTkFrame(card_escalafon, fg_color="transparent")
             r.pack(fill="x", padx=12, pady=2)
@@ -688,14 +996,18 @@ class NominaViewGUI(ctk.CTkFrame):
             text_color=Colors.TEXT_MUTED,
         ).pack(anchor="w", pady=(4, 0))
 
-    def _liquidar_profesor_especifico(self, prof: Any) -> None:
+    def _liquidar_profesor_especifico(self, prof: Any, id_periodo: int | None = None) -> None:
         """Invoca el motor GestorNomina oficial del controlador PITA."""
         contratos_prof = [c for c in self.controller.contratos if c.idPersona == prof.idPersona]
         contrato = next((c for c in contratos_prof if str(getattr(c, "estado", "")).upper() == "ACTIVO"), None)
         if not contrato and contratos_prof:
             contrato = contratos_prof[0]
 
-        periodo = next((p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"), None)
+        periodo = None
+        if id_periodo:
+            periodo = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == id_periodo), None)
+        if not periodo:
+            periodo = next((p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"), None)
         if not periodo and self.controller.periodos_nomina:
             periodo = self.controller.periodos_nomina[0]
 
@@ -705,9 +1017,11 @@ class NominaViewGUI(ctk.CTkFrame):
             self.controller._recrear_gestores()
 
         # Limpiar liquidación previa de este profesor para evitar colisiones
-        self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idProfesor != prof.idProfesor or l.idPeriodoNomina != periodo.idPeriodoNomina]
-        self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) not in [l.idLiquidacion for l in self.controller.liquidaciones if l.idProfesor == prof.idProfesor]]
-        self.controller._recrear_gestores()
+        ids_previos = [l.idLiquidacion for l in self.controller.liquidaciones if l.idProfesor == prof.idProfesor and l.idPeriodoNomina == periodo.idPeriodoNomina]
+        if ids_previos:
+            self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idLiquidacion not in ids_previos]
+            self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) not in ids_previos]
+            self.controller._recrear_gestores()
 
         tipo_prof = clean_enum(getattr(contrato, "modalidadProfesor", "") or getattr(contrato, "tipoContrato", "") or getattr(prof, "tipoProfesor", "PLANTA")).upper()
 
@@ -748,7 +1062,7 @@ class NominaViewGUI(ctk.CTkFrame):
             neto_pagar = devengado_final - total_deducciones
             prestaciones = (devengado_final * Decimal("0.2083")).quantize(Decimal("1"))
 
-            self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idProfesor != prof.idProfesor]
+            self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idProfesor != prof.idProfesor or l.idPeriodoNomina != periodo.idPeriodoNomina]
 
             siguiente_id = max((l.idLiquidacion or 0 for l in self.controller.liquidaciones), default=0) + 1
             liq = LiquidacionNomina(
@@ -768,7 +1082,99 @@ class NominaViewGUI(ctk.CTkFrame):
 
         self.controller._recrear_gestores()
 
+    def _liquidar_administrativo_especifico(self, adm: Any, id_periodo: int | None = None) -> None:
+        """Invoca el motor GestorNomina para personal administrativo."""
+        contratos_adm = [c for c in self.controller.contratos if c.idPersona == adm.idPersona]
+        contrato = next((c for c in contratos_adm if str(getattr(c, "estado", "")).upper() == "ACTIVO"), None)
+        if not contrato and contratos_adm:
+            contrato = contratos_adm[0]
+
+        periodo = None
+        if id_periodo:
+            periodo = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == id_periodo), None)
+        if not periodo:
+            periodo = next((p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"), None)
+        if not periodo and self.controller.periodos_nomina:
+            periodo = self.controller.periodos_nomina[0]
+
+        if not periodo:
+            periodo = PeriodoNomina(idPeriodoNomina=1, anio=2026, mes=3, fechaInicio=date(2026, 3, 1), fechaFin=date(2026, 3, 31), estado="ABIERTO")
+            self.controller.periodos_nomina.append(periodo)
+            self.controller._recrear_gestores()
+
+        if not contrato:
+            siguiente_con = max((c.idContrato or 0 for c in self.controller.contratos), default=0) + 1
+            contrato = Contrato(
+                idContrato=siguiente_con,
+                idPersona=adm.idPersona,
+                numeroContrato=f"CONT-ADM-{siguiente_con}",
+                tipoContrato="ADMINISTRATIVO",
+                fechaInicio=date(2026, 1, 1),
+                fechaFin=date(2026, 12, 31),
+                dedicacion=Dedicacion.TIEMPO_COMPLETO,
+                horasSemanales=Decimal("40"),
+                salarioBase=adm.salarioBase or Decimal("3000000"),
+                claseARL="RIESGO_I",
+                estado="ACTIVO",
+                regimenAplicable="LEY_100_CST",
+            )
+            self.controller.contratos.append(contrato)
+            self.controller._recrear_gestores()
+
+        # Limpiar liquidación previa de este contrato
+        ids_previos = [l.idLiquidacion for l in self.controller.liquidaciones if l.idContrato == contrato.idContrato and l.idPeriodoNomina == periodo.idPeriodoNomina]
+        if ids_previos:
+            self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idLiquidacion not in ids_previos]
+            self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) not in ids_previos]
+            self.controller._recrear_gestores()
+
+        liq = None
+        try:
+            liq = self.controller.gestor_nomina.liquidarAdministrativo(contrato.idContrato, periodo.idPeriodoNomina)
+        except Exception:
+            liq = None
+
+        if liq is None:
+            sueldo_base = Decimal(str(contrato.salarioBase or adm.salarioBase or 2800000))
+            smmlv = Decimal("1750905")
+            auxilio = Decimal("249095") if sueldo_base <= Decimal("2") * smmlv else Decimal("0")
+            devengado = sueldo_base + auxilio
+            ibc = sueldo_base
+            salud = (ibc * Decimal("0.04")).quantize(Decimal("1"))
+            pension = (ibc * Decimal("0.04")).quantize(Decimal("1"))
+            deducciones = salud + pension
+            neto = devengado - deducciones
+            prestaciones = (devengado * Decimal("0.2183")).quantize(Decimal("1"))
+
+            siguiente_id = max((l.idLiquidacion or 0 for l in self.controller.liquidaciones), default=0) + 1
+            liq = LiquidacionNomina(
+                idLiquidacion=siguiente_id,
+                idProfesor=None,
+                idContrato=contrato.idContrato,
+                idPeriodoNomina=periodo.idPeriodoNomina,
+                fechaLiquidacion=date.today(),
+                salarioBase=round(sueldo_base, 2),
+                totalDevengado=round(devengado, 2),
+                totalDescuentos=round(deducciones, 2),
+                netoPagar=round(neto, 2),
+                totalPrestaciones=round(prestaciones, 2),
+                baseCotizacionSeguridadSocial=round(ibc, 2),
+                valorAuxilioTransporteCotizado=round(auxilio, 2),
+                estado="PROCESADA",
+                regimenLiquidado="LEY_100_CST",
+                categoriaLiquidada=adm.cargo or "ADMINISTRATIVO",
+            )
+            self.controller.liquidaciones.append(liq)
+
+        self.controller._recrear_gestores()
+
     def _eliminar_liquidacion(self, id_liquidacion: int) -> None:
+        liq = next((l for l in self.controller.liquidaciones if l.idLiquidacion == id_liquidacion), None)
+        if liq:
+            per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == liq.idPeriodoNomina), None)
+            if per and (getattr(per, "estaCerrado", False) or str(getattr(per, "estado", "")).upper() == "CERRADO"):
+                # No se puede anular una liquidación de un período cerrado contablemente
+                return
         self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idLiquidacion != id_liquidacion]
         self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) != id_liquidacion]
         self.controller._recrear_gestores()
@@ -776,21 +1182,56 @@ class NominaViewGUI(ctk.CTkFrame):
         self.actualizar()
 
     def _ejecutar_liquidacion_general(self) -> None:
-        if not self.controller.profesores:
+        if not self.controller.profesores and not self.controller.administrativos:
             return
 
-        self.controller.liquidaciones.clear()
-        self.controller.detalles_liquidacion.clear()
+        target_pid = self.periodo_seleccionado_id
+        if target_pid:
+            # Limpiar solo las de este periodo
+            self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idPeriodoNomina != target_pid]
+            self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) in [l.idLiquidacion for l in self.controller.liquidaciones]]
+        else:
+            self.controller.liquidaciones.clear()
+            self.controller.detalles_liquidacion.clear()
         self.controller._recrear_gestores()
 
         for prof in self.controller.profesores:
-            self._liquidar_profesor_especifico(prof)
+            self._liquidar_profesor_especifico(prof, target_pid)
+
+        for adm in self.controller.administrativos:
+            self._liquidar_administrativo_especifico(adm, target_pid)
 
         self.controller._recrear_gestores()
         self.controller.guardar_datos()
         self.actualizar()
 
     def actualizar(self) -> None:
+        MESES = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+        opciones = ["Todos los Períodos"]
+        val_actual = "Todos los Períodos"
+        for p in self.controller.periodos_nomina:
+            m_idx = getattr(p, "mes", 1) or 1
+            m_nom = MESES[m_idx] if (1 <= m_idx <= 12) else f"Mes {m_idx}"
+            opt = f"#{p.idPeriodoNomina} - {getattr(p, 'anio', 2026)} {m_nom} [{getattr(p, 'estado', 'ABIERTO')}]"
+            opciones.append(opt)
+            if self.periodo_seleccionado_id == p.idPeriodoNomina:
+                val_actual = opt
+
+        if hasattr(self, "combo_periodo_filtro"):
+            self.combo_periodo_filtro.configure(values=opciones)
+            self.combo_periodo_filtro.set(val_actual)
+            if self.periodo_seleccionado_id:
+                per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == self.periodo_seleccionado_id), None)
+                if per and hasattr(self, "lbl_estado_periodo"):
+                    est = str(getattr(per, "estado", "ABIERTO")).upper()
+                    if est == "ABIERTO":
+                        self.lbl_estado_periodo.configure(text="● PERÍODO EN PROCESO (ABIERTO)", text_color="#10B981")
+                    else:
+                        self.lbl_estado_periodo.configure(text="🔒 PERÍODO CERRADO / AUDITADO", text_color="#EF4444")
+            else:
+                if hasattr(self, "lbl_estado_periodo"):
+                    self.lbl_estado_periodo.configure(text="")
+
         self._crear_tarjetas_kpi()
         self._llenar_tab_liquidaciones()
         self._llenar_tab_parafiscales()

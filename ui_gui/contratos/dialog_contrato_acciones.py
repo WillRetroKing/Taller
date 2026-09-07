@@ -60,30 +60,58 @@ class DialogDetalleContrato(ctk.CTkToplevel):
             asig_fmt = f"$ {asig}"
 
         mod = clean_enum(getattr(c, "modalidadProfesor", "") or getattr(c, "tipoContrato", "DOCENTE")).upper()
-        regimen = "Carrera Docente (Decreto 1279/2002)" if "PLANTA" in mod else "Docente Transitorio (Acuerdo 027/2024)"
+        adm = self.service.buscar_administrativo_por_id_persona(c.idPersona)
+        es_admin = "ADMIN" in mod or (getattr(c, "regimenAplicable", "") == "CST_LEY100_ADMINISTRATIVO") or (adm is not None)
 
-        pts_sal = getattr(prof, "puntosSalariales", 0) or 0
-        cat_doc = clean_enum(getattr(prof, "categoriaDocente", "N/A")).replace("_", " ").title()
-        ded_fmt = clean_enum(getattr(c, "dedicacion", "TIEMPO_COMPLETO")).replace("_", " ").title()
+        if es_admin:
+            nom_empleado = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else f"Funcionario #{c.idPersona}"
+            regimen = "Código Sustantivo del Trabajo (CST / Ley 100 de 1993)"
+            cargo_str = getattr(adm, "cargo", "Administrativo") if adm else "Administrativo"
+            dep_str = getattr(adm, "dependencia", "Vicerrectoría") if adm else "N/D"
+            cat_str = getattr(adm, "categoria", "PROFESIONAL") if adm else "PROFESIONAL"
+            aux_str = "Aplica ($249.095 COP)" if getattr(c, "aplicaAuxilioTransporte", False) else "No Aplica (> 2 SMMLV)"
 
-        items = [
-            ("Docente Vinculado:", nom_prof),
-            ("Documento de Identidad:", str(getattr(pers, "numeroDocumento", "N/D"))),
-            ("Modalidad Contractual:", mod),
-            ("Régimen Jurídico:", regimen),
-            ("Categoría Docente:", cat_doc),
-            ("Puntos Salariales (Dec. 1279):", f"{pts_sal} puntos"),
-            ("Dedicación:", ded_fmt),
-            ("Horas Semanales:", f"{getattr(c, 'horasSemanales', 40)} horas/semana"),
-            ("Asignación Básica Mensual:", asig_fmt),
-            ("Fecha de Inicio:", str(getattr(c, "fechaInicio", "N/D"))),
-            ("Fecha de Terminación:", str(getattr(c, "fechaFin", "Indefinido"))),
-            ("Estado:", clean_enum(getattr(c, "estado", "ACTIVO")).upper()),
-            ("Disponibilidad Presupuestal (CDP):", str(getattr(c, "numeroCDP", "N/A"))),
-            ("Resolución de Nombramiento:", str(getattr(c, "resolucionNombramiento", "N/A"))),
-            ("Clase de Riesgo ARL:", str(getattr(c, "claseRiesgoARL", "CLASE I"))),
-            ("Supervisión / Decanatura:", "Decano de Facultad / Vicerrectoría"),
-        ]
+            items = [
+                ("Funcionario Vinculado:", nom_empleado),
+                ("Documento de Identidad:", str(getattr(pers, "numeroDocumento", "N/D"))),
+                ("Cargo Institucional:", cargo_str),
+                ("Dependencia / Área:", dep_str),
+                ("Nivel / Categoría:", cat_str),
+                ("Modalidad Contractual:", clean_enum(getattr(c, "tipoContrato", "TERMINO_INDEFINIDO"))),
+                ("Régimen Jurídico:", regimen),
+                ("Asignación Básica Mensual:", asig_fmt),
+                ("Auxilio Legal de Transporte:", aux_str),
+                ("Horas Semanales:", f"{getattr(c, 'horasSemanales', 40)} horas/semana"),
+                ("Fecha de Inicio:", str(getattr(c, "fechaInicio", "N/D"))),
+                ("Fecha de Terminación:", str(getattr(c, "fechaFin", "Indefinido"))),
+                ("Estado del Contrato:", clean_enum(getattr(c, "estado", "ACTIVO")).upper()),
+                ("Clase de Riesgo ARL:", str(getattr(c, "claseARL", getattr(c, "claseRiesgoARL", "CLASE I (0.522%)")))),
+                ("Supervisión Inmediata:", "Dirección de Talento Humano / Dependencia"),
+            ]
+        else:
+            regimen = "Carrera Docente (Decreto 1279/2002)" if "PLANTA" in mod else "Docente Transitorio (Acuerdo 027/2024)"
+            pts_sal = getattr(prof, "puntosSalariales", 0) or 0
+            cat_doc = clean_enum(getattr(prof, "categoriaDocente", "N/A")).replace("_", " ").title()
+            ded_fmt = clean_enum(getattr(c, "dedicacion", "TIEMPO_COMPLETO")).replace("_", " ").title()
+
+            items = [
+                ("Docente Vinculado:", nom_prof),
+                ("Documento de Identidad:", str(getattr(pers, "numeroDocumento", "N/D"))),
+                ("Modalidad Contractual:", mod),
+                ("Régimen Jurídico:", regimen),
+                ("Categoría Docente:", cat_doc),
+                ("Puntos Salariales (Dec. 1279):", f"{pts_sal} puntos"),
+                ("Dedicación:", ded_fmt),
+                ("Horas Semanales:", f"{getattr(c, 'horasSemanales', 40)} horas/semana"),
+                ("Asignación Básica Mensual:", asig_fmt),
+                ("Fecha de Inicio:", str(getattr(c, "fechaInicio", "N/D"))),
+                ("Fecha de Terminación:", str(getattr(c, "fechaFin", "Indefinido"))),
+                ("Estado:", clean_enum(getattr(c, "estado", "ACTIVO")).upper()),
+                ("Disponibilidad Presupuestal (CDP):", str(getattr(c, "numeroCDP", "N/A"))),
+                ("Resolución de Nombramiento:", str(getattr(c, "resolucionNombramiento", "N/A"))),
+                ("Clase de Riesgo ARL:", str(getattr(c, "claseARL", getattr(c, "claseRiesgoARL", "CLASE I (0.522%)")))),
+                ("Supervisión / Decanatura:", "Decano de Facultad / Vicerrectoría"),
+            ]
 
         for lbl, val in items:
             row = ctk.CTkFrame(card, fg_color="transparent")

@@ -12,6 +12,31 @@ namespace pita {
 // VISTA: FACULTADES
 // ======================================================================
 
+static std::string getNombreDocentePersona(const GUIController& ctrl, int idPersona) {
+    for (size_t i = 0; i < ctrl.datos.personas.tamano(); ++i) {
+        auto& p = ctrl.datos.personas.obtener(i);
+        if (p.idPersona && *p.idPersona == idPersona) {
+            std::string nom = p.primerNombre.value_or("");
+            std::string ape = p.primerApellido.value_or("");
+            return nom + " " + ape;
+        }
+    }
+    return "Desconocido";
+}
+
+static std::string getNombreDecano(const GUIController& ctrl, std::optional<int> idDecano) {
+    if (!idDecano || *idDecano <= 0) return "Sin Asignar";
+    for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+        auto& prof = ctrl.datos.profesores.obtener(i);
+        if (prof.idProfesor && *prof.idProfesor == *idDecano) {
+            std::string nom = getNombreDocentePersona(ctrl, prof.idPersona.value_or(0));
+            std::string cod = prof.codigoProfesor.value_or("");
+            return cod.empty() ? nom : (nom + " (" + cod + ")");
+        }
+    }
+    return "Docente #" + std::to_string(*idDecano);
+}
+
 void PITAApp::renderFacultades() {
     if (fuenteTitulo) ImGui::PushFont(fuenteTitulo);
     ImGui::TextColored(tema::TEXT_MAIN(), "Facultades & Programas Academicos");
@@ -44,10 +69,6 @@ void PITAApp::renderFacultades() {
                 ImGui::SetCursorPosX(20);
                 ImGui::Text("NIT: %s", u.nit ? u.nit->c_str() : "---");
                 ImGui::SetCursorPosX(20);
-                ImGui::Text("Codigo: %s", u.codigoInstitucional ? u.codigoInstitucional->c_str() : "---");
-                ImGui::SetCursorPosX(20);
-                ImGui::Text("Direccion: %s", u.direccion ? u.direccion->c_str() : "---");
-                ImGui::SetCursorPosX(20);
                 ImGui::Text("Ciudad: %s, %s", u.ciudad ? u.ciudad->c_str() : "---", u.departamento ? u.departamento->c_str() : "---");
                 ImGui::SetCursorPosX(20);
                 ImGui::Text("Telefono: %s", u.telefono ? u.telefono->c_str() : "---");
@@ -74,18 +95,20 @@ void PITAApp::renderFacultades() {
                 facNombre[0] = '\0';
                 facUbicacion[0] = '\0';
                 facDecano[0] = '\0';
+                facDecanoId = 0;
                 mensajeModal[0] = '\0';
                 errorModal = false;
                 modalFacultadAbierto = true;
             }
             ImGui::Spacing();
-            if (ImGui::BeginTable("##TablaFacultades", 6,
+            if (ImGui::BeginTable("##TablaFacultades", 7,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
                 ImGui::TableSetupColumn("ID");
                 ImGui::TableSetupColumn("Codigo");
                 ImGui::TableSetupColumn("Nombre");
+                ImGui::TableSetupColumn("Decano / Responsable");
                 ImGui::TableSetupColumn("Ubicacion");
                 ImGui::TableSetupColumn("Correo");
                 ImGui::TableSetupColumn("Estado");
@@ -97,6 +120,13 @@ void PITAApp::renderFacultades() {
                     ImGui::TableNextColumn(); ImGui::Text("%d", f.idFacultad ? *f.idFacultad : 0);
                     ImGui::TableNextColumn(); ImGui::Text("%s", f.codigoFacultad ? f.codigoFacultad->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", f.nombre ? f.nombre->c_str() : "---");
+                    ImGui::TableNextColumn();
+                    std::string nomDec = getNombreDecano(ctrl, f.idDecano);
+                    if (f.idDecano && *f.idDecano > 0) {
+                        ImGui::TextColored(tema::WIN_BLUE(), "%s", nomDec.c_str());
+                    } else {
+                        ImGui::TextColored(tema::TEXT_MUTED(), "%s", nomDec.c_str());
+                    }
                     ImGui::TableNextColumn(); ImGui::Text("%s", f.ubicacion ? f.ubicacion->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", f.correo ? f.correo->c_str() : "---");
                     ImGui::TableNextColumn();
@@ -138,8 +168,8 @@ void PITAApp::renderFacultades() {
                 ImGui::TableSetupColumn("Codigo");
                 ImGui::TableSetupColumn("Nombre");
                 ImGui::TableSetupColumn("Nivel");
-                ImGui::TableSetupColumn("Semestres");
                 ImGui::TableSetupColumn("Creditos");
+                ImGui::TableSetupColumn("Facultad");
                 ImGui::TableSetupColumn("Estado");
                 ImGui::TableHeadersRow();
 
@@ -149,9 +179,20 @@ void PITAApp::renderFacultades() {
                     ImGui::TableNextColumn(); ImGui::Text("%d", p.idPrograma ? *p.idPrograma : 0);
                     ImGui::TableNextColumn(); ImGui::Text("%s", p.codigoPrograma ? p.codigoPrograma->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", p.nombre ? p.nombre->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", p.nivelFormacion ? p.nivelFormacion->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%d", p.numeroSemestres ? *p.numeroSemestres : 0);
+                    ImGui::TableNextColumn(); ImGui::Text("%s", p.nivelFormacion ? p.nivelFormacion->c_str() : "PREGRADO");
                     ImGui::TableNextColumn(); ImGui::Text("%d", p.totalCreditos ? *p.totalCreditos : 0);
+                    ImGui::TableNextColumn();
+                    std::string nomFac = "---";
+                    if (p.idFacultad) {
+                        for (int j = 0; j < ctrl.datos.facultades.tamano(); j++) {
+                            auto& f = ctrl.datos.facultades.obtener(j);
+                            if (f.idFacultad && *f.idFacultad == *p.idFacultad) {
+                                nomFac = f.nombre ? *f.nombre : "---";
+                                break;
+                            }
+                        }
+                    }
+                    ImGui::Text("%s", nomFac.c_str());
                     ImGui::TableNextColumn();
                     if (p.estado && *p.estado == "ACTIVO") {
                         ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
@@ -182,7 +223,7 @@ void PITAApp::renderModalFacultad() {
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(450, 0), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(480, 0), ImGuiCond_Always);
 
     if (ImGui::BeginPopupModal("Nueva Facultad", &modalFacultadAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
         if (strlen(mensajeModal) > 0) {
@@ -193,7 +234,32 @@ void PITAApp::renderModalFacultad() {
         ImGui::InputText("Codigo *", facCodigo, sizeof(facCodigo));
         ImGui::InputText("Nombre *", facNombre, sizeof(facNombre));
         ImGui::InputText("Ubicacion", facUbicacion, sizeof(facUbicacion));
-        ImGui::InputText("Decano / Responsable", facDecano, sizeof(facDecano));
+
+        // Combo Decano / Autoridad Académica
+        std::string previewDecano = "(Sin Decano Asignado)";
+        if (facDecanoId > 0) {
+            previewDecano = getNombreDecano(ctrl, facDecanoId);
+        }
+
+        if (ImGui::BeginCombo("Decano / Responsable", previewDecano.c_str())) {
+            bool selNinguno = (facDecanoId == 0);
+            if (ImGui::Selectable("(Sin Decano Asignado)", selNinguno)) {
+                facDecanoId = 0;
+            }
+            if (selNinguno) ImGui::SetItemDefaultFocus();
+
+            for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+                auto& pr = ctrl.datos.profesores.obtener(i);
+                int pId = pr.idProfesor.value_or(0);
+                std::string label = getNombreDecano(ctrl, pId);
+                bool sel = (facDecanoId == pId);
+                if (ImGui::Selectable(label.c_str(), sel)) {
+                    facDecanoId = pId;
+                }
+                if (sel) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
 
         ImGui::Spacing();
         ImGui::Separator();
@@ -213,6 +279,11 @@ void PITAApp::renderModalFacultad() {
                 f.codigoFacultad = facCodigo;
                 f.nombre = facNombre;
                 if (strlen(facUbicacion) > 0) f.ubicacion = facUbicacion;
+                if (facDecanoId > 0) {
+                    f.idDecano = facDecanoId;
+                } else {
+                    f.idDecano = std::nullopt;
+                }
                 f.estado = "ACTIVO";
 
                 ctrl.datos.facultades.push_back(f);

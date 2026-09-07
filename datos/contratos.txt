@@ -1,3 +1,4 @@
 1|4|CONT-2026-001|DOCENTE_PLANTA|2026-01-01|2026-12-31|TIEMPO_COMPLETO|40||||10765800||||ACTIVO|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 2|5|CONT-2026-002|DOCENTE_CATEDRATICO|2026-02-01|2026-06-30|HORA_CATEDRA|12||||1848000||||ACTIVO|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
 3|6|CONT-2026-003|DOCENTE_OCASIONAL|2026-01-15|2026-12-15|TIEMPO_COMPLETO|40||||3800000||||ACTIVO|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+4|7|ADM-CONTRATO-004|TERMINO_INDEFINIDO|2026-09-07|2026-12-31|TIEMPO_COMPLETO|40|||0|3800000|CLASE I (0.522%)||Cargo: Director Admisiones | Dependencia: Vicerrectoría Académica|ACTIVO|CST_LEY100_ADMINISTRATIVO|||TERMINO_INDEFINIDO|||||0|||||||||||CDP-2026-004|||Res. Rectoral 2026-004||||||||||||||||||||||||||||3800000||||||||||||||

@@ -8,6 +8,22 @@
 
 namespace pita {
 
+static std::string formatearMoneda(double valor) {
+    long long entero = static_cast<long long>(std::round(valor));
+    std::string s = std::to_string(entero);
+    std::string res = "";
+    int cont = 0;
+    for (int i = static_cast<int>(s.length()) - 1; i >= 0; i--) {
+        res = s[i] + res;
+        cont++;
+        if (cont == 3 && i > 0) {
+            res = "." + res;
+            cont = 0;
+        }
+    }
+    return "$" + res;
+}
+
 // ======================================================================
 // VISTA: PERSONAS
 // ======================================================================
@@ -287,16 +303,18 @@ void PITAApp::renderPersonas() {
         // Tab Administrativos
         if (ImGui::BeginTabItem("Administrativos")) {
             ImGui::Spacing();
-            if (ImGui::BeginTable("##TablaAdmin", 6,
+            if (ImGui::BeginTable("##TablaAdmin", 8,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID");
-                ImGui::TableSetupColumn("Codigo");
-                ImGui::TableSetupColumn("Nombre");
-                ImGui::TableSetupColumn("Cargo");
-                ImGui::TableSetupColumn("Dependencia");
-                ImGui::TableSetupColumn("Estado");
+                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 45);
+                ImGui::TableSetupColumn("Codigo", ImGuiTableColumnFlags_WidthFixed, 95);
+                ImGui::TableSetupColumn("Nombre Completo", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Cargo", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Dependencia", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Nivel", ImGuiTableColumnFlags_WidthFixed, 110);
+                ImGui::TableSetupColumn("Salario Base", ImGuiTableColumnFlags_WidthFixed, 120);
+                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 140);
                 ImGui::TableHeadersRow();
 
                 for (int i = 0; i < ctrl.datos.administrativos.tamano(); i++) {
@@ -313,19 +331,50 @@ void PITAApp::renderPersonas() {
                     }
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn(); ImGui::Text("%d", a.idAdministrativo ? *a.idAdministrativo : 0);
-                    ImGui::TableNextColumn(); ImGui::Text("%s", a.codigoEmpleado ? a.codigoEmpleado->c_str() : "---");
+                    ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "%s", a.codigoEmpleado ? a.codigoEmpleado->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
                     ImGui::TableNextColumn(); ImGui::Text("%s", a.cargo ? a.cargo->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", a.dependencia ? a.dependencia->c_str() : "---");
+                    ImGui::TableNextColumn(); ImGui::Text("%s", a.categoria ? a.categoria->c_str() : "PROFESIONAL");
                     ImGui::TableNextColumn();
-                    if (a.estado && *a.estado == "ACTIVO") {
-                        ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
-                        ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_ACTIVE_TXT());
-                        ImGui::SmallButton("ACTIVO");
-                        ImGui::PopStyleColor(2);
-                    } else {
-                        ImGui::Text("%s", a.estado ? a.estado->c_str() : "---");
+                    double salVal = a.salarioBase.value_or(0.0);
+                    ImGui::TextColored(tema::ACCENT_SUCCESS(), "%s", formatearMoneda(salVal).c_str());
+                    ImGui::TableNextColumn();
+                    ImGui::PushID(i + 5000);
+                    if (ImGui::SmallButton("Editar")) {
+                        abrirModalEditarAdministrativo(a.idAdministrativo.value_or(0));
                     }
+                    ImGui::SameLine();
+                    if (a.estado && *a.estado == "ACTIVO") {
+                        if (ImGui::SmallButton("Desactivar")) {
+                            a.estado = "INACTIVO";
+                            if (a.idPersona) {
+                                for (size_t cIdx = 0; cIdx < ctrl.datos.contratos.tamano(); ++cIdx) {
+                                    auto& c = ctrl.datos.contratos.obtener(cIdx);
+                                    if (c.idPersona == a.idPersona && c.estado && *c.estado == "ACTIVO") {
+                                        c.estado = "INACTIVO";
+                                    }
+                                }
+                            }
+                            ctrl.guardarDatos();
+                            ctrl.setMensaje("Administrativo y contrato desactivados.");
+                        }
+                    } else {
+                        if (ImGui::SmallButton("Activar")) {
+                            a.estado = "ACTIVO";
+                            if (a.idPersona) {
+                                for (size_t cIdx = 0; cIdx < ctrl.datos.contratos.tamano(); ++cIdx) {
+                                    auto& c = ctrl.datos.contratos.obtener(cIdx);
+                                    if (c.idPersona == a.idPersona) {
+                                        c.estado = "ACTIVO";
+                                    }
+                                }
+                            }
+                            ctrl.guardarDatos();
+                            ctrl.setMensaje("Administrativo y contrato activados.");
+                        }
+                    }
+                    ImGui::PopID();
                 }
                 ImGui::EndTable();
             }
@@ -472,8 +521,17 @@ void PITAApp::renderModalPersona() {
             } else if (pRolSeleccionado == 3) {
                 // Administrativo
                 ImGui::InputText("Codigo Empleado *", admCodigo, sizeof(admCodigo));
-                ImGui::InputText("Cargo *", admCargo, sizeof(admCargo));
+                ImGui::InputText("Cargo Institucional *", admCargo, sizeof(admCargo));
                 ImGui::InputText("Dependencia *", admDependencia, sizeof(admDependencia));
+
+                const char* catsAdm[] = { "PROFESIONAL", "DIRECTIVO", "ASESOR", "TECNICO", "ASISTENCIAL" };
+                ImGui::Combo("Nivel / Categoria *", &admCategoriaIdx, catsAdm, IM_ARRAYSIZE(catsAdm));
+
+                const char* tiposContAdm[] = { "PLANTA", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD", "PRESTACION_SERVICIOS" };
+                ImGui::Combo("Tipo Contratacion *", &admTipoContratacionIdx, tiposContAdm, IM_ARRAYSIZE(tiposContAdm));
+
+                ImGui::InputDouble("Salario Base Mensual ($) *", &admSalarioBase, 100000.0, 500000.0, "$ %.0f");
+                ImGui::InputText("Fecha Vinculacion (AAAA-MM-DD)", admFechaVinculacion, sizeof(admFechaVinculacion));
             }
         }
 
@@ -573,8 +631,37 @@ void PITAApp::renderModalPersona() {
                             adm.codigoEmpleado = admCodigo;
                             adm.cargo = admCargo;
                             adm.dependencia = admDependencia;
+                            const char* catsAdm[] = { "PROFESIONAL", "DIRECTIVO", "ASESOR", "TECNICO", "ASISTENCIAL" };
+                            adm.categoria = catsAdm[admCategoriaIdx];
+                            const char* tiposContAdm[] = { "PLANTA", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD", "PRESTACION_SERVICIOS" };
+                            adm.tipoContratacion = tiposContAdm[admTipoContratacionIdx];
+                            adm.fechaVinculacion = strlen(admFechaVinculacion) > 0 ? std::string(admFechaVinculacion) : "2026-03-01";
+                            adm.salarioBase = admSalarioBase;
                             adm.estado = "ACTIVO";
                             ctrl.datos.administrativos.push_back(adm);
+
+                            // Generar inmediatamente su contrato laboral activo enlazado a la persona
+                            int maxConId = 0;
+                            for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+                                auto& c = ctrl.datos.contratos.obtener(i);
+                                if (c.idContrato && *c.idContrato > maxConId) maxConId = *c.idContrato;
+                            }
+                            Contrato con;
+                            con.idContrato = maxConId + 1;
+                            con.idPersona = idPersFinal;
+                            con.numeroContrato = "ADM-CONTRATO-" + std::to_string(*con.idContrato);
+                            con.tipoContrato = "TERMINO_INDEFINIDO";
+                            con.fechaInicio = strlen(admFechaVinculacion) > 0 ? std::string(admFechaVinculacion) : "2026-03-01";
+                            con.salarioBase = admSalarioBase;
+                            con.aplicaAuxilioTransporte = (admSalarioBase <= 3501810.0);
+                            con.estado = "ACTIVO";
+                            con.regimenAplicable = "CST_LEY100_ADMINISTRATIVO";
+                            con.esRemunerado = true;
+                            con.esEmpleadoPublicoDocente = false;
+                            con.perteneceCarreraProfesoral = false;
+                            con.esTransitorio = false;
+                            con.esAdHonorem = false;
+                            ctrl.datos.contratos.push_back(con);
                         }
                     }
 
@@ -592,6 +679,133 @@ void PITAApp::renderModalPersona() {
         ImGui::SameLine();
         if (ImGui::Button("Cancelar", ImVec2(120, 0))) {
             modalPersonaAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+// ======================================================================
+// MODAL EDITAR ADMINISTRATIVO
+// ======================================================================
+
+void PITAApp::abrirModalEditarAdministrativo(int idAdministrativo) {
+    idAdminEditando = idAdministrativo;
+    mensajeModal[0] = '\0';
+    errorModal = false;
+
+    for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); ++i) {
+        auto& a = ctrl.datos.administrativos.obtener(i);
+        if (a.idAdministrativo && *a.idAdministrativo == idAdministrativo) {
+            strncpy(editAdmCodigo, a.codigoEmpleado ? a.codigoEmpleado->c_str() : "", sizeof(editAdmCodigo) - 1);
+            strncpy(editAdmCargo, a.cargo ? a.cargo->c_str() : "", sizeof(editAdmCargo) - 1);
+            strncpy(editAdmDependencia, a.dependencia ? a.dependencia->c_str() : "", sizeof(editAdmDependencia) - 1);
+            editAdmSalarioBase = a.salarioBase.value_or(2500000.0);
+
+            std::string cat = a.categoria.value_or("PROFESIONAL");
+            if (cat == "DIRECTIVO") editAdmCategoriaIdx = 1;
+            else if (cat == "ASESOR") editAdmCategoriaIdx = 2;
+            else if (cat == "TECNICO") editAdmCategoriaIdx = 3;
+            else if (cat == "ASISTENCIAL") editAdmCategoriaIdx = 4;
+            else editAdmCategoriaIdx = 0;
+
+            std::string tc = a.tipoContratacion.value_or("PLANTA");
+            if (tc == "CARRERA_ADMINISTRATIVA") editAdmTipoContratacionIdx = 1;
+            else if (tc == "LIBRE_NOMBRAMIENTO") editAdmTipoContratacionIdx = 2;
+            else if (tc == "PROVISIONALIDAD") editAdmTipoContratacionIdx = 3;
+            else if (tc == "PRESTACION_SERVICIOS") editAdmTipoContratacionIdx = 4;
+            else editAdmTipoContratacionIdx = 0;
+
+            break;
+        }
+    }
+    modalEditarAdminAbierto = true;
+}
+
+void PITAApp::renderModalEditarAdministrativo() {
+    if (modalEditarAdminAbierto) {
+        ImGui::OpenPopup("Modificar Datos Administrativo");
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(520, 0), ImGuiCond_Always);
+
+    if (ImGui::BeginPopupModal("Modificar Datos Administrativo", &modalEditarAdminAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (strlen(mensajeModal) > 0) {
+            ImGui::TextColored(errorModal ? tema::ACCENT_DANGER() : tema::ACCENT_SUCCESS(), "%s", mensajeModal);
+            ImGui::Separator();
+        }
+
+        ImGui::TextColored(tema::WIN_BLUE(), "Parametros Laborales del Funcionario");
+        ImGui::Spacing();
+
+        ImGui::TextColored(tema::TEXT_MUTED(), "Codigo Empleado: %s", editAdmCodigo);
+        ImGui::Spacing();
+
+        ImGui::InputText("Cargo Institucional *", editAdmCargo, sizeof(editAdmCargo));
+        ImGui::InputText("Dependencia Adscrita *", editAdmDependencia, sizeof(editAdmDependencia));
+
+        const char* catsAdm[] = { "PROFESIONAL", "DIRECTIVO", "ASESOR", "TECNICO", "ASISTENCIAL" };
+        ImGui::Combo("Nivel / Categoria *", &editAdmCategoriaIdx, catsAdm, IM_ARRAYSIZE(catsAdm));
+
+        const char* tiposContAdm[] = { "PLANTA", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD", "PRESTACION_SERVICIOS" };
+        ImGui::Combo("Tipo Contratacion *", &editAdmTipoContratacionIdx, tiposContAdm, IM_ARRAYSIZE(tiposContAdm));
+
+        ImGui::InputDouble("Salario Base Mensual ($) *", &editAdmSalarioBase, 100000.0, 500000.0, "$ %.0f");
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Guardar Cambios", ImVec2(140, 32))) {
+            if (strlen(editAdmCargo) == 0 || strlen(editAdmDependencia) == 0 || editAdmSalarioBase <= 0) {
+                strncpy(mensajeModal, "Cargo, Dependencia y Salario Base positivo son obligatorios.", sizeof(mensajeModal) - 1);
+                errorModal = true;
+            } else {
+                try {
+                    int idPers = 0;
+                    for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); ++i) {
+                        auto& a = ctrl.datos.administrativos.obtener(i);
+                        if (a.idAdministrativo && *a.idAdministrativo == idAdminEditando) {
+                            a.cargo = editAdmCargo;
+                            a.dependencia = editAdmDependencia;
+                            a.categoria = catsAdm[editAdmCategoriaIdx];
+                            a.tipoContratacion = tiposContAdm[editAdmTipoContratacionIdx];
+                            a.salarioBase = editAdmSalarioBase;
+                            idPers = a.idPersona.value_or(0);
+                            break;
+                        }
+                    }
+
+                    // Sincronizar contrato laboral activo
+                    if (idPers > 0) {
+                        for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+                            auto& c = ctrl.datos.contratos.obtener(i);
+                            if (c.idPersona && *c.idPersona == idPers && c.estado && *c.estado == "ACTIVO") {
+                                c.salarioBase = editAdmSalarioBase;
+                                c.aplicaAuxilioTransporte = (editAdmSalarioBase <= 3501810.0);
+                                break;
+                            }
+                        }
+                    }
+
+                    ctrl.inicializarGestores();
+                    ctrl.guardarDatos();
+                    ctrl.setMensaje("Administrativo y contrato laboral actualizados exitosamente.");
+                    modalEditarAdminAbierto = false;
+                    ImGui::CloseCurrentPopup();
+                } catch (const std::exception& e) {
+                    strncpy(mensajeModal, e.what(), sizeof(mensajeModal) - 1);
+                    errorModal = true;
+                }
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancelar", ImVec2(120, 32))) {
+            modalEditarAdminAbierto = false;
             ImGui::CloseCurrentPopup();
         }
 

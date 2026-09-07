@@ -139,6 +139,10 @@ class CicloVidaNomina:
             nueva = self.gestor.liquidador_catedratico.liquidar(
                 liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
             )
+        elif tipo is None or "ADMINISTRATIVO" in str(liquidacion_original.regimenLiquidado or "").upper() or "CST" in str(liquidacion_original.regimenLiquidado or "").upper():
+            nueva = self.gestor.liquidador_administrativo.liquidar(
+                liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
+            )
         else:
             raise ErrorNomina("Tipo de profesor no soportado para reliquidación")
 
@@ -234,7 +238,7 @@ class CicloVidaNomina:
         liquidaciones = self.gestor._liquidaciones_periodo(id_periodo_nomina)
         resultado: dict[str, dict[str, Decimal]] = {}
         for liq in liquidaciones:
-            tipo = str(liq.tipoProfesorLiquidado or "DESCONOCIDO")
+            tipo = "ADMINISTRATIVO" if liq.tipoProfesorLiquidado is None else str(liq.tipoProfesorLiquidado)
             if tipo not in resultado:
                 resultado[tipo] = {
                     "cantidad": self.CERO,

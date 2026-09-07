@@ -100,6 +100,20 @@ private:
     char admCodigo[32] = "";
     char admCargo[64] = "";
     char admDependencia[64] = "";
+    int admCategoriaIdx = 0; // 0: PROFESIONAL, 1: DIRECTIVO, 2: ASESOR, 3: TECNICO, 4: ASISTENCIAL
+    int admTipoContratacionIdx = 0; // 0: PLANTA, 1: CARRERA_ADMINISTRATIVA, 2: LIBRE_NOMBRAMIENTO, 3: PROVISIONALIDAD, 4: PRESTACION_SERVICIOS
+    double admSalarioBase = 2800000.0;
+    char admFechaVinculacion[32] = "2026-03-01";
+
+    // Modal Editar Administrativo
+    bool modalEditarAdminAbierto = false;
+    int idAdminEditando = 0;
+    char editAdmCodigo[32] = "";
+    char editAdmCargo[64] = "";
+    char editAdmDependencia[64] = "";
+    int editAdmCategoriaIdx = 0;
+    int editAdmTipoContratacionIdx = 0;
+    double editAdmSalarioBase = 2800000.0;
 
     // 2. Modal Facultad & Programa
     bool modalFacultadAbierto = false;
@@ -107,6 +121,7 @@ private:
     char facNombre[128] = "";
     char facUbicacion[128] = "";
     char facDecano[128] = "";
+    int facDecanoId = 0;
 
     bool modalProgramaAbierto = false;
     char progCodigo[32] = "";
@@ -137,8 +152,9 @@ private:
 
     // 4. Modal Contrato
     bool modalContratoAbierto = false;
+    int conTipoPersonalIdx = 0; // 0: Docente, 1: Administrativo
     int conPersonaId = 0;
-    int conTipoIdx = 0; // 0: DOCENTE_PLANTA, 1: DOCENTE_OCASIONAL, 2: DOCENTE_CATEDRA
+    int conTipoIdx = 0; // 0: DOCENTE_PLANTA, 1: DOCENTE_OCASIONAL, 2: DOCENTE_CATEDRA / 0: TERMINO_INDEFINIDO, etc.
     double conSalarioBase = 3500000.0;
     double conHoras = 16.0;
     char conFechaInicio[32] = "2025-02-01";
@@ -151,8 +167,9 @@ private:
 
     // 5. Modal Periodo Nómina & Liquidación
     bool modalPeriodoNominaAbierto = false;
-    int perAnio = 2025;
+    int perAnio = 2026;
     int perMes = 1;
+    int nomFiltroPeriodoId = 0; // 0: Todos los períodos, >0: idPeriodoNomina específico
 
     bool modalLiquidarAbierto = false;
     int liqPeriodoId = 0;
@@ -203,6 +220,7 @@ private:
     // Métodos de Renderizado de Modales
     void renderModales();
     void renderModalPersona();
+    void renderModalEditarAdministrativo();
     void renderModalFacultad();
     void renderModalPrograma();
     void renderModalCurso();
@@ -221,10 +239,12 @@ private:
     // Acciones de Nómina (alineadas con Python view_nomina_gui)
     void ejecutarLiquidacionGeneral();
     void liquidarProfesorEspecifico(int idProfesor);
+    void liquidarAdministrativoEspecifico(int idAdministrativo);
     void eliminarLiquidacion(int idLiquidacion);
 
     // Helpers de apertura de modales con datos prellenados
     void abrirModalPersona(bool editar = false, int idPersona = 0);
+    void abrirModalEditarAdministrativo(int idAdministrativo);
     void abrirModalParametro(int idParametro);
 };
 

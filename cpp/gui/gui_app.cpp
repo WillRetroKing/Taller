@@ -612,6 +612,7 @@ void PITAApp::renderDashboard() {
 
 void PITAApp::renderModales() {
     renderModalPersona();
+    renderModalEditarAdministrativo();
     renderModalFacultad();
     renderModalPrograma();
     renderModalCurso();

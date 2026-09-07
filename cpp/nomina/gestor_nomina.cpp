@@ -365,6 +365,135 @@ LiquidacionNomina LiquidadorCatedratico::liquidar(
     );
 }
 
+LiquidacionNomina LiquidadorAdministrativo::liquidar(
+    int idContrato,
+    int idPeriodoNomina,
+    const std::string& fechaLiquidacion
+) {
+    Contrato& contrato = gestor.contrato(idContrato);
+    PeriodoNomina& periodo = gestor.periodo(idPeriodoNomina);
+    gestor.validarPeriodoAbierto(periodo);
+    gestor.evitarLiquidacionDuplicada(idContrato, idPeriodoNomina);
+
+    if (contrato.estado.has_value() && a_mayusculas(*contrato.estado) != "ACTIVO") {
+        throw ErrorNomina("El contrato no esta activo");
+    }
+    std::string inicioPeriodo = periodo.fechaInicio.value_or(periodo.fechaFin.value_or(fecha_hoy()));
+    std::string finPeriodo = periodo.fechaFin.value_or(inicioPeriodo);
+    if (contrato.fechaInicio.has_value() && !contrato.fechaInicio->empty() && *contrato.fechaInicio > finPeriodo) {
+        throw ErrorNomina("El contrato inicia despues del periodo de liquidacion");
+    }
+    if (contrato.fechaFin.has_value() && !contrato.fechaFin->empty() && *contrato.fechaFin < inicioPeriodo) {
+        throw ErrorNomina("El contrato termino antes del periodo de liquidacion");
+    }
+
+    Administrativo* adm = gestor.administrativo(contrato.idPersona);
+
+    double salarioBase = contrato.salarioBase.value_or(0.0);
+    if (salarioBase <= 0.0 && adm && adm->salarioBase.has_value()) {
+        salarioBase = *adm->salarioBase;
+    }
+
+    double salarioOrdinario = salarioBase;
+    double ibc = salarioOrdinario;
+
+    std::string fechaParam = periodo.fechaFin.value_or(periodo.fechaInicio.value_or(fecha_hoy()));
+    std::map<std::string, std::string> codigosUtilizados;
+
+    double salarioMinimo = gestor.salarioMinimo(contrato, periodo, fechaParam, &codigosUtilizados);
+    double auxilio = 0.0;
+    if (salarioOrdinario <= 2.0 * salarioMinimo) {
+        auxilio = gestor.calcPrestaciones.calcularAuxilioTransporte(contrato, salarioOrdinario, salarioMinimo, fechaParam, &codigosUtilizados);
+    }
+    double basePrestacional = ibc + auxilio;
+
+    auto& calcDed = gestor.calcDeducciones;
+    double descuentoSalud = calcDed.calcularDescuentoSalud(ibc, fechaParam, &codigosUtilizados);
+    double descuentoPension = calcDed.calcularDescuentoPension(ibc, fechaParam, &codigosUtilizados);
+    double fondoSolidaridad = calcDed.calcularFondoSolidaridad(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
+    double retencion = calcDed.calcularRetencionFuente(ibc, fechaParam, &codigosUtilizados);
+
+    // Aportes patronales CST / Ley 100
+    double aporteSalud = calcDed.calcularAporteSaludPatronal(ibc, salarioMinimo, fechaParam, &codigosUtilizados, true);
+    double aportePension = calcDed.calcularAportePensionPatronal(ibc, fechaParam, &codigosUtilizados);
+    std::string claseARL = contrato.claseARL.value_or("RIESGO_I");
+    double aporteArl = calcDed.calcularAporteArl(ibc, claseARL, fechaParam, &codigosUtilizados);
+    double aporteCaja = calcDed.calcularAporteCaja(ibc, fechaParam, &codigosUtilizados);
+    double aporteSena = calcDed.calcularAporteSena(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
+    double aporteIcbf = calcDed.calcularAporteIcbf(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
+
+    double dias = periodo.diasBaseLiquidacion.value_or(30);
+    auto provisiones = gestor.calcPrestaciones.calcularProvisiones(basePrestacional, ibc, dias, false);
+
+    double totalDescuentos = descuentoSalud + descuentoPension + fondoSolidaridad + retencion;
+    double totalDevengado = salarioOrdinario + auxilio;
+    double totalPrestaciones = 0.0;
+    for (const auto& [_, val] : provisiones) {
+        totalPrestaciones += val;
+    }
+    double neto = totalDevengado - totalDescuentos;
+
+    std::string cargo = (adm && adm->cargo.has_value()) ? *adm->cargo : "ADMINISTRATIVO";
+
+    LiquidacionNomina liq;
+    liq.idLiquidacion = gestor.siguienteId();
+    liq.idProfesor = std::nullopt;
+    liq.idContrato = contrato.idContrato;
+    liq.idPeriodoNomina = periodo.idPeriodoNomina;
+    liq.fechaLiquidacion = fechaLiquidacion.empty() ? fecha_hoy() : fechaLiquidacion;
+    liq.salarioBase = salarioBase;
+    liq.totalDevengado = GestorNomina::redondear(totalDevengado);
+    liq.totalDescuentos = GestorNomina::redondear(totalDescuentos);
+    liq.totalPrestaciones = GestorNomina::redondear(totalPrestaciones);
+    liq.baseLiquidacionPrestaciones = GestorNomina::redondear(basePrestacional);
+    liq.baseCotizacionSeguridadSocial = GestorNomina::redondear(ibc);
+    liq.valorAuxilioTransporteCotizado = GestorNomina::redondear(auxilio);
+    liq.aportePatronalSENA = GestorNomina::redondear(aporteSena);
+    liq.aportePatronalICBF = GestorNomina::redondear(aporteIcbf);
+    liq.netoPagar = GestorNomina::redondear(neto);
+    liq.estado = "PROCESADA";
+    liq.tipoProfesorLiquidado = std::nullopt;
+    liq.regimenLiquidado = contrato.regimenAplicable.value_or("LEY_100_CST");
+    liq.categoriaLiquidada = cargo;
+    liq.dedicacionLiquidada = contrato.dedicacion.value_or(Dedicacion::TIEMPO_COMPLETO);
+    liq.diasTrabajados = dias;
+    liq.horasAsignadas = contrato.horasSemanales.value_or(40.0);
+    liq.salarioMinimoUsado = salarioMinimo;
+    liq.salarioOrdinario = GestorNomina::redondear(salarioOrdinario);
+    liq.baseSalarialPrestacional = GestorNomina::redondear(basePrestacional);
+    liq.baseSeguridadSocial = GestorNomina::redondear(ibc);
+    liq.descuentoSalud = descuentoSalud;
+    liq.descuentoPension = descuentoPension;
+    liq.fondoSolidaridadPensional = fondoSolidaridad;
+    liq.retencionFuente = retencion;
+    liq.provisionCesantias = provisiones["cesantias"];
+    liq.provisionInteresesCesantias = provisiones["intereses"];
+    liq.provisionPrimaServicios = provisiones["prima_servicios"];
+    liq.provisionPrimaNavidad = provisiones["prima_navidad"];
+    liq.provisionVacaciones = provisiones["vacaciones"];
+    liq.provisionPrimaVacaciones = provisiones["prima_vacaciones"];
+    liq.bonificacionServiciosPrestados = provisiones["bonificacion_servicios"];
+    liq.aportePatronalSalud = GestorNomina::redondear(aporteSalud);
+    liq.aportePatronalPension = aportePension;
+    liq.aporteRiesgosLaborales = aporteArl;
+    liq.aporteCajaCompensacion = aporteCaja;
+
+    double costoTotal = totalDevengado + totalPrestaciones + aporteSalud + aportePension + aporteArl + aporteSena + aporteIcbf + aporteCaja;
+    liq.costoTotalEmpleador = GestorNomina::redondear(costoTotal);
+
+    gestor.liquidaciones.push_back(std::move(liq));
+    LiquidacionNomina& liqGuardada = gestor.liquidaciones.back();
+
+    crearDetalles(
+        liqGuardada, periodo, ibc, salarioOrdinario, auxilio,
+        0.0, 0.0, descuentoSalud, descuentoPension,
+        fondoSolidaridad, retencion, 0.0, aporteSalud,
+        aportePension, aporteArl, aporteCaja, aporteSena, aporteIcbf, &codigosUtilizados
+    );
+
+    return liqGuardada;
+}
+
 // ==========================================
 // CICLO DE VIDA NOMINA
 // ==========================================
@@ -501,19 +630,25 @@ LiquidacionNomina CicloVidaNomina::reliquidar(int idLiquidacion) {
     gestor.validarPeriodoAbierto(p);
     gestor.evitarLiquidacionDuplicadaVersion(orig.idContrato.value_or(-1), orig.idPeriodoNomina.value_or(-1), idLiquidacion);
 
-    TipoProfesor tipo = orig.tipoProfesorLiquidado.value_or(TipoProfesor::OCASIONAL);
     std::string fechaLiq = orig.fechaLiquidacion.value_or("");
 
     LiquidacionNomina nueva;
-    if (tipo == TipoProfesor::PLANTA) {
-        nueva = gestor.liquidadorPlanta.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
-    } else if (tipo == TipoProfesor::OCASIONAL) {
-        double horasInc = orig.horasIncumplidas.value_or(0.0);
-        nueva = gestor.liquidadorOcasional.liquidar(*orig.idContrato, *orig.idPeriodoNomina, horasInc, fechaLiq);
-    } else if (tipo == TipoProfesor::CATEDRATICO) {
-        nueva = gestor.liquidadorCatedratico.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
+    if (!orig.tipoProfesorLiquidado.has_value() ||
+        (orig.regimenLiquidado.has_value() &&
+         (orig.regimenLiquidado->find("ADMINISTRATIVO") != std::string::npos || orig.regimenLiquidado->find("CST") != std::string::npos))) {
+        nueva = gestor.liquidadorAdministrativo.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
     } else {
-        throw ErrorNomina("Tipo de profesor no soportado para reliquidacion");
+        TipoProfesor tipo = *orig.tipoProfesorLiquidado;
+        if (tipo == TipoProfesor::PLANTA) {
+            nueva = gestor.liquidadorPlanta.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
+        } else if (tipo == TipoProfesor::OCASIONAL) {
+            double horasInc = orig.horasIncumplidas.value_or(0.0);
+            nueva = gestor.liquidadorOcasional.liquidar(*orig.idContrato, *orig.idPeriodoNomina, horasInc, fechaLiq);
+        } else if (tipo == TipoProfesor::CATEDRATICO) {
+            nueva = gestor.liquidadorCatedratico.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
+        } else {
+            throw ErrorNomina("Tipo de vinculacion no soportado para reliquidacion");
+        }
     }
 
     nueva.version = nuevaVersion;
@@ -592,7 +727,7 @@ std::map<std::string, std::map<std::string, double>> CicloVidaNomina::totalesPor
     std::map<std::string, std::map<std::string, double>> resultado;
 
     for (const auto& liq : liqs) {
-        std::string tipo = liq.tipoProfesorLiquidado.has_value() ? to_string(*liq.tipoProfesorLiquidado) : "DESCONOCIDO";
+        std::string tipo = liq.tipoProfesorLiquidado.has_value() ? to_string(*liq.tipoProfesorLiquidado) : "ADMINISTRATIVO";
         resultado[tipo]["cantidad"] += 1.0;
         resultado[tipo]["total_devengado"] += liq.totalDevengado.value_or(0.0);
         resultado[tipo]["total_descuentos"] += liq.totalDescuentos.value_or(0.0);
@@ -620,7 +755,8 @@ GestorNomina::GestorNomina(
     ListaEnlazada<DetalleLiquidacion>& detallesLiquidacion,
     ListaEnlazada<CategoriaDocente>& categorias,
     ListaEnlazada<FactorSalarial>& factores,
-    ListaEnlazada<ProduccionAcademica>& producciones
+    ListaEnlazada<ProduccionAcademica>& producciones,
+    ListaEnlazada<Administrativo>* administrativos
 ) : contratos(contratos),
     profesores(profesores),
     periodosNomina(periodosNomina),
@@ -630,11 +766,13 @@ GestorNomina::GestorNomina(
     categorias(categorias),
     factores(factores),
     producciones(producciones),
+    administrativos(administrativos),
     calcDeducciones(this->parametros),
     calcPrestaciones(this->calcDeducciones),
     liquidadorPlanta(*this),
     liquidadorOcasional(*this),
     liquidadorCatedratico(*this),
+    liquidadorAdministrativo(*this),
     cicloVida(*this) {}
 
 double GestorNomina::redondear(double valor) {
@@ -687,6 +825,17 @@ Profesor& GestorNomina::profesor(std::optional<int> idPersona) {
         }
     }
     throw ErrorNomina("No existe el profesor con idPersona " + std::to_string(*idPersona));
+}
+
+Administrativo* GestorNomina::administrativo(std::optional<int> idPersona) {
+    if (!idPersona.has_value() || !administrativos) return nullptr;
+    for (size_t i = 0; i < administrativos->tamano(); ++i) {
+        auto& a = administrativos->obtener(i);
+        if (a.idPersona.has_value() && *a.idPersona == *idPersona) {
+            return &a;
+        }
+    }
+    return nullptr;
 }
 
 LiquidacionNomina& GestorNomina::liquidacion(int idLiquidacion) {
@@ -887,16 +1036,23 @@ LiquidacionNomina GestorNomina::liquidarProfesorCatedratico(int idContrato, int 
     return liquidadorCatedratico.liquidar(idContrato, idPeriodoNomina, fechaLiquidacion);
 }
 
+LiquidacionNomina GestorNomina::liquidarAdministrativo(int idContrato, int idPeriodoNomina, const std::string& fechaLiquidacion) {
+    return liquidadorAdministrativo.liquidar(idContrato, idPeriodoNomina, fechaLiquidacion);
+}
+
 LiquidacionNomina GestorNomina::crearLiquidacion(LiquidacionNomina liq) {
     Contrato& c = contrato(liq.idContrato.value_or(-1));
     PeriodoNomina& p = periodo(liq.idPeriodoNomina.value_or(-1));
     validarPeriodoAbierto(p);
     evitarLiquidacionDuplicada(liq.idContrato.value_or(-1), liq.idPeriodoNomina.value_or(-1));
 
-    std::string tipo = c.modalidadProfesor.has_value() ? a_mayusculas(*c.modalidadProfesor) : "";
+    std::string tipo = c.modalidadProfesor.has_value() ? a_mayusculas(*c.modalidadProfesor) :
+                      (c.tipoContrato.has_value() ? a_mayusculas(*c.tipoContrato) : "");
 
     LiquidacionNomina resultado;
-    if (tipo.find("OCASIONAL") != std::string::npos) {
+    if (tipo.find("ADMINISTRATIVO") != std::string::npos) {
+        resultado = liquidarAdministrativo(*liq.idContrato, *liq.idPeriodoNomina);
+    } else if (tipo.find("OCASIONAL") != std::string::npos) {
         resultado = liquidarProfesorOcasional(*liq.idContrato, *liq.idPeriodoNomina, liq.horasIncumplidas.value_or(0.0));
     } else if (tipo.find("PLANTA") != std::string::npos) {
         resultado = liquidarProfesorPlanta(*liq.idContrato, *liq.idPeriodoNomina);

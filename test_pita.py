@@ -254,6 +254,25 @@ class TestContratosParametrosNomina(unittest.TestCase):
         self.assertFalse(bonificacion.integraParafiscales)
         self.assertTrue(salario.integraSeguridadSocial)
 
+    def test_liquidacion_administrativo(self):
+        adm = Administrativo(idAdministrativo=1, idPersona=7, cargo="Director Admisiones", salarioBase=Decimal("3800000"))
+        contrato = Contrato(idContrato=4, idPersona=7, tipoContrato="ADMINISTRATIVO", salarioBase=Decimal("3800000"), estado="ACTIVO", regimenAplicable="LEY_100_CST")
+        periodo = PeriodoNomina(1, salarioMinimoVigente=Decimal("1750905"), diasBaseLiquidacion=30)
+        detalles = []
+        gestor = GestorNomina([contrato], [], [periodo], detalles_liquidacion=detalles, administrativos=[adm])
+        liq = gestor.liquidarAdministrativo(4, 1)
+
+        self.assertIsNone(liq.idProfesor)
+        self.assertEqual(liq.regimenLiquidado, "LEY_100_CST")
+        self.assertEqual(liq.categoriaLiquidada, "Director Admisiones")
+        self.assertEqual(liq.baseCotizacionSeguridadSocial, Decimal("3800000.00"))
+        self.assertEqual(liq.descuentoSalud, Decimal("152000.00"))
+        self.assertEqual(liq.descuentoPension, Decimal("152000.00"))
+        self.assertEqual(liq.totalDescuentos, Decimal("304000.00"))
+        self.assertEqual(liq.netoPagar, Decimal("3496000.00"))
+        self.assertTrue(any(d.tipoMovimiento == "SALARIO_ORDINARIO" for d in detalles))
+        self.assertTrue(any(d.tipoMovimiento == "DESCUENTO_SALUD" for d in detalles))
+
 
 class TestAcademicoEstructura(unittest.TestCase):
     def test_plan_y_prerrequisito(self):

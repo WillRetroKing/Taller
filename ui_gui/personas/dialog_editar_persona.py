@@ -438,16 +438,21 @@ class DialogEditarAdministrativo(ctk.CTkToplevel):
         self.entry_dep.grid(row=1, column=1, sticky="ew", padx=5, pady=(2, 8))
 
         # Tipo Contratación y Salario Base
-        ctk.CTkLabel(grid_l, text="Tipo de Contratación", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=2, column=0, sticky="w", padx=5, pady=(2, 0))
-        ctk.CTkLabel(grid_l, text="Salario Base Mensual ($) *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=1, sticky="w", padx=5, pady=(2, 0))
+        ctk.CTkLabel(grid_l, text="Nivel / Categoría *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=2, column=0, sticky="w", padx=5, pady=(2, 0))
+        ctk.CTkLabel(grid_l, text="Tipo de Contratación", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=2, column=1, sticky="w", padx=5, pady=(2, 0))
 
-        self.combo_tcont = ctk.CTkComboBox(grid_l, values=["PLANTA", "PROVISIONALIDAD", "PRESTACION_SERVICIOS"])
+        self.combo_cat = ctk.CTkComboBox(grid_l, values=["PROFESIONAL", "DIRECTIVO", "ASESOR", "TECNICO", "ASISTENCIAL"])
+        self.combo_cat.set(clean_enum(getattr(self.administrativo, "categoria", "PROFESIONAL") or "PROFESIONAL"))
+        self.combo_cat.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 8))
+
+        self.combo_tcont = ctk.CTkComboBox(grid_l, values=["PLANTA", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD", "PRESTACION_SERVICIOS"])
         self.combo_tcont.set(clean_enum(getattr(self.administrativo, "tipoContratacion", "PLANTA") or "PLANTA"))
-        self.combo_tcont.grid(row=3, column=0, sticky="ew", padx=5, pady=(2, 8))
+        self.combo_tcont.grid(row=3, column=1, sticky="ew", padx=5, pady=(2, 8))
 
+        ctk.CTkLabel(grid_l, text="Salario Base Mensual ($) *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=4, column=0, sticky="w", padx=5, pady=(2, 0))
         self.entry_sal = ctk.CTkEntry(grid_l)
         self.entry_sal.insert(0, str(getattr(self.administrativo, "salarioBase", "0") or "0"))
-        self.entry_sal.grid(row=3, column=1, sticky="ew", padx=5, pady=(2, 8))
+        self.entry_sal.grid(row=5, column=0, sticky="ew", padx=5, pady=(2, 8))
 
         self.lbl_error = ctk.CTkLabel(scroll, text="", text_color="#EF4444", font=ctk.CTkFont(size=12, weight="bold"))
         self.lbl_error.pack(pady=(4, 2))
@@ -474,6 +479,7 @@ class DialogEditarAdministrativo(ctk.CTkToplevel):
         datos_a = {
             "cargo": self.entry_cargo.get().strip() or self.administrativo.cargo,
             "dependencia": self.entry_dep.get().strip() or self.administrativo.dependencia,
+            "categoria": self.combo_cat.get().strip(),
             "tipoContratacion": self.combo_tcont.get(),
             "salarioBase": sal,
         }

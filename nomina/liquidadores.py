@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 from dominio.modelo_datos import (
+    Administrativo,
     Contrato,
     Dedicacion,
     DetalleLiquidacion,
@@ -354,3 +355,129 @@ class LiquidadorCatedratico(MotorLiquidacionBase):
             horas_pagables=horas_pagables,
             es_ad_honorem=es_ad_honorem,
         )
+
+
+class LiquidadorAdministrativo(MotorLiquidacionBase):
+    """Liquidación de personal administrativo según Código Sustantivo del Trabajo (CST) y Ley 100/1993."""
+
+    def liquidar(
+        self,
+        id_contrato: int,
+        id_periodo_nomina: int,
+        *,
+        fecha_liquidacion: date | None = None,
+    ) -> LiquidacionNomina:
+        contrato = self.gestor._contrato(id_contrato)
+        periodo = self.gestor._periodo(id_periodo_nomina)
+        self.gestor._validar_periodo_abierto(periodo)
+        self.gestor._evitar_liquidacion_duplicada(id_contrato, id_periodo_nomina)
+
+        if not self.gestor._activo(contrato.estado):
+            raise ErrorNomina("El contrato no está activo")
+        inicio_periodo = periodo.fechaInicio or periodo.fechaFin or date.today()
+        fin_periodo = periodo.fechaFin or inicio_periodo
+        if contrato.fechaInicio and contrato.fechaInicio > fin_periodo:
+            raise ErrorNomina("El contrato inicia después del período de liquidación")
+        if contrato.fechaFin and contrato.fechaFin < inicio_periodo:
+            raise ErrorNomina("El contrato terminó antes del período de liquidación")
+
+        administrativo = self.gestor._administrativo(contrato.idPersona)
+
+        salario_base = contrato.salarioBase
+        if salario_base is None or salario_base <= self.CERO:
+            if administrativo and administrativo.salarioBase:
+                salario_base = self.gestor._decimal(administrativo.salarioBase, "salario base administrativo")
+            else:
+                salario_base = self.CERO
+        else:
+            salario_base = self.gestor._decimal(salario_base, "salario base administrativo")
+
+        salario_ordinario = salario_base
+        ibc = salario_ordinario
+
+        fecha_param = periodo.fechaFin or periodo.fechaInicio or date.today()
+        codigos_utilizados: dict[str, str] = {}
+
+        salario_minimo = self.gestor._salario_minimo(contrato, periodo, fecha_param, codigos_utilizados)
+        auxilio = self.gestor.calc_prestaciones.calcular_auxilio_transporte(contrato, salario_ordinario, salario_minimo, fecha_param, codigos_utilizados)
+        base_prestacional = ibc + auxilio
+
+        calc_ded = self.gestor.calc_deducciones
+        descuento_salud = calc_ded.calcular_descuento_salud(ibc, fecha_param, codigos_utilizados)
+        descuento_pension = calc_ded.calcular_descuento_pension(ibc, fecha_param, codigos_utilizados)
+        fondo_solidaridad = calc_ded.calcular_fondo_solidaridad(ibc, salario_minimo, fecha_param, codigos_utilizados)
+        retencion = calc_ded.calcular_retencion_fuente(ibc, fecha_param, codigos_utilizados=codigos_utilizados)
+
+        # Aportes patronales CST / Ley 100
+        aporte_salud = calc_ded.calcular_aporte_salud_patronal(ibc, salario_minimo, fecha_param, codigos_utilizados, exonerado=True)
+        aporte_pension = calc_ded.calcular_aporte_pension_patronal(ibc, fecha_param, codigos_utilizados)
+        aporte_arl = calc_ded.calcular_aporte_arl(ibc, contrato.claseARL or "RIESGO_I", fecha_param, codigos_utilizados)
+        aporte_caja = calc_ded.calcular_aporte_caja(ibc, fecha_param, codigos_utilizados)
+        aporte_sena = calc_ded.calcular_aporte_sena(ibc, salario_minimo, fecha_param, codigos_utilizados)
+        aporte_icbf = calc_ded.calcular_aporte_icbf(ibc, salario_minimo, fecha_param, codigos_utilizados)
+
+        dias = self.gestor._decimal(periodo.diasBaseLiquidacion or 30, "días base de liquidación")
+        provisiones = self.gestor.calc_prestaciones.calcular_provisiones(base_prestacional, ibc, dias, regimen_especial=False)
+
+        total_descuentos = descuento_salud + descuento_pension + fondo_solidaridad + retencion
+        total_devengado = salario_ordinario + auxilio
+        total_prestaciones = sum(provisiones.values(), self.CERO)
+        neto = total_devengado - total_descuentos
+
+        cargo = (administrativo.cargo if administrativo and administrativo.cargo else "ADMINISTRATIVO")
+
+        liquidacion = LiquidacionNomina(
+            idLiquidacion=self.gestor._siguiente_id(),
+            idProfesor=None,
+            idContrato=contrato.idContrato,
+            idPeriodoNomina=periodo.idPeriodoNomina,
+            fechaLiquidacion=fecha_liquidacion or date.today(),
+            salarioBase=salario_base,
+            totalDevengado=self.gestor._redondear(total_devengado),
+            totalDescuentos=self.gestor._redondear(total_descuentos),
+            totalPrestaciones=self.gestor._redondear(total_prestaciones),
+            baseLiquidacionPrestaciones=self.gestor._redondear(base_prestacional),
+            baseCotizacionSeguridadSocial=self.gestor._redondear(ibc),
+            valorAuxilioTransporteCotizado=self.gestor._redondear(auxilio),
+            aportePatronalSENA=self.gestor._redondear(aporte_sena),
+            aportePatronalICBF=self.gestor._redondear(aporte_icbf),
+            netoPagar=self.gestor._redondear(neto),
+            estado="PROCESADA",
+            tipoProfesorLiquidado=None,
+            regimenLiquidado=contrato.regimenAplicable or "LEY_100_CST",
+            categoriaLiquidada=cargo,
+            dedicacionLiquidada=contrato.dedicacion or Dedicacion.TIEMPO_COMPLETO,
+            diasTrabajados=dias,
+            horasAsignadas=contrato.horasSemanales or Decimal("40"),
+            salarioMinimoUsado=salario_minimo,
+            salarioOrdinario=self.gestor._redondear(salario_ordinario),
+            baseSalarialPrestacional=self.gestor._redondear(base_prestacional),
+            baseSeguridadSocial=self.gestor._redondear(ibc),
+            descuentoSalud=descuento_salud,
+            descuentoPension=descuento_pension,
+            fondoSolidaridadPensional=fondo_solidaridad,
+            retencionFuente=retencion,
+            provisionCesantias=provisiones["cesantias"],
+            provisionInteresesCesantias=provisiones["intereses"],
+            provisionPrimaServicios=provisiones["prima_servicios"],
+            provisionPrimaNavidad=provisiones["prima_navidad"],
+            provisionVacaciones=provisiones["vacaciones"],
+            provisionPrimaVacaciones=provisiones["prima_vacaciones"],
+            bonificacionServiciosPrestados=provisiones["bonificacion_servicios"],
+            aportePatronalSalud=self.gestor._redondear(aporte_salud),
+            aportePatronalPension=aporte_pension,
+            aporteRiesgosLaborales=aporte_arl,
+            aporteCajaCompensacion=aporte_caja,
+            costoTotalEmpleador=self.gestor._redondear(
+                total_devengado + total_prestaciones + aporte_salud + aporte_pension + aporte_arl + aporte_sena + aporte_icbf + aporte_caja
+            ),
+            parametros_utilizados=codigos_utilizados if codigos_utilizados else None,
+        )
+        self.gestor.liquidaciones.append(liquidacion)
+        self._crear_detalles(
+            liquidacion, periodo, ibc, salario_ordinario, auxilio,
+            self.CERO, self.CERO, descuento_salud, descuento_pension,
+            fondo_solidaridad, retencion, self.CERO, aporte_salud,
+            aporte_pension, aporte_arl, aporte_caja, aporte_sena, aporte_icbf, codigos_utilizados
+        )
+        return liquidacion

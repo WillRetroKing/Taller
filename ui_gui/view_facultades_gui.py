@@ -84,9 +84,9 @@ class FacultadesViewGUI(ctk.CTkFrame):
         for w in self.tab_facultades.winfo_children():
             w.destroy()
 
-        headers = ["Código", "Nombre de Facultad", "Ubicación", "Teléfono", "Correo", "Estado", "Acciones"]
-        col_weights = [2, 4, 3, 2, 3, 2, 3]
-        col_mins = [90, 180, 120, 90, 150, 90, 160]
+        headers = ["Código", "Nombre de Facultad", "Decano / Responsable", "Ubicación", "Teléfono", "Correo", "Estado", "Acciones"]
+        col_weights = [2, 4, 3, 3, 2, 3, 2, 3]
+        col_mins = [90, 170, 150, 110, 90, 140, 90, 150]
 
         table = PITAGridTable(self.tab_facultades, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
@@ -94,6 +94,19 @@ class FacultadesViewGUI(ctk.CTkFrame):
         if not self.controller.facultades:
             ctk.CTkLabel(table, text="No hay facultades registradas.", text_color="#94A3B8").pack(pady=30)
             return
+
+        def _get_nombre_decano(id_decano: int | None) -> str:
+            if not id_decano:
+                return "Sin Asignar"
+            prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) == id_decano), None)
+            if not prof:
+                return f"Docente #{id_decano}"
+            pers = next((per for per in self.controller.personas if getattr(per, "idPersona", None) == getattr(prof, "idPersona", None)), None)
+            if pers:
+                nom = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}".strip()
+                cod = getattr(prof, "codigoProfesor", "")
+                return f"{nom} ({cod})" if cod else nom
+            return getattr(prof, "codigoProfesor", f"Docente #{id_decano}")
 
         for fac in self.controller.facultades:
             act_spec = (
@@ -104,9 +117,12 @@ class FacultadesViewGUI(ctk.CTkFrame):
                 ],
             )
 
+            nom_dec = _get_nombre_decano(getattr(fac, "idDecano", None))
+
             cells = [
                 (getattr(fac, "codigoFacultad", "N/A"), "#F59E0B"),
                 (getattr(fac, "nombre", "N/A"), "#F8FAFC"),
+                (nom_dec, "#38BDF8" if nom_dec != "Sin Asignar" else "#94A3B8"),
                 getattr(fac, "ubicacion", "N/A"),
                 getattr(fac, "telefono", "N/A"),
                 getattr(fac, "correo", "N/A"),
@@ -163,7 +179,7 @@ class FacultadesViewGUI(ctk.CTkFrame):
     def _abrir_modal_nueva_facultad(self) -> None:
         dialog = ctk.CTkToplevel(self)
         dialog.title("➕ Registrar Nueva Facultad")
-        dialog.geometry("450x520")
+        dialog.geometry("460x570")
         dialog.grab_set()
 
         ctk.CTkLabel(dialog, text="Crear Unidad Académica / Facultad", font=ctk.CTkFont(size=15, weight="bold")).pack(pady=12)
@@ -183,10 +199,29 @@ class FacultadesViewGUI(ctk.CTkFrame):
         entry_cor = ctk.CTkEntry(dialog, placeholder_text="Correo Institucional")
         entry_cor.pack(fill="x", padx=20, pady=6)
 
+        # Opciones de Decano basadas en Profesores registrados
+        profs_opciones = ["(Sin Decano Asignado)"]
+        profs_map: dict[str, int | None] = {"(Sin Decano Asignado)": None}
+        for p in self.controller.profesores:
+            pers = next((per for per in self.controller.personas if getattr(per, "idPersona", None) == getattr(p, "idPersona", None)), None)
+            nom = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}".strip() or f"Docente #{p.idProfesor}"
+            cod = getattr(p, "codigoProfesor", "")
+            lbl = f"{nom} ({cod})" if cod else nom
+            profs_opciones.append(lbl)
+            profs_map[lbl] = p.idProfesor
+
+        lbl_dec = ctk.CTkLabel(dialog, text="Decano / Autoridad Académica:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MUTED)
+        lbl_dec.pack(anchor="w", padx=20, pady=(6, 2))
+
+        combo_dec = ctk.CTkOptionMenu(dialog, values=profs_opciones)
+        combo_dec.set(profs_opciones[0])
+        combo_dec.pack(fill="x", padx=20, pady=(0, 6))
+
         def _guardar():
             cod = entry_cod.get().strip()
             nom = entry_nom.get().strip()
             if cod and nom:
+                id_dec_sel = profs_map.get(combo_dec.get(), None)
                 f = Facultad(
                     idFacultad=len(self.controller.facultades) + 1,
                     codigoFacultad=cod,
@@ -195,21 +230,22 @@ class FacultadesViewGUI(ctk.CTkFrame):
                     ubicacion=entry_ubi.get().strip() or "Sede Sabanas",
                     telefono=entry_tel.get().strip() or "5842000",
                     correo=entry_cor.get().strip() or "facultad@unicesar.edu.co",
-                    idDecano=1,
+                    idDecano=id_dec_sel,
                     fechaCreacion=date.today(),
                     estado="ACTIVO",
                 )
                 self.controller.facultades.append(f)
                 self.controller._recrear_gestores()
+                self.controller.guardar_datos()
                 self.actualizar_tablas()
                 dialog.destroy()
 
-        ctk.CTkButton(dialog, text="💾 Guardar Facultad", font=ctk.CTkFont(size=12, weight="bold"), fg_color="#10B981", hover_color="#059669", height=36, command=_guardar).pack(pady=20)
+        ctk.CTkButton(dialog, text="💾 Guardar Facultad", font=ctk.CTkFont(size=12, weight="bold"), fg_color="#10B981", hover_color="#059669", height=36, command=_guardar).pack(pady=16)
 
     def _abrir_modal_editar_facultad(self, fac: Facultad) -> None:
         dialog = ctk.CTkToplevel(self)
         dialog.title(f"✏️ Editar Facultad {fac.codigoFacultad}")
-        dialog.geometry("450x520")
+        dialog.geometry("460x570")
         dialog.grab_set()
 
         ctk.CTkLabel(dialog, text=f"Modificar Facultad: {fac.nombre}", font=ctk.CTkFont(size=15, weight="bold")).pack(pady=12)
@@ -230,20 +266,48 @@ class FacultadesViewGUI(ctk.CTkFrame):
         entry_cor.insert(0, fac.correo)
         entry_cor.pack(fill="x", padx=20, pady=6)
 
+        # Opciones de Decano
+        profs_opciones = ["(Sin Decano Asignado)"]
+        profs_map: dict[str, int | None] = {"(Sin Decano Asignado)": None}
+        for p in self.controller.profesores:
+            pers = next((per for per in self.controller.personas if getattr(per, "idPersona", None) == getattr(p, "idPersona", None)), None)
+            nom = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}".strip() or f"Docente #{p.idProfesor}"
+            cod = getattr(p, "codigoProfesor", "")
+            lbl = f"{nom} ({cod})" if cod else nom
+            profs_opciones.append(lbl)
+            profs_map[lbl] = p.idProfesor
+
+        sel_val = profs_opciones[0]
+        if getattr(fac, "idDecano", None):
+            for lbl, pid in profs_map.items():
+                if pid == fac.idDecano:
+                    sel_val = lbl
+                    break
+
+        lbl_dec = ctk.CTkLabel(dialog, text="Decano / Autoridad Académica:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MUTED)
+        lbl_dec.pack(anchor="w", padx=20, pady=(6, 2))
+
+        combo_dec = ctk.CTkOptionMenu(dialog, values=profs_opciones)
+        combo_dec.set(sel_val)
+        combo_dec.pack(fill="x", padx=20, pady=(0, 6))
+
         def _guardar():
             fac.nombre = entry_nom.get().strip() or fac.nombre
             fac.ubicacion = entry_ubi.get().strip() or fac.ubicacion
             fac.telefono = entry_tel.get().strip() or fac.telefono
             fac.correo = entry_cor.get().strip() or fac.correo
+            fac.idDecano = profs_map.get(combo_dec.get(), None)
             self.controller._recrear_gestores()
+            self.controller.guardar_datos()
             self.actualizar_tablas()
             dialog.destroy()
 
-        ctk.CTkButton(dialog, text="💾 Guardar Cambios", font=ctk.CTkFont(size=12, weight="bold"), fg_color="#10B981", hover_color="#059669", height=36, command=_guardar).pack(pady=20)
+        ctk.CTkButton(dialog, text="💾 Guardar Cambios", font=ctk.CTkFont(size=12, weight="bold"), fg_color="#10B981", hover_color="#059669", height=36, command=_guardar).pack(pady=16)
 
     def _eliminar_facultad(self, f_id: int) -> None:
         self.controller.facultades = [f for f in self.controller.facultades if f.idFacultad != f_id]
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         self.actualizar_tablas()
 
     # ------------------------------------------------------------------

@@ -58,7 +58,7 @@ class ContratosViewGUI(ctk.CTkFrame):
 
         ctk.CTkLabel(
             title_box,
-            text="Régimen de Carrera (Dec. 1279/2002) y Profesores Transitorios (Acuerdo 027/2024)",
+            text="Régimen Docente (Dec. 1279 / Ac. 027) y Personal Administrativo (CST / Ley 100)",
             font=ctk.CTkFont(family="Segoe UI", size=12),
             text_color=Colors.TEXT_MUTED,
         ).pack(anchor="w")
@@ -68,7 +68,7 @@ class ContratosViewGUI(ctk.CTkFrame):
 
         btn_nuevo_contrato = ctk.CTkButton(
             h_buttons,
-            text="➕ Registrar Contrato Docente",
+            text="➕ Registrar Contrato",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
             fg_color=Colors.WIN_BLUE,
             hover_color=Colors.WIN_BLUE_HOVER,

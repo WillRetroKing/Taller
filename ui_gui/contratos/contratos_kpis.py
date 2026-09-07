@@ -31,11 +31,11 @@ class ContratosKPIs:
         activos = [c for c in contratos if str(getattr(c, "estado", "ACTIVO")).upper() == "ACTIVO"]
         total_activos = len(activos)
 
-        # Distribución de modalidades
-        planta = sum(1 for c in activos if "PLANTA" in str(getattr(c, "modalidadProfesor", "") or getattr(c, "tipoContrato", "")).upper())
-        ocasional = sum(1 for c in activos if "OCASIONAL" in str(getattr(c, "modalidadProfesor", "") or getattr(c, "tipoContrato", "")).upper())
-        catedra = sum(1 for c in activos if "CATEDRATICO" in str(getattr(c, "modalidadProfesor", "") or getattr(c, "tipoContrato", "")).upper())
-        ad_honorem = sum(1 for c in activos if getattr(c, "esAdHonorem", False) or "AD_HONOREM" in str(getattr(c, "tipoContrato", "")).upper())
+        # Distribución de personal
+        admin_count = sum(1 for c in activos if ("ADMIN" in str(getattr(c, "tipoContrato", "")).upper() or getattr(c, "regimenAplicable", "") == "CST_LEY100_ADMINISTRATIVO" or self.service.buscar_administrativo_por_id_persona(c.idPersona) is not None))
+        docente_count = total_activos - admin_count
+        planta = sum(1 for c in activos if "PLANTA" in str(getattr(c, "modalidadProfesor", "") or getattr(c, "tipoContrato", "")).upper() and self.service.buscar_administrativo_por_id_persona(c.idPersona) is None)
+        transitorios = docente_count - planta
 
         # Total de puntos salariales reconocidos
         profesores = self.controller.profesores
@@ -66,10 +66,10 @@ class ContratosKPIs:
             container,
             row=0,
             col=1,
-            title="DISTRIBUCIÓN DOCENTE",
-            value=f"{planta} Planta | {ocasional+catedra} Trans.",
+            title="DISTRIBUCIÓN PERSONAL",
+            value=f"{docente_count} Docentes | {admin_count} Adm.",
             accent_color="#8B5CF6",
-            subtitle=f"{catedra} Cátedra · {ad_honorem} Ad-Honorem",
+            subtitle=f"{planta} Planta Doc. · {transitorios} Trans. Doc.",
         )
 
         create_stat_card(

@@ -168,9 +168,9 @@ class PersonasTabsRenderer:
         for w in container.winfo_children():
             w.destroy()
 
-        headers = ["Código", "Documento", "Nombre Completo", "Cargo", "Dependencia", "Salario Base", "Acciones"]
-        col_weights = [2, 2, 3, 2, 2, 1, 2]
-        col_mins = [70, 80, 140, 80, 80, 70, 70]
+        headers = ["Código", "Documento", "Nombre Completo", "Cargo", "Dependencia", "Nivel", "Salario Base", "Acciones"]
+        col_weights = [2, 2, 3, 2, 2, 1, 1, 2]
+        col_mins = [70, 80, 140, 80, 80, 60, 70, 70]
 
         table = PITAGridTable(container, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
@@ -217,6 +217,7 @@ class PersonasTabsRenderer:
                 (nombre, "#F8FAFC"),
                 getattr(adm, "cargo", "N/A"),
                 getattr(adm, "dependencia", "N/A"),
+                getattr(adm, "categoria", "PROFESIONAL"),
                 (sal_fmt, "#10B981"),
                 act_spec,
             ]

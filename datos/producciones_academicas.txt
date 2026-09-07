@@ -1,1 +1,1 @@
-1|1|ARTICULO|Algoritmos Genéticos Aplicados a Tráfico|2023-04-10|IEEE Transactions|||15|||APROBADO||||A1||||||2||||||||1|||||||
+1|1|ARTICULO|Algoritmos Genéticos Aplicados a Tráfico|2023-04-10|IEEE Transactions|||15|||APROBADO||||A1||||||2||||||||1.0|||||||
