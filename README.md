@@ -59,7 +59,7 @@ Taller/
 └── README.md                      # Este documento
 ```
 
----
+----
 
 ## 🚀 Guía de Inicio Rápido
 
