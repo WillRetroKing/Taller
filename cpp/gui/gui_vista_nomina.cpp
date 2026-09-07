@@ -556,7 +556,7 @@ void PITAApp::renderModalDesprendible() {
 
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(ImVec2(620, 640), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(660, 720), ImGuiCond_Always);
 
     if (ImGui::BeginPopupModal("Desprendible de Liquidacion", &modalDesprendibleAbierto, ImGuiWindowFlags_None)) {
         LiquidacionNomina* liqPtr = nullptr;
@@ -634,12 +634,7 @@ void PITAApp::renderModalDesprendible() {
 
                 std::string label = tm;
                 if (tmUpper == "SALARIO_ORDINARIO") {
-                    double pts = liqPtr->puntosSalarialesUsados.value_or(0.0);
-                    if (tipoDocente == "PLANTA" && pts > 0) {
-                        char buf[128];
-                        snprintf(buf, sizeof(buf), "Asignacion Basica Mensual (%.0f Pts - Dec. 1279)", pts);
-                        label = buf;
-                    } else if (tipoDocente == "PLANTA") {
+                    if (tipoDocente == "PLANTA") {
                         label = "Asignacion Basica Mensual (Dec. 1279)";
                     } else {
                         label = "Sueldo Basico Ordinario";
@@ -661,9 +656,9 @@ void PITAApp::renderModalDesprendible() {
                 } else if (tmUpper == "DESCUENTO_INCUMPLIMIENTO") {
                     label = "Descuento por Horas Incumplidas";
                 } else if (tmUpper == "APORTE_SALUD_PATRONAL") {
-                    label = "Aporte Patronal Salud (8.5%)";
+                    label = "Salud Patronal (8.5%)";
                 } else if (tmUpper == "APORTE_PENSION_PATRONAL") {
-                    label = "Aporte Patronal Pension (12%)";
+                    label = "Pension Patronal (12%)";
                 } else if (tmUpper == "APORTE_ARL") {
                     label = "Aporte Riesgos Laborales (ARL)";
                 } else if (tmUpper == "APORTE_CAJA") {
@@ -697,12 +692,7 @@ void PITAApp::renderModalDesprendible() {
             double dev = liqPtr->totalDevengado.value_or(sb);
             double desc = liqPtr->totalDescuentos.value_or(0.0);
 
-            double pts = liqPtr->puntosSalarialesUsados.value_or(0.0);
-            if (tipoDocente == "PLANTA" && pts > 0) {
-                char buf[128];
-                snprintf(buf, sizeof(buf), "Asignacion Basica Mensual (%.0f Pts - Dec. 1279)", pts);
-                devengados.push_back({ buf, "SALARIO_ORDINARIO", sb });
-            } else if (tipoDocente == "PLANTA") {
+            if (tipoDocente == "PLANTA") {
                 devengados.push_back({ "Asignacion Basica Mensual (Dec. 1279)", "SALARIO_ORDINARIO", sb });
             } else {
                 devengados.push_back({ "Sueldo Basico Mensual", "SALARIO_ORDINARIO", sb });
@@ -718,11 +708,11 @@ void PITAApp::renderModalDesprendible() {
 
             double restoDesc = desc - (salud + pension);
             if (restoDesc > 0) {
-                deducciones.push_back({ "Fondo Solidaridad Pensional / Retencion", "RETENCION", restoDesc });
+                deducciones.push_back({ "Fondo de Solidaridad Pensional (1%)", "RETENCION", restoDesc });
             }
 
-            patronales.push_back({ "Aporte Patronal Salud (8.5%)", "APORTE_SALUD_PATRONAL", std::round(dev * 0.085) });
-            patronales.push_back({ "Aporte Patronal Pension (12.0%)", "APORTE_PENSION_PATRONAL", std::round(dev * 0.12) });
+            patronales.push_back({ "Salud Patronal (8.5%)", "APORTE_SALUD_PATRONAL", std::round(dev * 0.085) });
+            patronales.push_back({ "Pension Patronal (12%)", "APORTE_PENSION_PATRONAL", std::round(dev * 0.12) });
             patronales.push_back({ "Aporte Riesgos Laborales (ARL)", "APORTE_ARL", std::round(dev * 0.00522) });
             patronales.push_back({ "Caja de Compensacion Familiar (4%)", "APORTE_CAJA", std::round(dev * 0.04) });
             patronales.push_back({ "Aporte Parafiscal SENA (2%)", "APORTE_SENA", std::round(dev * 0.02) });
@@ -730,9 +720,9 @@ void PITAApp::renderModalDesprendible() {
         }
 
         // Área scrolleable para las secciones
-        ImGui::BeginChild("##ScrollDetalleSecciones", ImVec2(0, 390), false);
+        ImGui::BeginChild("##ScrollDetalleSecciones", ImVec2(0, 460), false);
 
-        auto renderSeccion = [](const char* titulo, const std::vector<ConceptoItem>& items, ImVec4 colorTitulo, bool esDeduccion, bool esPatronal) {
+        auto renderSeccion = [](const char* titulo, const std::vector<ConceptoItem>& items, ImVec4 colorTitulo, bool esDeduccion) {
             if (items.empty()) return;
 
             ImGui::Spacing();
@@ -740,18 +730,108 @@ void PITAApp::renderModalDesprendible() {
             ImGui::Separator();
 
             for (const auto& item : items) {
-                ImGui::Text("  • %s", item.nombre.c_str());
+                ImGui::Text("  %s", item.nombre.c_str());
                 ImGui::SameLine(ImGui::GetWindowWidth() - 180);
-                std::string signo = esDeduccion ? "- " : (esPatronal ? "" : "+ ");
-                ImVec4 colorVal = esDeduccion ? tema::ACCENT_DANGER() : (esPatronal ? tema::TEXT_MUTED() : tema::WIN_BLUE());
+                std::string signo = esDeduccion ? "- " : "+ ";
+                ImVec4 colorVal = esDeduccion ? tema::ACCENT_DANGER() : tema::WIN_BLUE();
                 ImGui::TextColored(colorVal, "%s%s", signo.c_str(), formatearMoneda(item.valor).c_str());
             }
             ImGui::Spacing();
         };
 
-        renderSeccion("DEVENGADOS Y ASIGNACIONES (+)", devengados, tema::WIN_BLUE(), false, false);
-        renderSeccion("DEDUCCIONES OBLIGATORIAS DE LEY (-)", deducciones, tema::ACCENT_DANGER(), true, false);
-        renderSeccion("APORTES Y PARAFISCALES PATRONALES", patronales, tema::TEXT_MUTED(), false, true);
+        // 1. Devengados
+        renderSeccion("DEVENGADOS Y ASIGNACIONES (+)", devengados, tema::WIN_BLUE(), false);
+
+        // 2. Deducciones de Ley
+        renderSeccion("DEDUCCIONES OBLIGATORIAS DE LEY (-)", deducciones, tema::ACCENT_DANGER(), true);
+
+        // 3. Costo Total Empleador (UPC)
+        double devVal = liqPtr->totalDevengado.value_or(liqPtr->salarioBase.value_or(0.0));
+        double sumaPatronal = 0.0;
+        for (const auto& item : patronales) {
+            sumaPatronal += item.valor;
+        }
+        double totalCostoUPC = devVal + sumaPatronal;
+
+        ImGui::Spacing();
+        ImGui::TextColored(tema::ACCENT_WARNING(), "COSTO TOTAL EMPLEADOR (UNIVERSIDAD POPULAR DEL CESAR)");
+        ImGui::Separator();
+
+        ImGui::Text("  Asignacion Basica");
+        ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+        ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(devVal).c_str());
+
+        for (const auto& item : patronales) {
+            ImGui::Text("  %s", item.nombre.c_str());
+            ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+            ImGui::TextColored(tema::TEXT_MUTED(), "%s", formatearMoneda(item.valor).c_str());
+        }
+
+        ImGui::Separator();
+        ImGui::TextColored(tema::TEXT_MAIN(), "  TOTAL COSTO UPC");
+        ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+        ImGui::TextColored(tema::WIN_BLUE(), "%s", formatearMoneda(totalCostoUPC).c_str());
+        ImGui::Spacing();
+
+        // 4. Información Escalafón Docente (Decreto 1279)
+        const Profesor* profPtr = nullptr;
+        for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+            auto& p = ctrl.datos.profesores.obtener(i);
+            if (p.idProfesor && *p.idProfesor == idProf) {
+                profPtr = &p;
+                break;
+            }
+        }
+
+        std::string categoriaDoc = liqPtr->categoriaLiquidada.value_or("");
+        if (categoriaDoc.empty() && profPtr && profPtr->categoriaDocente) {
+            categoriaDoc = *profPtr->categoriaDocente;
+        }
+        if (categoriaDoc.empty()) {
+            categoriaDoc = (tipoDocente == "PLANTA") ? "Titular" : "Docente Catedra";
+        }
+
+        double puntosTotales = liqPtr->puntosSalarialesUsados.value_or(0.0);
+        if (puntosTotales <= 0.0 && profPtr && profPtr->puntosSalariales) {
+            puntosTotales = *profPtr->puntosSalariales;
+        }
+
+        double valorPto = liqPtr->valorPuntoUsado.value_or(0.0);
+        if (valorPto <= 0.0) {
+            for (size_t i = 0; i < ctrl.datos.parametrosNormativos.tamano(); ++i) {
+                auto& param = ctrl.datos.parametrosNormativos.obtener(i);
+                if (param.codigo && *param.codigo == ParametroNormativoCodigo::VALOR_PUNTO_SALARIAL) {
+                    if (param.valor) {
+                        try { valorPto = std::stod(*param.valor); } catch (...) {}
+                    }
+                    break;
+                }
+            }
+        }
+        if (valorPto <= 0.0) valorPto = 23924.0;
+
+        ImGui::Spacing();
+        ImGui::TextColored(tema::WIN_BLUE(), "INFORMACION ESCALAFON DOCENTE");
+        ImGui::Separator();
+
+        ImGui::Text("  Categoria:");
+        ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+        ImGui::TextColored(tema::TEXT_MAIN(), "%s", categoriaDoc.c_str());
+
+        if (puntosTotales > 0.0 || tipoDocente == "PLANTA") {
+            ImGui::Text("  Total Puntos Salariales:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%.0f", puntosTotales);
+
+            ImGui::Text("  Valor Punto:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", formatearMoneda(valorPto).c_str());
+        } else {
+            ImGui::Text("  Modalidad Vinculacion:");
+            ImGui::SameLine(ImGui::GetWindowWidth() - 180);
+            ImGui::TextColored(tema::TEXT_MAIN(), "%s", tipoDocente.c_str());
+        }
+        ImGui::Spacing();
 
         ImGui::EndChild();
 
@@ -760,7 +840,6 @@ void PITAApp::renderModalDesprendible() {
 
         // Tarjeta final de Neto a Pagar enmarcada
         double netoVal = liqPtr->netoPagar.value_or(0.0);
-        double devVal = liqPtr->totalDevengado.value_or(0.0);
         double descVal = liqPtr->totalDescuentos.value_or(0.0);
 
         ImGui::BeginChild("##CardNetoFinal", ImVec2(0, 64), true);
