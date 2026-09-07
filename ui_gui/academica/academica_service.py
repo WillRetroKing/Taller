@@ -240,12 +240,13 @@ class AcademicaService:
         new_id = max((c.idCurso or 0 for c in self.controller.cursos), default=0) + 1
         curso = Curso(
             idCurso=new_id,
-            idPrograma=1,
             codigoCurso=codigo,
             nombre=nombre,
+            descripcion=nombre,
             numeroCreditos=creditos,
             horasTeoricas=ht,
             horasPracticas=hp,
+            horasTrabajoIndependiente=ht * 2,
             cupoSugerido=cupo,
             notaMinimaAprobatoria=nota_minima,
             estado="ACTIVO",

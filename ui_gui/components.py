@@ -7,6 +7,7 @@ y tarjetas de métricas KPI estilizadas.
 from __future__ import annotations
 
 import customtkinter as ctk
+from decimal import Decimal
 from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 from ui_gui.theme import Colors, Fonts
@@ -16,16 +17,26 @@ def clean_enum(val: Any, default: str = "") -> str:
     """Extrae el nombre o valor limpio de una instancia de Enum o string de Enum.
     
     Evita que cadenas como 'TipoProfesor.PLANTA' o 'EstadoAcademico.EBRA'
-    se muestren directamente en la interfaz.
+    se muestren directamente en la interfaz, sin afectar números flotantes como '3.0'.
     """
     if val is None:
         return default
+    if isinstance(val, (int, float, Decimal)):
+        return str(val)
     if hasattr(val, "value"):
         s = str(val.value)
     elif hasattr(val, "name"):
         s = str(val.name)
     else:
         s = str(val)
+
+    # Si es un número decimal numérico (ej: "3.0"), no partir por el punto
+    try:
+        float(s)
+        return s
+    except (ValueError, TypeError):
+        pass
+
     if "." in s:
         s = s.split(".")[-1]
     return s

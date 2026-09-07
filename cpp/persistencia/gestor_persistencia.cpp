@@ -449,7 +449,8 @@ std::string GestorPersistencia::serializarCurso(const Curso& e) {
     res += '|';
     res += (e.cupoSugerido.has_value() ? std::to_string(*e.cupoSugerido) : "");
     res += '|';
-    res += (e.notaMinimaAprobatoria.has_value() ? doubleToString(*e.notaMinimaAprobatoria) : "");
+    double nota = (e.notaMinimaAprobatoria.has_value() && *e.notaMinimaAprobatoria > 0.0) ? *e.notaMinimaAprobatoria : 3.0;
+    res += doubleToString(nota);
     res += '|';
     res += (e.estado.has_value() ? *e.estado : "");
     return res;
@@ -471,6 +472,9 @@ Curso GestorPersistencia::deserializarCurso(const std::string& linea) {
     e.horasTrabajoIndependiente = parseOptionalInt(parts[7]);
     e.cupoSugerido = parseOptionalInt(parts[8]);
     e.notaMinimaAprobatoria = parseOptionalDouble(parts[9]);
+    if (!e.notaMinimaAprobatoria.has_value() || *e.notaMinimaAprobatoria <= 0.0) {
+        e.notaMinimaAprobatoria = 3.0;
+    }
     e.estado = parseOptionalString(parts[10]);
     return e;
 }

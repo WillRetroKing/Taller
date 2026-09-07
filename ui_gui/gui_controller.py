@@ -7,6 +7,7 @@ y provee acceso unificado a los servicios de la aplicación.
 from __future__ import annotations
 
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -134,6 +135,20 @@ class PITAController:
                 self.parametros = datos.get(ParametroNormativo, [])
             except Exception as e:
                 print(f"Advertencia al cargar persistencia: {e}")
+
+        # Asegurar nota mínima válida en cursos
+        for cur in self.cursos:
+            val_raw = getattr(cur, "notaMinimaAprobatoria", None)
+            if val_raw is None:
+                cur.notaMinimaAprobatoria = Decimal("3.0")
+            else:
+                try:
+                    if float(val_raw) <= 0:
+                        cur.notaMinimaAprobatoria = Decimal("3.0")
+                    elif not isinstance(val_raw, Decimal):
+                        cur.notaMinimaAprobatoria = Decimal(str(val_raw))
+                except Exception:
+                    cur.notaMinimaAprobatoria = Decimal("3.0")
 
         if not self.facultades:
             # Fallback a cargar entidad individual

@@ -303,7 +303,8 @@ void PITAApp::renderAcademica() {
                             ImGui::TableNextColumn(); ImGui::Text("%s", c.nombre ? c.nombre->c_str() : "---");
                             ImGui::TableNextColumn(); ImGui::Text("%d creditos", c.numeroCreditos ? *c.numeroCreditos : 3);
                             ImGui::TableNextColumn(); ImGui::Text("%dh T / %dh P", c.horasTeoricas ? *c.horasTeoricas : 3, c.horasPracticas ? *c.horasPracticas : 2);
-                            ImGui::TableNextColumn(); ImGui::Text("%.1f", c.notaMinimaAprobatoria ? *c.notaMinimaAprobatoria : 3.0);
+                            double notaMin = (c.notaMinimaAprobatoria.has_value() && *c.notaMinimaAprobatoria > 0.0) ? *c.notaMinimaAprobatoria : 3.0;
+                            ImGui::TableNextColumn(); ImGui::Text("%.1f", notaMin);
                             ImGui::TableNextColumn(); ImGui::Text("%d cupos", c.cupoSugerido ? *c.cupoSugerido : 30);
                         }
                         ImGui::EndTable();
