@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from tkinter import messagebox
 from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
@@ -394,19 +395,46 @@ class AcademicaTabs:
         scroll = ctk.CTkScrollableFrame(parent_tab, fg_color="transparent")
         scroll.pack(fill="both", expand=True, padx=5, pady=5)
 
+        top_bar = ctk.CTkFrame(scroll, fg_color="transparent")
+        top_bar.pack(fill="x", pady=(0, 10))
+
+        title_box = ctk.CTkFrame(top_bar, fg_color="transparent")
+        title_box.pack(side="left", fill="x", expand=True)
+
         ctk.CTkLabel(
-            scroll,
+            title_box,
             text="🚨 Tablero de Monitoreo y Alertas Académicas EBRA",
             font=ctk.CTkFont(size=17, weight="bold"),
             text_color="#F8FAFC",
         ).pack(anchor="w", pady=(0, 2))
 
         ctk.CTkLabel(
-            scroll,
+            title_box,
             text="Identificación temprana de estudiantes en condición de Bajo Rendimiento Académico (Promedio < 3.0).",
             font=ctk.CTkFont(size=12),
             text_color="#94A3B8",
-        ).pack(anchor="w", pady=(0, 10))
+        ).pack(anchor="w")
+
+        def _ejecutar_deteccion():
+            periodo = controller.periodos_academicos[0] if controller.periodos_academicos else None
+            id_per = periodo.idPeriodoAcademico if periodo else 1
+            alertas = controller.gestor_matriculas.evaluar_alertas_periodo(id_per)
+            controller.guardar_datos()
+            messagebox.showinfo(
+                "Detección EBRA",
+                f"Evaluación finalizada.\nSe evaluaron los estudiantes y se detectaron/actualizaron {len(alertas)} alertas EBRA.",
+            )
+            AcademicaTabs.render_tab_ebra(parent_tab, controller, service)
+
+        ctk.CTkButton(
+            top_bar,
+            text="⚡ Ejecutar Detección EBRA Masiva",
+            command=_ejecutar_deteccion,
+            fg_color="#DC2626",
+            hover_color="#B91C1C",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            height=32,
+        ).pack(side="right", padx=5)
 
         # Métricas de riesgo EBRA
         kpi_data = service.calcular_kpis_ebra()

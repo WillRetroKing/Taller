@@ -86,7 +86,7 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     double aporteIcbf = calcDed.calcularAporteIcbf(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
 
     double dias = static_cast<double>(periodo.diasBaseLiquidacion.value_or(30));
-    bool regimenEspecial = (tipo == TipoProfesor::PLANTA && GestorNomina::esRegimen1279(contrato.regimenAplicable));
+    bool regimenEspecial = (tipo == TipoProfesor::PLANTA && (!contrato.regimenAplicable.has_value() || GestorNomina::esRegimen1279(contrato.regimenAplicable)));
     auto provisiones = gestor.calcPrestaciones.calcularProvisiones(basePrestacional, ibc, dias, regimenEspecial);
 
     double bonificaciones = bonifPosgrado + bonifInvestigacion;
@@ -906,9 +906,9 @@ double GestorNomina::aportes(const LiquidacionNomina& l) {
 }
 
 bool GestorNomina::esRegimen1279(const std::optional<std::string>& regimen) {
-    if (!regimen.has_value()) return false;
+    if (!regimen.has_value() || regimen->empty()) return true;
     std::string s = a_mayusculas(*regimen);
-    return s.find("1279") != std::string::npos;
+    return s.find("1279") != std::string::npos || s.find("PLANTA") != std::string::npos || s.find("ESPECIAL") != std::string::npos;
 }
 
 double GestorNomina::puntosPlanta(const Profesor& prof, const PeriodoNomina& per) {
@@ -940,13 +940,31 @@ double GestorNomina::puntosPlanta(const Profesor& prof, const PeriodoNomina& per
         }
     }
 
+    double pts = 0.0;
     if (tieneCat || tieneFact || tieneProd) {
         GestorFactores gf(categorias, factores, producciones, profesores);
         std::string fecha = per.fechaFin.value_or(per.fechaInicio.value_or(fecha_hoy()));
-        return gf.calcularPuntosProfesor(*prof.idProfesor, fecha);
+        pts = gf.calcularPuntosProfesor(*prof.idProfesor, fecha);
+    } else {
+        pts = prof.puntosSalariales.value_or(0.0);
     }
 
-    return prof.puntosSalariales.value_or(0.0);
+    // Decreto 1279: Pisos mínimos de escalafón por categoría (Auxiliar: 37, Asistente: 58, Asociado: 74, Titular: 96)
+    double piso = 0.0;
+    std::string catBusqueda = catDoc.empty() ? catRec : catDoc;
+    if (catBusqueda.find("TITULAR") != std::string::npos) {
+        piso = 96.0;
+    } else if (catBusqueda.find("ASOCIADO") != std::string::npos) {
+        piso = 74.0;
+    } else if (catBusqueda.find("ASISTENTE") != std::string::npos) {
+        piso = 58.0;
+    } else if (catBusqueda.find("AUXILIAR") != std::string::npos) {
+        piso = 37.0;
+    }
+    if (pts < piso) {
+        pts = piso;
+    }
+    return pts;
 }
 
 double GestorNomina::salarioMinimo(const Contrato& c, const PeriodoNomina& p, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {

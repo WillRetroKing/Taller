@@ -286,17 +286,25 @@ class GestorNomina:
 
     @staticmethod
     def _es_regimen_1279(regimen: str | None) -> bool:
-        return "1279" in str(regimen or "").upper().replace(" ", "")
+        if not regimen:
+            return True
+        r = str(regimen).upper().replace(" ", "")
+        return "1279" in r or "PLANTA" in r
 
     def _puntos_planta(self, profesor: Profesor, periodo: PeriodoNomina) -> Decimal:
+        cat_str = str(profesor.categoriaDocente or profesor.categoriaReconocida or "").upper()
+        pts_escalafon = {"AUXILIAR": Decimal("37"), "ASISTENTE": Decimal("58"), "ASOCIADO": Decimal("74"), "TITULAR": Decimal("96")}.get(cat_str, Decimal("0"))
+
         codigos_categoria = {str(profesor.categoriaDocente or "").upper(), str(profesor.categoriaReconocida or "").upper()}
         tiene_categoria = any(categoria.idCategoria == profesor.idCategoriaDocente or str(getattr(categoria.codigo, "value", categoria.codigo or "")).upper() in codigos_categoria for categoria in self.categorias)
         tiene_fuentes = tiene_categoria or any(factor.idProfesor == profesor.idProfesor for factor in self.factores) or any(produccion.idProfesor == profesor.idProfesor for produccion in self.producciones)
         if tiene_fuentes:
             from gestores.gestor_factores import GestorFactores
             fecha = periodo.fechaFin or periodo.fechaInicio or date.today()
-            return GestorFactores(self.categorias, self.factores, self.producciones, self.profesores).calcular_puntos_profesor(profesor.idProfesor, fecha)
-        return self._decimal(profesor.puntosSalariales, "puntos salariales del profesor")
+            pts_calculados = GestorFactores(self.categorias, self.factores, self.producciones, self.profesores).calcular_puntos_profesor(profesor.idProfesor, fecha)
+            return max(pts_escalafon, pts_calculados)
+        pts_actuales = Decimal(str(profesor.puntosSalariales or self.CERO))
+        return max(pts_escalafon, pts_actuales) if pts_actuales > self.CERO else pts_escalafon
 
     def _parametro_decimal(self, codigo: str, fecha: date | None = None) -> Decimal | None:
         return self.calc_deducciones.obtener_parametro_decimal(codigo, fecha)

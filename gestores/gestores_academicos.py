@@ -208,6 +208,15 @@ class GestorMatriculas:
         self.alertas.append(alerta)
         return alerta
 
+    def evaluar_alertas_periodo(self, id_periodo: int) -> list[AlertaAcademica]:
+        alertas_generadas = []
+        estudiantes_periodo = {m.idEstudiante for m in self.matriculas if m.idPeriodo == id_periodo}
+        for id_est in estudiantes_periodo:
+            alerta = self.evaluar_ebra(id_est)
+            if alerta:
+                alertas_generadas.append(alerta)
+        return alertas_generadas
+
     def _obtener_o_crear_matricula(self, estudiante: Estudiante, periodo: PeriodoAcademico, fecha: date) -> MatriculaAcademica:
         matricula = next(
             (item for item in self.matriculas if item.idEstudiante == estudiante.idEstudiante and item.idPeriodo == periodo.idPeriodo),
@@ -432,7 +441,10 @@ class GestorCalificaciones:
             notas[item.idEvaluacion] * (item.porcentaje or Decimal("0")) / Decimal("100")
             for item in evaluaciones
         ).quantize(Decimal("0.01"))
-        detalle.estadoCurso = EstadoCurso.APROBADO if detalle.notaFinal >= Decimal("3.0") else EstadoCurso.REPROBADO
+        oferta = self._oferta_de_detalle(detalle)
+        curso = next((c for c in self.cursos if c.idCurso == oferta.idCurso), None)
+        umbral_aprobatorio = curso.notaMinimaAprobatoria if (curso and curso.notaMinimaAprobatoria is not None) else Decimal("3.0")
+        detalle.estadoCurso = EstadoCurso.APROBADO if detalle.notaFinal >= umbral_aprobatorio else EstadoCurso.REPROBADO
         matricula = self._buscar(self.matriculas, "idMatricula", detalle.idMatricula)
         self.gestor_matriculas.calcular_promedio_periodo(matricula.idMatricula)
         return detalle.notaFinal

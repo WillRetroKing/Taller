@@ -219,7 +219,7 @@ void PITAApp::renderNomina() {
                     ImGui::TableSetupColumn("Descuentos Ley", ImGuiTableColumnFlags_WidthFixed, 120.0f);
                     ImGui::TableSetupColumn("Neto a Pagar", ImGuiTableColumnFlags_WidthFixed, 120.0f);
                     ImGui::TableSetupColumn("Prestaciones", ImGuiTableColumnFlags_WidthFixed, 120.0f);
-                    ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 160.0f);
+                    ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 220.0f);
                     ImGui::TableHeadersRow();
 
                     for (size_t i = 0; i < ctrl.datos.liquidacionesNomina.tamano(); ++i) {
@@ -303,6 +303,19 @@ void PITAApp::renderNomina() {
                             }
                         }
                         if (!perCerrado) {
+                            bool pagada = l.pagada.value_or(false) || (l.estado && *l.estado == "PAGADA");
+                            if (!pagada) {
+                                ImGui::SameLine();
+                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.47f, 0.05f, 0.70f));
+                                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+                                if (ImGui::SmallButton("Reliquidar")) {
+                                    try {
+                                        ctrl.gestorNomina->cicloVida.reliquidar(idLiq);
+                                        ctrl.guardarDatos();
+                                    } catch (...) {}
+                                }
+                                ImGui::PopStyleColor(2);
+                            }
                             ImGui::SameLine();
                             if (ImGui::SmallButton("Anular")) {
                                 eliminarLiquidacion(idLiq);
@@ -1173,6 +1186,31 @@ void PITAApp::renderModalDesprendible() {
         ImGui::EndChild();
 
         ImGui::Spacing();
+        bool perCerradoLiq = false;
+        if (liqPtr->idPeriodoNomina) {
+            for (size_t pidx = 0; pidx < ctrl.datos.periodosNomina.tamano(); ++pidx) {
+                auto& pcheck = ctrl.datos.periodosNomina.obtener(pidx);
+                if (pcheck.idPeriodoNomina && *pcheck.idPeriodoNomina == *liqPtr->idPeriodoNomina) {
+                    perCerradoLiq = pcheck.estaCerrado.value_or(false) || (pcheck.estado && *pcheck.estado == "CERRADO");
+                    break;
+                }
+            }
+        }
+        bool pagadaLiq = liqPtr->pagada.value_or(false) || (liqPtr->estado && *liqPtr->estado == "PAGADA");
+        if (!perCerradoLiq && !pagadaLiq) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.85f, 0.47f, 0.05f, 0.85f));
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+            if (ImGui::Button("Reliquidar Nomina", ImVec2(160, 32))) {
+                try {
+                    ctrl.gestorNomina->cicloVida.reliquidar(idLiquidacionDesprendible);
+                    ctrl.guardarDatos();
+                } catch (...) {}
+                modalDesprendibleAbierto = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::PopStyleColor(2);
+            ImGui::SameLine();
+        }
         if (ImGui::Button("Cerrar Desprendible", ImVec2(160, 32))) {
             modalDesprendibleAbierto = false;
             ImGui::CloseCurrentPopup();
@@ -1203,11 +1241,29 @@ void PITAApp::renderModalLiquidarIndividual() {
         ImGui::TextColored(tema::TEXT_MAIN(), "Seleccionar Docente a Liquidar:");
         ImGui::Spacing();
 
+        bool tieneContratoActivo = false;
+        if (idProfesorLiquidarIndividual > 0) {
+            for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+                auto& p = ctrl.datos.profesores.obtener(i);
+                if (p.idProfesor && *p.idProfesor == idProfesorLiquidarIndividual && p.idPersona) {
+                    for (size_t c = 0; c < ctrl.datos.contratos.tamano(); ++c) {
+                        auto& con = ctrl.datos.contratos.obtener(c);
+                        if (con.idPersona == p.idPersona && con.estado && *con.estado == "ACTIVO") {
+                            tieneContratoActivo = true;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
         std::string previewProf = "Seleccione un profesor...";
         for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
             auto& p = ctrl.datos.profesores.obtener(i);
             if (p.idProfesor && *p.idProfesor == idProfesorLiquidarIndividual) {
-                previewProf = (p.codigoProfesor ? *p.codigoProfesor : "") + " - " + getNombreDocente(ctrl, *p.idProfesor);
+                previewProf = (p.codigoProfesor ? *p.codigoProfesor : "") + " - " + getNombreDocente(ctrl, *p.idProfesor) +
+                              (tieneContratoActivo ? " [Contrato Activo]" : " [Sin Contrato]");
                 break;
             }
         }
@@ -1217,7 +1273,18 @@ void PITAApp::renderModalLiquidarIndividual() {
                 auto& p = ctrl.datos.profesores.obtener(i);
                 int profId = p.idProfesor.value_or(0);
                 bool isSelected = (profId == idProfesorLiquidarIndividual);
-                std::string label = (p.codigoProfesor ? *p.codigoProfesor : "") + " - " + getNombreDocente(ctrl, profId);
+                bool hasCon = false;
+                if (p.idPersona) {
+                    for (size_t c = 0; c < ctrl.datos.contratos.tamano(); ++c) {
+                        auto& con = ctrl.datos.contratos.obtener(c);
+                        if (con.idPersona == p.idPersona && con.estado && *con.estado == "ACTIVO") {
+                            hasCon = true;
+                            break;
+                        }
+                    }
+                }
+                std::string label = (p.codigoProfesor ? *p.codigoProfesor : "") + " - " + getNombreDocente(ctrl, profId) +
+                                  (hasCon ? " [Contrato Activo]" : " [Sin Contrato]");
                 if (ImGui::Selectable(label.c_str(), isSelected)) {
                     idProfesorLiquidarIndividual = profId;
                 }
@@ -1227,18 +1294,33 @@ void PITAApp::renderModalLiquidarIndividual() {
         }
 
         ImGui::Spacing();
+        if (idProfesorLiquidarIndividual > 0) {
+            if (tieneContratoActivo) {
+                ImGui::TextColored(ImVec4(0.10f, 0.80f, 0.45f, 1.0f), "Contrato laboral activo verificado. Elegible para liquidacion.");
+            } else {
+                ImGui::TextColored(tema::ACCENT_DANGER(), "Atencion: Este docente NO posee un contrato activo registrado.\nDebe formalizar su vinculacion en Contratos antes de liquidar.");
+            }
+        }
+
+        ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
+        if (!tieneContratoActivo) {
+            ImGui::BeginDisabled();
+        }
         if (ImGui::Button("Liquidar Docente", ImVec2(160, 32))) {
-            if (idProfesorLiquidarIndividual > 0) {
+            if (idProfesorLiquidarIndividual > 0 && tieneContratoActivo) {
                 liquidarProfesorEspecifico(idProfesorLiquidarIndividual);
                 modalLiquidarIndividualAbierto = false;
                 ImGui::CloseCurrentPopup();
             } else {
-                strncpy(mensajeModal, "Debe seleccionar un docente de la lista.", sizeof(mensajeModal) - 1);
+                strncpy(mensajeModal, "Debe seleccionar un docente con contrato activo.", sizeof(mensajeModal) - 1);
                 errorModal = true;
             }
+        }
+        if (!tieneContratoActivo) {
+            ImGui::EndDisabled();
         }
 
         ImGui::SameLine();
@@ -1264,17 +1346,18 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
     }
     if (!profPtr) return;
 
-    // Buscar contrato del profesor
+    // Buscar contrato activo del profesor
     Contrato* contratoPtr = nullptr;
     for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
         auto& c = ctrl.datos.contratos.obtener(i);
-        if (c.idPersona == profPtr->idPersona) {
-            if (c.estado && *c.estado == "ACTIVO") {
-                contratoPtr = &c;
-                break;
-            }
-            if (!contratoPtr) contratoPtr = &c;
+        if (c.idPersona == profPtr->idPersona && c.estado && *c.estado == "ACTIVO") {
+            contratoPtr = &c;
+            break;
         }
+    }
+    if (!contratoPtr || !contratoPtr->idContrato) {
+        ctrl.setMensaje("El docente no cuenta con un contrato activo registrado. Liquidacion omitida.");
+        return;
     }
 
     // Buscar periodo abierto
@@ -1406,7 +1489,7 @@ void PITAApp::liquidarProfesorEspecifico(int idProfesor) {
         LiquidacionNomina liq;
         liq.idLiquidacion = nuevoIdLiq;
         liq.idProfesor = idProfesor;
-        liq.idContrato = contratoPtr ? contratoPtr->idContrato.value_or(idProfesor) : idProfesor;
+        liq.idContrato = *contratoPtr->idContrato;
         liq.idPeriodoNomina = idPeriodo;
         liq.fechaLiquidacion = "2026-03-31";
         liq.salarioBase = sueldoBase;
@@ -1526,13 +1609,14 @@ void PITAApp::liquidarAdministrativoEspecifico(int idAdministrativo) {
     Contrato* contratoPtr = nullptr;
     for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
         auto& c = ctrl.datos.contratos.obtener(i);
-        if (c.idPersona == admPtr->idPersona) {
-            if (c.estado && *c.estado == "ACTIVO") {
-                contratoPtr = &c;
-                break;
-            }
-            if (!contratoPtr) contratoPtr = &c;
+        if (c.idPersona == admPtr->idPersona && c.estado && *c.estado == "ACTIVO") {
+            contratoPtr = &c;
+            break;
         }
+    }
+    if (!contratoPtr || !contratoPtr->idContrato) {
+        ctrl.setMensaje("El funcionario administrativo no cuenta con un contrato activo registrado. Liquidacion omitida.");
+        return;
     }
 
     // Buscar periodo abierto
@@ -1671,7 +1755,7 @@ void PITAApp::liquidarAdministrativoEspecifico(int idAdministrativo) {
 
         LiquidacionNomina liq;
         liq.idLiquidacion = nuevoIdLiq;
-        liq.idContrato = contratoPtr ? contratoPtr->idContrato.value_or(1) : 1;
+        liq.idContrato = *contratoPtr->idContrato;
         liq.idPeriodoNomina = idPeriodo;
         liq.fechaLiquidacion = "2026-03-31";
         liq.salarioBase = sueldoBase;
@@ -1823,26 +1907,56 @@ void PITAApp::ejecutarLiquidacionGeneral() {
     }
 
     int countDoc = 0;
+    int omitDoc = 0;
     for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
         auto& p = ctrl.datos.profesores.obtener(i);
-        if (p.idProfesor) {
-            liquidarProfesorEspecifico(*p.idProfesor);
-            countDoc++;
+        if (p.idProfesor && p.idPersona) {
+            bool tieneContrato = false;
+            for (size_t c = 0; c < ctrl.datos.contratos.tamano(); ++c) {
+                auto& con = ctrl.datos.contratos.obtener(c);
+                if (con.idPersona == p.idPersona && con.estado && *con.estado == "ACTIVO") {
+                    tieneContrato = true;
+                    break;
+                }
+            }
+            if (tieneContrato) {
+                liquidarProfesorEspecifico(*p.idProfesor);
+                countDoc++;
+            } else {
+                omitDoc++;
+            }
         }
     }
 
     int countAdm = 0;
+    int omitAdm = 0;
     for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); ++i) {
         auto& a = ctrl.datos.administrativos.obtener(i);
-        if (a.idAdministrativo) {
-            liquidarAdministrativoEspecifico(*a.idAdministrativo);
-            countAdm++;
+        if (a.idAdministrativo && a.idPersona) {
+            bool tieneContrato = false;
+            for (size_t c = 0; c < ctrl.datos.contratos.tamano(); ++c) {
+                auto& con = ctrl.datos.contratos.obtener(c);
+                if (con.idPersona == a.idPersona && con.estado && *con.estado == "ACTIVO") {
+                    tieneContrato = true;
+                    break;
+                }
+            }
+            if (tieneContrato) {
+                liquidarAdministrativoEspecifico(*a.idAdministrativo);
+                countAdm++;
+            } else {
+                omitAdm++;
+            }
         }
     }
 
-    ctrl.setMensaje("Liquidacion general procesada exitosamente (" + 
-                    std::to_string(countDoc) + " docentes, " + 
-                    std::to_string(countAdm) + " administrativos calculados).");
+    std::string msg = "Liquidacion general procesada: " + std::to_string(countDoc) + " docentes y " + 
+                      std::to_string(countAdm) + " administrativos liquidados (con contrato activo).";
+    if (omitDoc > 0 || omitAdm > 0) {
+        msg += " Atencion: Se omitieron " + std::to_string(omitDoc) + " docentes y " + 
+               std::to_string(omitAdm) + " administrativos sin contrato activo.";
+    }
+    ctrl.setMensaje(msg);
 }
 
 void PITAApp::eliminarLiquidacion(int idLiquidacion) {

@@ -504,6 +504,26 @@ AlertaAcademica* GestorMatriculas::evaluarEbra(int idEstudiante) {
     return &alertas.back();
 }
 
+ListaEnlazada<AlertaAcademica> GestorMatriculas::evaluarAlertasPeriodo(int idPeriodo) {
+    ListaEnlazada<AlertaAcademica> res;
+    std::vector<int> estudiantesPeriodo;
+    for (const auto& m : matriculas) {
+        if (m.idPeriodo == idPeriodo && m.idEstudiante.has_value()) {
+            int idEst = *m.idEstudiante;
+            if (std::find(estudiantesPeriodo.begin(), estudiantesPeriodo.end(), idEst) == estudiantesPeriodo.end()) {
+                estudiantesPeriodo.push_back(idEst);
+            }
+        }
+    }
+    for (int idEst : estudiantesPeriodo) {
+        AlertaAcademica* al = evaluarEbra(idEst);
+        if (al) {
+            res.push_back(*al);
+        }
+    }
+    return res;
+}
+
 ListaEnlazada<MatriculaAcademica> GestorMatriculas::consultarMatriculas(
     std::optional<int> idEstudiante,
     std::optional<int> idPeriodo,
@@ -719,7 +739,19 @@ double GestorCalificaciones::recalcularNotaFinal(int idDetalle) {
     }
 
     detalle->notaFinal = redondear2(notaPonderada);
-    detalle->estadoCurso = (*detalle->notaFinal >= 3.0) ? EstadoCurso::APROBADO : EstadoCurso::REPROBADO;
+    double notaMinima = 3.0;
+    for (const auto& of : ofertas) {
+        if (of.idOfertaCurso == detalle->idOfertaCurso) {
+            for (const auto& cu : cursos) {
+                if (cu.idCurso == of.idCurso) {
+                    notaMinima = cu.notaMinimaAprobatoria.value_or(3.0);
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    detalle->estadoCurso = (*detalle->notaFinal >= notaMinima) ? EstadoCurso::APROBADO : EstadoCurso::REPROBADO;
 
     if (detalle->idMatricula.has_value()) {
         gestorMatriculas.calcularPromedioPeriodo(*detalle->idMatricula);

@@ -51,6 +51,7 @@ public:
     DetalleMatricula& cancelarCurso(int idEstudiante, int idOferta, const std::string& motivo, const std::string& fechaCancelacion = "");
     double calcularPromedioAcumulado(int idEstudiante);
     AlertaAcademica* evaluarEbra(int idEstudiante);
+    ListaEnlazada<AlertaAcademica> evaluarAlertasPeriodo(int idPeriodo);
 
     ListaEnlazada<MatriculaAcademica> consultarMatriculas(
         std::optional<int> idEstudiante = std::nullopt,

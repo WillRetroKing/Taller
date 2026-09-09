@@ -206,8 +206,8 @@ class NominaViewGUI(ctk.CTkFrame):
             w.destroy()
 
         headers = ["Empleado / Funcionario", "Tipo / Cargo", "Sueldo Básico", "Devengado", "Descuentos Ley", "Neto a Pagar", "Prestaciones", "Acciones"]
-        col_weights = [3, 2, 3, 3, 3, 3, 3, 3]
-        col_mins = [140, 110, 110, 110, 110, 110, 110, 150]
+        col_weights = [3, 2, 3, 3, 3, 3, 3, 4]
+        col_mins = [140, 110, 110, 110, 110, 110, 110, 240]
 
         table = PITAGridTable(self.tab_liquidaciones, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
@@ -267,6 +267,8 @@ class NominaViewGUI(ctk.CTkFrame):
             acciones_list: list[tuple[Any, ...]] = [
                 ("📋 Desglose", lambda l_id=liq.idLiquidacion: self._abrir_modal_detalle_liquidacion(l_id), "#6366F1", "#4F46E5", 85, 28),
             ]
+            if not es_cerrado and not getattr(liq, "pagada", False) and str(getattr(liq, "estadoLiquidacion", "")).upper() != "PAGADA":
+                acciones_list.append(("🔄 Reliquidar", lambda l_id=liq.idLiquidacion: self._reliquidar_accion(l_id), "#D97706", "#B45309", 85, 28))
             if not es_cerrado:
                 acciones_list.append(("❌ Anular", lambda l_id=liq.idLiquidacion: self._eliminar_liquidacion(l_id), "#EF4444", "#DC2626", 75, 28))
 
@@ -493,7 +495,7 @@ class NominaViewGUI(ctk.CTkFrame):
     def _abrir_modal_liquidar_individual(self) -> None:
         dialog = ctk.CTkToplevel(self)
         dialog.title("👤 Liquidación Individual de Nómina")
-        dialog.geometry("500x420")
+        dialog.geometry("520x480")
         dialog.transient(self.winfo_toplevel())
         dialog.grab_set()
 
@@ -501,15 +503,22 @@ class NominaViewGUI(ctk.CTkFrame):
 
         tipo_var = ctk.StringVar(value="Docente")
 
-        prof_options = [
-            f"{p.codigoProfesor} - {next((pers.primerNombre + ' ' + pers.primerApellido for pers in self.controller.personas if pers.idPersona == p.idPersona), 'Profesor')}"
-            for p in self.controller.profesores
-        ] or ["Sin docentes"]
+        def _doc_info(p):
+            pers = next((pe for pe in self.controller.personas if pe.idPersona == p.idPersona), None)
+            nom = f"{pers.primerNombre} {pers.primerApellido}" if pers else "Profesor"
+            has_con = any(c.idPersona == p.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO" for c in self.controller.contratos)
+            tag = "✅ Contrato Activo" if has_con else "⚠️ Sin Contrato"
+            return f"{p.codigoProfesor} - {nom} [{tag}]"
 
-        adm_options = [
-            f"{a.codigoEmpleado or f'ADM-{a.idAdministrativo}'} - {next((pers.primerNombre + ' ' + pers.primerApellido for pers in self.controller.personas if pers.idPersona == a.idPersona), 'Administrativo')} ({a.cargo or 'Cargo'})"
-            for a in self.controller.administrativos
-        ] or ["Sin administrativos"]
+        def _adm_info(a):
+            pers = next((pe for pe in self.controller.personas if pe.idPersona == a.idPersona), None)
+            nom = f"{pers.primerNombre} {pers.primerApellido}" if pers else "Administrativo"
+            has_con = any(c.idPersona == a.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO" for c in self.controller.contratos)
+            tag = "✅ Contrato Activo" if has_con else "⚠️ Sin Contrato"
+            return f"{a.codigoEmpleado or f'ADM-{a.idAdministrativo}'} - {nom} ({a.cargo or 'Cargo'}) [{tag}]"
+
+        prof_options = [_doc_info(p) for p in self.controller.profesores] or ["Sin docentes"]
+        adm_options = [_adm_info(a) for a in self.controller.administrativos] or ["Sin administrativos"]
 
         # Selector de Periodo de Nómina destino
         lbl_per = ctk.CTkLabel(dialog, text="Seleccionar Período de Nómina (Abierto):", font=ctk.CTkFont(size=12, weight="bold"), text_color=Colors.TEXT_MUTED)
@@ -519,7 +528,7 @@ class NominaViewGUI(ctk.CTkFrame):
         periodos_abiertos = [p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"]
         per_options = [f"#{p.idPeriodoNomina} - {getattr(p, 'anio', 2026)} {MESES[getattr(p, 'mes', 1)] if 1 <= getattr(p, 'mes', 1) <= 12 else ''} (Abierto)" for p in periodos_abiertos] or ["Sin periodos abiertos"]
 
-        combo_per = ctk.CTkComboBox(dialog, values=per_options, width=450)
+        combo_per = ctk.CTkComboBox(dialog, values=per_options, width=470)
         combo_per.pack(padx=25, pady=(0, 8))
         if self.periodo_seleccionado_id:
             for opt in per_options:
@@ -530,21 +539,66 @@ class NominaViewGUI(ctk.CTkFrame):
         lbl_sel = ctk.CTkLabel(dialog, text="Seleccionar Docente a Liquidar:", font=ctk.CTkFont(size=12, weight="bold"), text_color=Colors.TEXT_MUTED)
         lbl_sel.pack(anchor="w", padx=25, pady=(5, 2))
 
-        combo_emp = ctk.CTkComboBox(dialog, values=prof_options, width=450)
-        combo_emp.pack(padx=25, pady=(0, 10))
+        lbl_alerta = ctk.CTkLabel(dialog, text="", font=ctk.CTkFont(size=11, weight="bold"), wraplength=460)
+
+        btn_ejecutar = ctk.CTkButton(
+            dialog,
+            text="⚙️ Ejecutar Liquidación",
+            fg_color="#059669",
+            hover_color="#047857",
+            font=ctk.CTkFont(weight="bold"),
+            command=lambda: _liquidar_uno(),
+        )
+
+        def _verificar_contrato_seleccionado(seleccion: str):
+            if not seleccion or "Sin " in seleccion:
+                lbl_alerta.configure(text="", text_color=Colors.TEXT_MUTED)
+                btn_ejecutar.configure(state="disabled", fg_color="#475569")
+                return
+
+            cod = seleccion.split(" - ")[0].strip()
+            tiene_contrato = False
+            if tipo_var.get() == "Docente":
+                prof = next((p for p in self.controller.profesores if str(p.codigoProfesor) == cod), None)
+                if prof:
+                    tiene_contrato = any(c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO" for c in self.controller.contratos)
+            else:
+                adm = next((a for a in self.controller.administrativos if str(a.codigoEmpleado) == cod or f"ADM-{a.idAdministrativo}" == cod), None)
+                if adm:
+                    tiene_contrato = any(c.idPersona == adm.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO" for c in self.controller.contratos)
+
+            if tiene_contrato:
+                lbl_alerta.configure(
+                    text="✅ Contrato laboral vigente confirmado. Cumple requisitos para liquidación.",
+                    text_color="#10B981"
+                )
+                btn_ejecutar.configure(state="normal", fg_color="#059669")
+            else:
+                lbl_alerta.configure(
+                    text="⚠️ Este empleado NO cuenta con un contrato activo registrado.\nDebe formalizar su vinculación en el módulo de Contratos antes de liquidar.",
+                    text_color="#EF4444"
+                )
+                btn_ejecutar.configure(state="disabled", fg_color="#475569")
+
+        combo_emp = ctk.CTkComboBox(dialog, values=prof_options, width=470, command=_verificar_contrato_seleccionado)
+        combo_emp.pack(padx=25, pady=(0, 6))
 
         def _cambiar_tipo(seleccion):
             if seleccion == "Docente":
                 lbl_sel.configure(text="Seleccionar Docente a Liquidar:")
                 combo_emp.configure(values=prof_options)
                 combo_emp.set(prof_options[0] if prof_options else "")
+                _verificar_contrato_seleccionado(prof_options[0] if prof_options else "")
             else:
                 lbl_sel.configure(text="Seleccionar Administrativo a Liquidar:")
                 combo_emp.configure(values=adm_options)
                 combo_emp.set(adm_options[0] if adm_options else "")
+                _verificar_contrato_seleccionado(adm_options[0] if adm_options else "")
 
         seg = ctk.CTkSegmentedButton(dialog, values=["Docente", "Administrativo"], variable=tipo_var, command=_cambiar_tipo)
-        seg.pack(padx=25, pady=8)
+        seg.pack(padx=25, pady=6)
+
+        lbl_alerta.pack(padx=25, pady=(4, 10))
 
         def _liquidar_uno():
             sel_p = combo_per.get()
@@ -556,23 +610,29 @@ class NominaViewGUI(ctk.CTkFrame):
                     pass
 
             sel = combo_emp.get()
-            cod = sel.split(" - ")[0]
+            cod = sel.split(" - ")[0].strip()
+            ok = False
+            msg = ""
             if tipo_var.get() == "Docente":
                 prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
                 if not prof:
                     prof = next((p for p in self.controller.profesores if str(p.codigoProfesor) == cod), None)
                 if prof:
-                    self._liquidar_profesor_especifico(prof, target_pid)
+                    ok, msg = self._liquidar_profesor_especifico(prof, target_pid)
             else:
                 adm = next((a for a in self.controller.administrativos if str(a.codigoEmpleado) == cod or f"ADM-{a.idAdministrativo}" == cod), None)
                 if adm:
-                    self._liquidar_administrativo_especifico(adm, target_pid)
+                    ok, msg = self._liquidar_administrativo_especifico(adm, target_pid)
 
-            self.controller.guardar_datos()
-            dialog.destroy()
-            self.actualizar()
+            if ok:
+                self.controller.guardar_datos()
+                dialog.destroy()
+                self.actualizar()
+            else:
+                lbl_alerta.configure(text=f"❌ No se pudo liquidar: {msg}", text_color="#EF4444")
 
-        ctk.CTkButton(dialog, text="⚙️ Ejecutar Liquidación", fg_color="#059669", hover_color="#047857", font=ctk.CTkFont(weight="bold"), command=_liquidar_uno).pack(pady=14)
+        btn_ejecutar.pack(pady=10)
+        _verificar_contrato_seleccionado(prof_options[0] if prof_options else "")
 
     def _abrir_modal_detalle_liquidacion(self, id_liquidacion: int) -> None:
         liq = next((l for l in self.controller.liquidaciones if l.idLiquidacion == id_liquidacion), None)
@@ -996,12 +1056,40 @@ class NominaViewGUI(ctk.CTkFrame):
             text_color=Colors.TEXT_MUTED,
         ).pack(anchor="w", pady=(4, 0))
 
-    def _liquidar_profesor_especifico(self, prof: Any, id_periodo: int | None = None) -> None:
-        """Invoca el motor GestorNomina oficial del controlador PITA."""
+        footer_modal = ctk.CTkFrame(dialog, fg_color="transparent")
+        footer_modal.pack(fill="x", padx=16, pady=(0, 12))
+
+        per_obj = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == getattr(liq, "idPeriodoNomina", None)), None)
+        es_cerr = bool(per_obj and (getattr(per_obj, "estaCerrado", False) or str(getattr(per_obj, "estado", "")).upper() == "CERRADO"))
+        if not es_cerr and not getattr(liq, "pagada", False) and str(getattr(liq, "estadoLiquidacion", "")).upper() != "PAGADA":
+            def _hacer_reliquidacion():
+                dialog.destroy()
+                self._reliquidar_accion(id_liquidacion)
+
+            ctk.CTkButton(
+                footer_modal,
+                text="🔄 Reliquidar Nómina",
+                font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+                fg_color="#D97706",
+                hover_color="#B45309",
+                command=_hacer_reliquidacion,
+            ).pack(side="left")
+
+        ctk.CTkButton(
+            footer_modal,
+            text="Cerrar",
+            fg_color="#475569",
+            hover_color="#334155",
+            width=90,
+            command=dialog.destroy,
+        ).pack(side="right")
+
+    def _liquidar_profesor_especifico(self, prof: Any, id_periodo: int | None = None) -> tuple[bool, str]:
+        """Invoca el motor GestorNomina oficial para un profesor con contrato activo."""
         contratos_prof = [c for c in self.controller.contratos if c.idPersona == prof.idPersona]
         contrato = next((c for c in contratos_prof if str(getattr(c, "estado", "")).upper() == "ACTIVO"), None)
-        if not contrato and contratos_prof:
-            contrato = contratos_prof[0]
+        if not contrato:
+            return False, "El docente no cuenta con un contrato activo registrado en el sistema."
 
         periodo = None
         if id_periodo:
@@ -1026,24 +1114,23 @@ class NominaViewGUI(ctk.CTkFrame):
         tipo_prof = clean_enum(getattr(contrato, "modalidadProfesor", "") or getattr(contrato, "tipoContrato", "") or getattr(prof, "tipoProfesor", "PLANTA")).upper()
 
         liq = None
-        if contrato:
-            try:
-                if "PLANTA" in tipo_prof:
-                    liq = self.controller.gestor_nomina.liquidarProfesorPlanta(contrato.idContrato, periodo.idPeriodoNomina)
-                elif "OCASIONAL" in tipo_prof:
-                    liq = self.controller.gestor_nomina.liquidarProfesorOcasional(contrato.idContrato, periodo.idPeriodoNomina)
-                elif "CATEDRATICO" in tipo_prof:
-                    liq = self.controller.gestor_nomina.liquidarProfesorCatedratico(contrato.idContrato, periodo.idPeriodoNomina)
-            except Exception:
-                liq = None
+        try:
+            if "PLANTA" in tipo_prof:
+                liq = self.controller.gestor_nomina.liquidarProfesorPlanta(contrato.idContrato, periodo.idPeriodoNomina)
+            elif "OCASIONAL" in tipo_prof:
+                liq = self.controller.gestor_nomina.liquidarProfesorOcasional(contrato.idContrato, periodo.idPeriodoNomina)
+            elif "CATEDRATICO" in tipo_prof:
+                liq = self.controller.gestor_nomina.liquidarProfesorCatedratico(contrato.idContrato, periodo.idPeriodoNomina)
+        except Exception:
+            liq = None
 
         if liq is None:
-            # Fallback robusto respetando la modalidad contractual y su salario base
+            # Fallback respetando estrictamente el contrato activo existente
             val_punto = Decimal("19850")
             smmlv = Decimal("1300000")
             val_cat = Decimal("38500")
 
-            if contrato and getattr(contrato, "salarioBase", None):
+            if getattr(contrato, "salarioBase", None):
                 sueldo_base = Decimal(str(contrato.salarioBase))
             elif "PLANTA" in tipo_prof:
                 pts = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0))
@@ -1068,7 +1155,7 @@ class NominaViewGUI(ctk.CTkFrame):
             liq = LiquidacionNomina(
                 idLiquidacion=siguiente_id,
                 idProfesor=prof.idProfesor,
-                idContrato=getattr(contrato, "idContrato", prof.idProfesor),
+                idContrato=contrato.idContrato,
                 idPeriodoNomina=periodo.idPeriodoNomina,
                 fechaLiquidacion=date.today(),
                 salarioBase=round(sueldo_base, 2),
@@ -1081,13 +1168,14 @@ class NominaViewGUI(ctk.CTkFrame):
             self.controller.liquidaciones.append(liq)
 
         self.controller._recrear_gestores()
+        return True, "Docente liquidado exitosamente."
 
-    def _liquidar_administrativo_especifico(self, adm: Any, id_periodo: int | None = None) -> None:
-        """Invoca el motor GestorNomina para personal administrativo."""
+    def _liquidar_administrativo_especifico(self, adm: Any, id_periodo: int | None = None) -> tuple[bool, str]:
+        """Invoca el motor GestorNomina para personal administrativo con contrato activo."""
         contratos_adm = [c for c in self.controller.contratos if c.idPersona == adm.idPersona]
         contrato = next((c for c in contratos_adm if str(getattr(c, "estado", "")).upper() == "ACTIVO"), None)
-        if not contrato and contratos_adm:
-            contrato = contratos_adm[0]
+        if not contrato:
+            return False, "El funcionario administrativo no cuenta con un contrato activo registrado en el sistema."
 
         periodo = None
         if id_periodo:
@@ -1100,25 +1188,6 @@ class NominaViewGUI(ctk.CTkFrame):
         if not periodo:
             periodo = PeriodoNomina(idPeriodoNomina=1, anio=2026, mes=3, fechaInicio=date(2026, 3, 1), fechaFin=date(2026, 3, 31), estado="ABIERTO")
             self.controller.periodos_nomina.append(periodo)
-            self.controller._recrear_gestores()
-
-        if not contrato:
-            siguiente_con = max((c.idContrato or 0 for c in self.controller.contratos), default=0) + 1
-            contrato = Contrato(
-                idContrato=siguiente_con,
-                idPersona=adm.idPersona,
-                numeroContrato=f"CONT-ADM-{siguiente_con}",
-                tipoContrato="ADMINISTRATIVO",
-                fechaInicio=date(2026, 1, 1),
-                fechaFin=date(2026, 12, 31),
-                dedicacion=Dedicacion.TIEMPO_COMPLETO,
-                horasSemanales=Decimal("40"),
-                salarioBase=adm.salarioBase or Decimal("3000000"),
-                claseARL="RIESGO_I",
-                estado="ACTIVO",
-                regimenAplicable="LEY_100_CST",
-            )
-            self.controller.contratos.append(contrato)
             self.controller._recrear_gestores()
 
         # Limpiar liquidación previa de este contrato
@@ -1167,6 +1236,7 @@ class NominaViewGUI(ctk.CTkFrame):
             self.controller.liquidaciones.append(liq)
 
         self.controller._recrear_gestores()
+        return True, "Administrativo liquidado exitosamente."
 
     def _eliminar_liquidacion(self, id_liquidacion: int) -> None:
         liq = next((l for l in self.controller.liquidaciones if l.idLiquidacion == id_liquidacion), None)
@@ -1180,6 +1250,66 @@ class NominaViewGUI(ctk.CTkFrame):
         self.controller._recrear_gestores()
         self.controller.guardar_datos()
         self.actualizar()
+
+    def _reliquidar_accion(self, id_liquidacion: int) -> None:
+        try:
+            self.controller.gestor_nomina.ciclo_vida.reliquidar(id_liquidacion)
+            self.controller._recrear_gestores()
+            self.controller.guardar_datos()
+            self.actualizar()
+        except Exception as err:
+            from tkinter import messagebox
+            messagebox.showerror("Error al reliquidar", f"No se pudo reliquidar: {err}")
+
+    def _mostrar_resumen_liquidacion(self, liq_doc: int, liq_adm: int, omit_doc: int, omit_adm: int) -> None:
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("⚙️ Balance de Liquidación General")
+        dialog.geometry("450x300")
+        dialog.transient(self.winfo_toplevel())
+        dialog.grab_set()
+
+        card = ctk.CTkFrame(dialog, fg_color=Colors.BG_CARD, corner_radius=10, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            card,
+            text="⚙️ Liquidación General Procesada",
+            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
+        ).pack(anchor="w", padx=15, pady=(15, 6))
+
+        ctk.CTkLabel(
+            card,
+            text=f"✅ Docentes Liquidados (Con Contrato Activo): {liq_doc}\n✅ Administrativos Liquidados (Con Contrato Activo): {liq_adm}",
+            font=ctk.CTkFont(family="Segoe UI", size=12),
+            text_color="#10B981",
+            justify="left",
+        ).pack(anchor="w", padx=15, pady=4)
+
+        if omit_doc > 0 or omit_adm > 0:
+            sep = ctk.CTkFrame(card, height=1, fg_color=Colors.BORDER_SUBTLE)
+            sep.pack(fill="x", padx=15, pady=8)
+
+            ctk.CTkLabel(
+                card,
+                text=f"⚠️ Personal Omitido (Sin Contrato Activo):\n"
+                     f"   • {omit_doc} docente(s) omitido(s)\n"
+                     f"   • {omit_adm} administrativo(s) omitido(s)\n\n"
+                     f"💡 Nota: Para incluir a estas personas en la nómina, debe registrar y formalizar previamente su vinculación en el módulo de Contratos.",
+                font=ctk.CTkFont(family="Segoe UI", size=11),
+                text_color="#EF4444",
+                justify="left",
+                wraplength=380,
+            ).pack(anchor="w", padx=15, pady=(2, 10))
+
+        ctk.CTkButton(
+            card,
+            text="Aceptar",
+            fg_color="#0067C0",
+            hover_color="#005FB8",
+            width=100,
+            command=dialog.destroy,
+        ).pack(pady=(0, 10))
 
     def _ejecutar_liquidacion_general(self) -> None:
         if not self.controller.profesores and not self.controller.administrativos:
@@ -1195,15 +1325,30 @@ class NominaViewGUI(ctk.CTkFrame):
             self.controller.detalles_liquidacion.clear()
         self.controller._recrear_gestores()
 
+        liq_doc = 0
+        omit_doc = 0
         for prof in self.controller.profesores:
-            self._liquidar_profesor_especifico(prof, target_pid)
+            ok, _ = self._liquidar_profesor_especifico(prof, target_pid)
+            if ok:
+                liq_doc += 1
+            else:
+                omit_doc += 1
 
+        liq_adm = 0
+        omit_adm = 0
         for adm in self.controller.administrativos:
-            self._liquidar_administrativo_especifico(adm, target_pid)
+            ok, _ = self._liquidar_administrativo_especifico(adm, target_pid)
+            if ok:
+                liq_adm += 1
+            else:
+                omit_adm += 1
 
         self.controller._recrear_gestores()
         self.controller.guardar_datos()
         self.actualizar()
+
+        if omit_doc > 0 or omit_adm > 0:
+            self._mostrar_resumen_liquidacion(liq_doc, liq_adm, omit_doc, omit_adm)
 
     def actualizar(self) -> None:
         MESES = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]

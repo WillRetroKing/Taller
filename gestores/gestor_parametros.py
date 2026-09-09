@@ -139,11 +139,28 @@ class GestorParametros:
 
     def _esta_usado_en_liquidacion(self, parametro: ParametroNormativo) -> bool:
         codigo = self._codigo(parametro.codigo)
-        return any(
-            liquidacion.aprobada
-            and any(codigo in str(valor or "") for valor in (liquidacion.regimenLiquidado, liquidacion.medioPago, liquidacion.referenciaPago))
-            for liquidacion in self.liquidaciones
-        )
+        f_ini = parametro.fechaInicioVigencia or date.min
+        f_fin = parametro.fechaFinVigencia or date.max
+
+        for l in self.liquidaciones:
+            # 1. Comprobar si está en el diccionario de parámetros utilizados de la liquidación
+            usados = getattr(l, "parametros_utilizados", None) or {}
+            if codigo in usados:
+                return True
+
+            # 2. Comprobar si la liquidación está aprobada o pagada y su fecha cae en la vigencia
+            if getattr(l, "aprobada", False) or getattr(l, "pagada", False) or str(getattr(l, "estado", "")).upper() in ("APROBADA", "PAGADA"):
+                f_liq = getattr(l, "fechaLiquidacion", None) or date.today()
+                if f_ini <= f_liq <= f_fin:
+                    # Parámetros generales que gobiernan el cálculo de nómina
+                    if codigo in (
+                        "VALOR_PUNTO_SALARIAL", "SALARIO_MINIMO", "PORCENTAJE_SALUD_TRABAJADOR",
+                        "PORCENTAJE_PENSION_TRABAJADOR", "PORCENTAJE_FONDO_SOLIDARIDAD",
+                        "VALOR_AUXILIO_TRANSPORTE_VIGENTE", "VALOR_HORA_CATEDRA",
+                        "TOPE_BONIFICACION_SERVICIOS"
+                    ):
+                        return True
+        return False
 
     def _buscar(self, id_parametro: int) -> ParametroNormativo:
         parametro = next((item for item in self.parametros if item.idParametro == id_parametro), None)

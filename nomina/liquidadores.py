@@ -82,7 +82,9 @@ class MotorLiquidacionBase:
         aporte_icbf = calc_ded.calcular_aporte_icbf(ibc, salario_minimo, fecha_param, codigos_utilizados)
 
         dias = self.gestor._decimal(periodo.diasBaseLiquidacion or 30, "días base de liquidación")
-        regimen_especial = tipo == TipoProfesor.PLANTA and self.gestor._es_regimen_1279(contrato.regimenAplicable)
+        regimen_especial = (tipo == TipoProfesor.PLANTA) and (
+            not contrato.regimenAplicable or self.gestor._es_regimen_1279(contrato.regimenAplicable)
+        )
         provisiones = self.gestor.calc_prestaciones.calcular_provisiones(base_prestacional, ibc, dias, regimen_especial=regimen_especial)
 
         bonificaciones = bonif_posgrado + bonif_investigacion

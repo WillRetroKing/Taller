@@ -107,11 +107,32 @@ bool GestorParametros::intervalosSeCruzan(const ParametroNormativo& primero, con
 
 bool GestorParametros::estaUsadoEnLiquidacion(const ParametroNormativo& p) {
     std::string cod = codigoStr(p);
+    std::string ini = p.fechaInicioVigencia.value_or("");
+    std::string fin = p.fechaFinVigencia.value_or("9999-12-31");
+    if (fin.empty()) fin = "9999-12-31";
+
     for (const auto& l : liquidaciones) {
-        if (l.aprobada.value_or(false)) {
-            if (l.regimenLiquidado.has_value() && l.regimenLiquidado->find(cod) != std::string::npos) return true;
-            if (l.medioPago.has_value() && l.medioPago->find(cod) != std::string::npos) return true;
-            if (l.referenciaPago.has_value() && l.referenciaPago->find(cod) != std::string::npos) return true;
+        // 1. Chequeo directo en parametros_utilizados
+        if (l.parametros_utilizados.has_value() && !l.parametros_utilizados->empty()) {
+            if (l.parametros_utilizados->find(cod) != std::string::npos) {
+                return true;
+            }
+        }
+        // 2. Chequeo en liquidaciones aprobadas o pagadas con solapamiento temporal
+        bool esActiva = l.aprobada.value_or(false) || l.pagada.value_or(false) || 
+                        (l.estado.has_value() && (*l.estado == "APROBADA" || *l.estado == "PAGADA"));
+        if (esActiva) {
+            std::string fLiq = l.fechaLiquidacion.value_or("");
+            if (!fLiq.empty() && !ini.empty()) {
+                if (ini <= fLiq && fLiq <= fin) {
+                    if (cod == "VALOR_PUNTO_SALARIAL" || cod == "SALARIO_MINIMO" ||
+                        cod == "PORCENTAJE_SALUD_TRABAJADOR" || cod == "PORCENTAJE_PENSION_TRABAJADOR" ||
+                        cod == "PORCENTAJE_FONDO_SOLIDARIDAD" || cod == "VALOR_AUXILIO_TRANSPORTE_VIGENTE" ||
+                        cod == "VALOR_HORA_CATEDRA" || cod == "TOPE_BONIFICACION_SERVICIOS") {
+                        return true;
+                    }
+                }
+            }
         }
     }
     return false;
