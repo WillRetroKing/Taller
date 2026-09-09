@@ -13,3 +13,5 @@
 13|PRE-02|Intereses sobre Cesantías|PRESTACION|PRESTACION|||||||||ACTIVO|||||||0||||||||||||
 14|PRE-03|Prima de Servicios|PRESTACION|PRESTACION|||||||||ACTIVO|||||||0||||||||||||
 15|PRE-04|Vacaciones|PRESTACION|PRESTACION|||||||||ACTIVO|||||||0||||||||||||
+16|DED-04|Descuento Estampilla|DEDUCCION|DEDUCCION|||||||||ACTIVO|||||||0||||||||||||
+17|DED-05|Retención en la Fuente|DEDUCCION|DEDUCCION|||||||||ACTIVO|||||||0||||||||||||

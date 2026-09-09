@@ -76,6 +76,7 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     double descuentoPension = calcDed.calcularDescuentoPension(ibc, fechaParam, &codigosUtilizados);
     double fondoSolidaridad = calcDed.calcularFondoSolidaridad(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
     double retencion = calcDed.calcularRetencionFuente(ibc, fechaParam, &codigosUtilizados);
+    double descuentoEstampilla = calcDed.calcularDescuentoEstampilla(salarioOrdinario, fechaParam, &codigosUtilizados);
 
     bool esExoneradoSalud = (tipo != TipoProfesor::PLANTA);
     double aporteSalud = calcDed.calcularAporteSaludPatronal(ibc, salarioMinimo, fechaParam, &codigosUtilizados, esExoneradoSalud);
@@ -90,7 +91,7 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     auto provisiones = gestor.calcPrestaciones.calcularProvisiones(basePrestacional, ibc, dias, regimenEspecial);
 
     double bonificaciones = bonifPosgrado + bonifInvestigacion;
-    double totalDescuentos = descuentoSalud + descuentoPension + fondoSolidaridad + retencion + descuentoIncumplimiento;
+    double totalDescuentos = descuentoSalud + descuentoPension + fondoSolidaridad + retencion + descuentoEstampilla + descuentoIncumplimiento;
     double totalDevengado = salarioOrdinario + auxilio + bonificaciones;
 
     double totalPrestaciones = 0.0;
@@ -137,6 +138,7 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     liq.fondoSolidaridadPensional = fondoSolidaridad;
     liq.retencionFuente = retencion;
     liq.descuentoHorasIncumplidas = GestorNomina::redondear(descuentoIncumplimiento);
+    liq.otrosDescuentos = GestorNomina::redondear(descuentoEstampilla);
     liq.provisionCesantias = provisiones["cesantias"];
     liq.provisionInteresesCesantias = provisiones["intereses"];
     liq.provisionPrimaServicios = provisiones["prima_servicios"];
@@ -158,7 +160,7 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     crearDetalles(
         liqGuardada, periodo, ibc, salarioOrdinario, auxilio,
         bonifPosgrado, bonifInvestigacion, descuentoSalud, descuentoPension,
-        fondoSolidaridad, retencion, descuentoIncumplimiento, aporteSalud,
+        fondoSolidaridad, retencion, descuentoEstampilla, descuentoIncumplimiento, aporteSalud,
         aportePension, aporteArl, aporteCaja, aporteSena, aporteIcbf, &codigosUtilizados
     );
 
@@ -177,6 +179,7 @@ void MotorLiquidacionBase::crearDetalles(
     double descuentoPension,
     double fondoSolidaridad,
     double retencion,
+    double descuentoEstampilla,
     double descuentoIncumplimiento,
     double aporteSalud,
     double aportePension,
@@ -205,14 +208,19 @@ void MotorLiquidacionBase::crearDetalles(
         {"DESCUENTO_PENSION", descuentoPension, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_PENSION_TRABAJADOR", 0.0), "IBC * porcentajePensionTrabajador"},
         {"FONDO_SOLIDARIDAD", fondoSolidaridad, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_FONDO_SOLIDARIDAD", 0.0), "IBC * porcentajeFondoSolidaridad"},
         {"RETENCION_FUENTE", retencion, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_RETENCION_FUENTE", 0.0), "IBC * porcentajeRetencionFuente"},
-        {"DESCUENTO_INCUMPLIMIENTO", descuentoIncumplimiento, descuentoIncumplimiento, std::nullopt, "horasIncumplidas * valorHoraIncumplida"},
-        {"APORTE_SALUD_PATRONAL", aporteSalud, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_SALUD_EMPLEADOR", 0.0), "IBC * porcentajeSaludEmpleador"},
-        {"APORTE_PENSION_PATRONAL", aportePension, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_PENSION_EMPLEADOR", 0.0), "IBC * porcentajePensionEmpleador"},
-        {"APORTE_ARL", aporteArl, ibc, std::nullopt, "IBC * porcentajeARL"},
-        {"APORTE_CAJA", aporteCaja, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_CAJA_COMPENSACION", 0.0), "IBC * porcentajeCajaCompensacion"},
-        {"APORTE_SENA", aporteSena, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_SENA", 0.0), "IBC * porcentajeSENA"},
-        {"APORTE_ICBF", aporteIcbf, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_ICBF", 0.0), "IBC * porcentajeICBF"}
     };
+
+    if (descuentoEstampilla > 0.0) {
+        conceptos.push_back({"DESCUENTO_ESTAMPILLA", descuentoEstampilla, salarioOrdinario, calcDed.obtenerPorcentaje("PORCENTAJE_ESTAMPILLA", 0.002), "salarioBase * porcentajeEstampilla"});
+    }
+
+    conceptos.push_back({"DESCUENTO_INCUMPLIMIENTO", descuentoIncumplimiento, descuentoIncumplimiento, std::nullopt, "horasIncumplidas * valorHoraIncumplida"});
+    conceptos.push_back({"APORTE_SALUD_PATRONAL", aporteSalud, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_SALUD_EMPLEADOR", 0.0), "IBC * porcentajeSaludEmpleador"});
+    conceptos.push_back({"APORTE_PENSION_PATRONAL", aportePension, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_PENSION_EMPLEADOR", 0.0), "IBC * porcentajePensionEmpleador"});
+    conceptos.push_back({"APORTE_ARL", aporteArl, ibc, std::nullopt, "IBC * porcentajeARL"});
+    conceptos.push_back({"APORTE_CAJA", aporteCaja, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_CAJA_COMPENSACION", 0.0), "IBC * porcentajeCajaCompensacion"});
+    conceptos.push_back({"APORTE_SENA", aporteSena, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_SENA", 0.0), "IBC * porcentajeSENA"});
+    conceptos.push_back({"APORTE_ICBF", aporteIcbf, ibc, calcDed.obtenerPorcentaje("PORCENTAJE_ICBF", 0.0), "IBC * porcentajeICBF"});
 
     for (const auto& item : conceptos) {
         DetalleLiquidacion d;
@@ -487,7 +495,7 @@ LiquidacionNomina LiquidadorAdministrativo::liquidar(
     crearDetalles(
         liqGuardada, periodo, ibc, salarioOrdinario, auxilio,
         0.0, 0.0, descuentoSalud, descuentoPension,
-        fondoSolidaridad, retencion, 0.0, aporteSalud,
+        fondoSolidaridad, retencion, 0.0, 0.0, aporteSalud,
         aportePension, aporteArl, aporteCaja, aporteSena, aporteIcbf, &codigosUtilizados
     );
 

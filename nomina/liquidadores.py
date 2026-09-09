@@ -69,6 +69,11 @@ class MotorLiquidacionBase:
         descuento_pension = calc_ded.calcular_descuento_pension(ibc, fecha_param, codigos_utilizados)
         fondo_solidaridad = calc_ded.calcular_fondo_solidaridad(ibc, salario_minimo, fecha_param, codigos_utilizados)
         retencion = calc_ded.calcular_retencion_fuente(ibc, fecha_param, codigos_utilizados=codigos_utilizados)
+        descuento_estampilla = (
+            calc_ded.calcular_descuento_estampilla(salario_base, fecha_param, codigos_utilizados)
+            if calc_ded.obtener_parametro_decimal("PORCENTAJE_ESTAMPILLA", fecha_param) is not None
+            else self.CERO
+        )
 
         # En universidades públicas (UPC), los docentes de planta (servidores públicos bajo Dec. 1279)
         # no están exonerados de salud patronal (Art. 114-1 Par. 2 E.T.), aportando el 8.5%.
@@ -88,7 +93,7 @@ class MotorLiquidacionBase:
         provisiones = self.gestor.calc_prestaciones.calcular_provisiones(base_prestacional, ibc, dias, regimen_especial=regimen_especial)
 
         bonificaciones = bonif_posgrado + bonif_investigacion
-        total_descuentos = descuento_salud + descuento_pension + fondo_solidaridad + retencion + descuento_incumplimiento
+        total_descuentos = descuento_salud + descuento_pension + fondo_solidaridad + retencion + descuento_estampilla + descuento_incumplimiento
         total_devengado = salario_ordinario + auxilio + bonificaciones
         total_prestaciones = sum(provisiones.values(), self.CERO)
         neto = total_devengado - total_descuentos
@@ -130,6 +135,7 @@ class MotorLiquidacionBase:
             descuentoPension=descuento_pension,
             fondoSolidaridadPensional=fondo_solidaridad,
             retencionFuente=retencion,
+            otrosDescuentos=descuento_estampilla if descuento_estampilla > self.CERO else None,
             descuentoHorasIncumplidas=self.gestor._redondear(descuento_incumplimiento),
             provisionCesantias=provisiones["cesantias"],
             provisionInteresesCesantias=provisiones["intereses"],
@@ -151,7 +157,7 @@ class MotorLiquidacionBase:
         self._crear_detalles(
             liquidacion, periodo, ibc, salario_ordinario, auxilio,
             bonif_posgrado, bonif_investigacion, descuento_salud, descuento_pension,
-            fondo_solidaridad, retencion, descuento_incumplimiento, aporte_salud,
+            fondo_solidaridad, retencion, descuento_estampilla, descuento_incumplimiento, aporte_salud,
             aporte_pension, aporte_arl, aporte_caja, aporte_sena, aporte_icbf, codigos_utilizados
         )
         return liquidacion
@@ -161,12 +167,12 @@ class MotorLiquidacionBase:
         salario_ordinario: Decimal, auxilio: Decimal, bonificacion_posgrado: Decimal,
         bonificacion_investigacion: Decimal, descuento_salud: Decimal,
         descuento_pension: Decimal, fondo_solidaridad: Decimal, retencion: Decimal,
-        descuento_incumplimiento: Decimal, aporte_salud: Decimal,
+        descuento_estampilla: Decimal, descuento_incumplimiento: Decimal, aporte_salud: Decimal,
         aporte_pension: Decimal, aporte_arl: Decimal, aporte_caja: Decimal,
         aporte_sena: Decimal, aporte_icbf: Decimal, codigos_utilizados: dict[str, str] | None = None,
     ) -> None:
         calc_ded = self.gestor.calc_deducciones
-        conceptos = (
+        conceptos = [
             ("SALARIO_ORDINARIO", salario_ordinario, ibc, None, "salarioOrdinario = IBC"),
             ("AUXILIO_TRANSPORTE", auxilio, self.CERO, None, "auxilio según salario y SMMLV"),
             ("BONIFICACION_POSGRADO", bonificacion_posgrado, self.CERO, None, "SMMLV * factorPosgrado"),
@@ -175,6 +181,10 @@ class MotorLiquidacionBase:
             ("DESCUENTO_PENSION", descuento_pension, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_PENSION_TRABAJADOR", self.CERO), "IBC * porcentajePensionTrabajador"),
             ("FONDO_SOLIDARIDAD", fondo_solidaridad, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_FONDO_SOLIDARIDAD", self.CERO), "IBC * porcentajeFondoSolidaridad"),
             ("RETENCION_FUENTE", retencion, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_RETENCION_FUENTE", self.CERO), "IBC * porcentajeRetencionFuente"),
+        ]
+        if descuento_estampilla > self.CERO:
+            conceptos.append(("DESCUENTO_ESTAMPILLA", descuento_estampilla, salario_ordinario, calc_ded.obtener_porcentaje("PORCENTAJE_ESTAMPILLA", Decimal("0.002")), "salarioBase * porcentajeEstampilla"))
+        conceptos.extend([
             ("DESCUENTO_INCUMPLIMIENTO", descuento_incumplimiento, descuento_incumplimiento, None, "horasIncumplidas * valorHoraIncumplida"),
             ("APORTE_SALUD_PATRONAL", aporte_salud, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_SALUD_EMPLEADOR", self.CERO), "IBC * porcentajeSaludEmpleador"),
             ("APORTE_PENSION_PATRONAL", aporte_pension, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_PENSION_EMPLEADOR", self.CERO), "IBC * porcentajePensionEmpleador"),
@@ -182,7 +192,7 @@ class MotorLiquidacionBase:
             ("APORTE_CAJA", aporte_caja, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_CAJA_COMPENSACION", self.CERO), "IBC * porcentajeCajaCompensacion"),
             ("APORTE_SENA", aporte_sena, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_SENA", self.CERO), "IBC * porcentajeSENA"),
             ("APORTE_ICBF", aporte_icbf, ibc, calc_ded.obtener_porcentaje("PORCENTAJE_ICBF", self.CERO), "IBC * porcentajeICBF"),
-        )
+        ])
         for codigo, valor, base, porcentaje, formula in conceptos:
             self.gestor.detalles_liquidacion.append(DetalleLiquidacion(
                 idDetalleLiquidacion=max((item.idDetalleLiquidacion or 0 for item in self.gestor.detalles_liquidacion), default=0) + 1,
@@ -479,7 +489,7 @@ class LiquidadorAdministrativo(MotorLiquidacionBase):
         self._crear_detalles(
             liquidacion, periodo, ibc, salario_ordinario, auxilio,
             self.CERO, self.CERO, descuento_salud, descuento_pension,
-            fondo_solidaridad, retencion, self.CERO, aporte_salud,
+            fondo_solidaridad, retencion, self.CERO, self.CERO, aporte_salud,
             aporte_pension, aporte_arl, aporte_caja, aporte_sena, aporte_icbf, codigos_utilizados
         )
         return liquidacion

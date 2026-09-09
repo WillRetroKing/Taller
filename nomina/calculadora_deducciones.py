@@ -43,21 +43,28 @@ class CalculadoraDeducciones:
             codigos_utilizados[codigo] = str(valor) if valor is not None else str(defecto)
         return valor if valor is not None else defecto
 
+    @classmethod
+    def redondear_pila(cls, valor: Decimal) -> Decimal:
+        """Aproximación reglamentaria de aportes a la seguridad social al múltiplo de 100 más cercano (Decreto 1990 de 2016 / PILA)."""
+        if valor < Decimal("100"):
+            return cls.redondear(valor)
+        return ((valor / Decimal("100")).quantize(Decimal("1"), rounding=ROUND_HALF_UP) * Decimal("100")).quantize(Decimal("0.01"))
+
     # ------------------------------------------------------------------
     # DEDUCCIONES AL TRABAJADOR
     # ------------------------------------------------------------------
     def calcular_descuento_salud(self, ibc: Decimal, fecha: date | None = None, codigos_utilizados: dict[str, str] | None = None) -> Decimal:
         pct = self.obtener_porcentaje("PORCENTAJE_SALUD_TRABAJADOR", Decimal("0.04"), fecha, codigos_utilizados)
-        return self.redondear(ibc * pct)
+        return self.redondear_pila(ibc * pct)
 
     def calcular_descuento_pension(self, ibc: Decimal, fecha: date | None = None, codigos_utilizados: dict[str, str] | None = None) -> Decimal:
         pct = self.obtener_porcentaje("PORCENTAJE_PENSION_TRABAJADOR", Decimal("0.04"), fecha, codigos_utilizados)
-        return self.redondear(ibc * pct)
+        return self.redondear_pila(ibc * pct)
 
     def calcular_fondo_solidaridad(self, ibc: Decimal, salario_minimo: Decimal, fecha: date | None = None, codigos_utilizados: dict[str, str] | None = None) -> Decimal:
         if ibc >= self.CUATRO * salario_minimo:
             pct = self.obtener_porcentaje("PORCENTAJE_FONDO_SOLIDARIDAD", self.CERO, fecha, codigos_utilizados)
-            return self.redondear(ibc * pct)
+            return self.redondear_pila(ibc * pct)
         return self.CERO
 
     def calcular_retencion_fuente(
@@ -67,16 +74,41 @@ class CalculadoraDeducciones:
         parametros_personalizados: dict[str, Any] | None = None,
         codigos_utilizados: dict[str, str] | None = None,
     ) -> Decimal:
-        if parametros_personalizados:
-            base_minima = Decimal(parametros_personalizados.get('base_minima', self.obtener_parametro_decimal("BASE_MINIMA_RETENCION_FUENTE", fecha) or self.CERO))
-            pct = Decimal(parametros_personalizados.get('porcentaje', self.obtener_porcentaje("PORCENTAJE_RETENCION_FUENTE", self.CERO, fecha, codigos_utilizados)))
-        else:
-            base_minima = self.obtener_parametro_decimal("BASE_MINIMA_RETENCION_FUENTE", fecha) or self.CERO
-            pct = self.obtener_porcentaje("PORCENTAJE_RETENCION_FUENTE", self.CERO, fecha, codigos_utilizados)
-
+        base_minima = (
+            Decimal(parametros_personalizados['base_minima'])
+            if parametros_personalizados and 'base_minima' in parametros_personalizados
+            else (self.obtener_parametro_decimal("BASE_MINIMA_RETENCION_FUENTE", fecha) or Decimal("4500000"))
+        )
         if ibc < base_minima:
             return self.CERO
-        return self.redondear(ibc * pct)
+
+        # 1. Si existe valor monetario parametrizado para retención en la fuente por salario
+        val_fijo = self.obtener_parametro_decimal("RETENCION_FUENTE_SALARIO", fecha)
+        if val_fijo is not None and val_fijo > self.CERO:
+            if codigos_utilizados is not None:
+                codigos_utilizados["RETENCION_FUENTE_SALARIO"] = str(val_fijo)
+            return self.redondear(val_fijo)
+
+        if parametros_personalizados:
+            pct = Decimal(parametros_personalizados.get('porcentaje', self.obtener_porcentaje("PORCENTAJE_RETENCION_FUENTE", self.CERO, fecha, codigos_utilizados)))
+        else:
+            pct = self.obtener_porcentaje("PORCENTAJE_RETENCION_FUENTE", self.CERO, fecha, codigos_utilizados)
+
+        if pct <= self.CERO:
+            return self.CERO
+        return (ibc * pct).quantize(Decimal("1"), rounding=ROUND_HALF_UP).quantize(Decimal("0.01"))
+
+    def calcular_descuento_estampilla(
+        self,
+        salario_base: Decimal,
+        fecha: date | None = None,
+        codigos_utilizados: dict[str, str] | None = None,
+    ) -> Decimal:
+        """Descuento institucional por Estampilla Pro-Universidad / Pro-Desarrollo (0.2% - 2 por mil del salario base)."""
+        pct = self.obtener_porcentaje("PORCENTAJE_ESTAMPILLA", Decimal("0.002"), fecha, codigos_utilizados)
+        if pct <= self.CERO:
+            return self.CERO
+        return (salario_base * pct).quantize(Decimal("1"), rounding=ROUND_HALF_UP).quantize(Decimal("0.01"))
 
     # ------------------------------------------------------------------
     # APORTES PATRONALES

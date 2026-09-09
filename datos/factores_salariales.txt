@@ -1,2 +1,0 @@
-1|Doctorado en Ciencias Computacionales|TITULO_ACADEMICO||120||2015-06-01|Res. 102|3|ACTIVO||||||||||||||||||||||
-2|Artículo A1 en Revista Indexada Q1|PRODUCTIVIDAD_ACADEMICA||15||2023-04-10|Res. 205|3|ACTIVO||||||||||||||||||||||

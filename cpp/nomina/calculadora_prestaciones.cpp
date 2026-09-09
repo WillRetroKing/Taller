@@ -88,9 +88,10 @@ double CalculadoraPrestaciones::calcularBonificacionInvestigacion(
 
 double CalculadoraPrestaciones::bonificacionProporcional(double valor, const Contrato& contrato, std::optional<double> horas) {
     if (!horas.has_value() || !contrato.horasMensualesAsignadas.has_value() || *contrato.horasMensualesAsignadas == 0.0) {
-        return valor;
+        return (valor >= 100.0) ? std::round(valor) : valor;
     }
-    return valor * (*horas) / (*contrato.horasMensualesAsignadas);
+    double res = valor * (*horas) / (*contrato.horasMensualesAsignadas);
+    return (res >= 100.0) ? std::round(res) : res;
 }
 
 std::map<std::string, double> CalculadoraPrestaciones::calcularProvisiones(

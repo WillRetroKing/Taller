@@ -219,6 +219,8 @@ def generar() -> None:
         ParametroNormativo(idParametro=18, codigo=PNC.NOTA_MINIMA_APROBATORIA, nombre="Nota Mínima Aprobatoria", descripcion="Nota mínima aprobar", tipoDato="DECIMAL", valor="3.0", unidad="puntos", normaOrigen="Reglamento Estudiantil", articulo="Art. 45", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="ESTUDIANTES", estado="ACTIVO"),
         ParametroNormativo(idParametro=19, codigo=PNC.PROMEDIO_MINIMO_EBRA, nombre="Promedio Mínimo EBRA", descripcion="Umbral de riesgo EBRA", tipoDato="DECIMAL", valor="3.0", unidad="puntos", normaOrigen="Reglamento Estudiantil", articulo="Art. 52", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="ESTUDIANTES", estado="ACTIVO"),
         ParametroNormativo(idParametro=20, codigo=PNC.MAXIMO_CREDITOS_PERIODO, nombre="Máximo Créditos Período", descripcion="Límite máximo de créditos semestrales", tipoDato="DECIMAL", valor="22", unidad="créditos", normaOrigen="Reglamento Estudiantil", articulo="Art. 30", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="ESTUDIANTES", estado="ACTIVO"),
+        ParametroNormativo(idParametro=21, codigo=PNC.PORCENTAJE_ESTAMPILLA, nombre="Estampilla Pro-Universidad %", descripcion="Descuento Estampilla 0.2% del básico", tipoDato="PORCENTUAL", valor="0.002", unidad="%", normaOrigen="Ordenanza Departamental", articulo="Art. 1", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
+        ParametroNormativo(idParametro=22, codigo=PNC.RETENCION_FUENTE_SALARIO, nombre="Retención en la Fuente Salario", descripcion="Retención en la fuente aplicada a salarios docentes", tipoDato="MONETARIO", valor="107000", unidad="COP", normaOrigen="Estatuto Tributario", articulo="Art. 383", fechaInicioVigencia=date(2026, 1, 1), fechaFinVigencia=date(2026, 12, 31), aplicaA="TODOS", estado="ACTIVO"),
     ]
 
     conceptos = [
@@ -237,6 +239,8 @@ def generar() -> None:
         ConceptoNomina(idConcepto=13, codigo="PRE-02", nombre="Intereses sobre Cesantías", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
         ConceptoNomina(idConcepto=14, codigo="PRE-03", nombre="Prima de Servicios", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
         ConceptoNomina(idConcepto=15, codigo="PRE-04", nombre="Vacaciones", tipoConcepto="PRESTACION", naturaleza="PRESTACION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=16, codigo="DED-04", nombre="Descuento Estampilla", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=17, codigo="DED-05", nombre="Retención en la Fuente", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
     ]
 
     # Generación reglamentaria de liquidaciones y detalles mediante GestorNomina

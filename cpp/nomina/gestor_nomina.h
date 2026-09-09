@@ -56,6 +56,7 @@ public:
         double descuentoPension,
         double fondoSolidaridad,
         double retencion,
+        double descuentoEstampilla,
         double descuentoIncumplimiento,
         double aporteSalud,
         double aportePension,

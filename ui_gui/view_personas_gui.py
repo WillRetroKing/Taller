@@ -139,7 +139,7 @@ class PersonasViewGUI(ctk.CTkFrame):
 
     def _ver_detalle_persona(self, persona: Persona | None) -> None:
         if persona:
-            DialogDetallePersona(self, persona, self.controller)
+            DialogDetallePersona(self, self.controller, persona)
 
     def _editar_estudiante(self, est: Estudiante, pers: Persona | None) -> None:
         DialogEditarEstudiante(self, est, pers, self.controller, self.service, self.actualizar_tablas)

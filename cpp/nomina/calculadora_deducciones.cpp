@@ -27,6 +27,13 @@ double CalculadoraDeducciones::redondear(double valor) {
     return std::round(valor * 100.0) / 100.0;
 }
 
+double CalculadoraDeducciones::redondearPila(double valor) {
+    if (valor < 100.0) {
+        return redondear(valor);
+    }
+    return std::round(valor / 100.0) * 100.0;
+}
+
 std::optional<double> CalculadoraDeducciones::obtenerParametroDecimal(const std::string& codigo, const std::string& fecha) {
     std::string fechaConsulta = fecha.empty() ? fecha_hoy() : fecha;
     std::string codBuscado = a_mayusculas(codigo);
@@ -66,30 +73,47 @@ double CalculadoraDeducciones::obtenerPorcentaje(
 
 double CalculadoraDeducciones::calcularDescuentoSalud(double ibc, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
     double pct = obtenerPorcentaje("PORCENTAJE_SALUD_TRABAJADOR", 0.04, fecha, codigosUtilizados);
-    return redondear(ibc * pct);
+    return redondearPila(ibc * pct);
 }
 
 double CalculadoraDeducciones::calcularDescuentoPension(double ibc, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
     double pct = obtenerPorcentaje("PORCENTAJE_PENSION_TRABAJADOR", 0.04, fecha, codigosUtilizados);
-    return redondear(ibc * pct);
+    return redondearPila(ibc * pct);
 }
 
 double CalculadoraDeducciones::calcularFondoSolidaridad(double ibc, double salarioMinimo, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
     if (ibc >= 4.0 * salarioMinimo) {
         double pct = obtenerPorcentaje("PORCENTAJE_FONDO_SOLIDARIDAD", 0.0, fecha, codigosUtilizados);
-        return redondear(ibc * pct);
+        return redondearPila(ibc * pct);
     }
     return 0.0;
 }
 
 double CalculadoraDeducciones::calcularRetencionFuente(double ibc, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
-    double baseMinima = obtenerParametroDecimal("BASE_MINIMA_RETENCION_FUENTE", fecha).value_or(0.0);
-    double pct = obtenerPorcentaje("PORCENTAJE_RETENCION_FUENTE", 0.0, fecha, codigosUtilizados);
-
+    double baseMinima = obtenerParametroDecimal("BASE_MINIMA_RETENCION_FUENTE", fecha).value_or(4500000.0);
     if (ibc < baseMinima) {
         return 0.0;
     }
+
+    auto valFijo = obtenerParametroDecimal("RETENCION_FUENTE_SALARIO", fecha);
+    if (valFijo.has_value() && *valFijo > 0.0) {
+        if (codigosUtilizados) {
+            (*codigosUtilizados)["RETENCION_FUENTE_SALARIO"] = std::to_string(*valFijo);
+        }
+        return redondear(*valFijo);
+    }
+
+    double pct = obtenerPorcentaje("PORCENTAJE_RETENCION_FUENTE", 0.0, fecha, codigosUtilizados);
+    if (pct <= 0.0) {
+        return 0.0;
+    }
     return redondear(ibc * pct);
+}
+
+double CalculadoraDeducciones::calcularDescuentoEstampilla(double salarioBase, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
+    double pct = obtenerPorcentaje("PORCENTAJE_ESTAMPILLA", 0.002, fecha, codigosUtilizados);
+    if (pct <= 0.0) return 0.0;
+    return std::round(salarioBase * pct);
 }
 
 double CalculadoraDeducciones::calcularAporteSaludPatronal(double ibc, double salarioMinimo, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados, bool exonerado) {

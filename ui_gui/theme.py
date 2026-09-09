@@ -9,6 +9,7 @@ import customtkinter as ctk
 class Colors:
     # Canvas & Layout
     BG_WINDOW = "#F3F4F6"       # Canvas principal (Gris/Slate suave)
+    BG_PAGE = "#F3F4F6"         # Alias para páginas y modales
     BG_HEADER = "#FFFFFF"       # Barra superior header (Blanco Puro)
     BG_SIDEBAR = "#F8FAFC"      # Barra lateral de navegación
     BG_CARD = "#FFFFFF"         # Tarjetas y paneles elevados (Blanco Puro)

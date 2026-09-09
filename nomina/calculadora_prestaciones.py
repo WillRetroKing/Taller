@@ -89,8 +89,13 @@ class CalculadoraPrestaciones:
 
     def _bonificacion_proporcional(self, valor: Decimal, contrato: Contrato, horas: Decimal | None) -> Decimal:
         if horas is None or contrato.horasMensualesAsignadas in (None, 0):
-            return valor
-        return valor * horas / Decimal(contrato.horasMensualesAsignadas)
+            if valor >= Decimal("100"):
+                return valor.quantize(Decimal("1"), rounding=ROUND_HALF_UP).quantize(Decimal("0.01"))
+            return self.redondear(valor)
+        val_prop = valor * horas / Decimal(contrato.horasMensualesAsignadas)
+        if val_prop >= Decimal("100"):
+            return val_prop.quantize(Decimal("1"), rounding=ROUND_HALF_UP).quantize(Decimal("0.01"))
+        return self.redondear(val_prop)
 
     def calcular_provisiones(
         self,

@@ -29,25 +29,31 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 
 ### Caso 1.1: Registro de Facultad
 - **Ruta:** Menú Lateral ➔ **Facultades & Programas** ➔ Pestaña **Facultades** ➔ Botón **`+ Nueva Facultad`**
-- **Datos de Prueba:**
+- **Datos en el Modal `➕ Registrar Nueva Facultad`:**
   - **Código:** `FIT`
   - **Nombre:** `Facultad de Ingenierias y Tecnologicas`
-  - **Ubicación:** `Campus Sabanas, Bloque B`
-  - **Decano / Responsable:** `Dr. Efraín Quintero Maya`
+  - **Ubicación / Sede:** `Campus Sabanas, Bloque B`
+  - **Teléfono:** `5842000` | **Correo:** `fit@unicesar.edu.co`
+  - **Decano / Autoridad Académica:** Seleccionar `(Sin Decano Asignado)` *(en Modo 0 Datos aún no hay docentes creados; se puede asignar posteriormente al registrar profesores)*.
+- **Acción:** Pulsar **`💾 Guardar Facultad`** (Python) o **`Guardar`** (C++).
 - **Verificación:**
   - [ ] Aparece la fila en la tabla con código `FIT` y badge `ACTIVO`.
   - [ ] En la pestaña **Universidad**, se confirma la visualización jerárquica de la facultad.
 
 ### Caso 1.2: Registro de Programa Académico
 - **Ruta:** Pestaña **Programas Académicos** ➔ Botón **`+ Nuevo Programa`**
-- **Datos de Prueba:**
-  - **Código:** `SIS`
-  - **Nombre:** `Ingenieria de Sistemas`
-  - **Facultad:** Seleccionar `FIT`
-  - **Nivel Formación:** `PREGRADO`
-  - **Créditos Totales:** `160`
+- **Datos en el Modal `➕ Registrar Nuevo Programa Académico`:**
+  - **Nombre del Programa Académico *:** `Ingenieria de Sistemas`
+  - **Código Institucional *:** `SIS`
+  - **Facultad de Adscripción *:** Seleccionar la facultad registrada `FIT`
+  - **Director de Programa:** `(Sin Director Asignado)`
+  - **Nivel de Formación *:** `PREGRADO` *(opciones: PREGRADO, POSGRADO, ESPECIALIZACIÓN, MAESTRÍA, DOCTORADO, TECNOLOGÍA)*
+  - **Modalidad *:** `PRESENCIAL` *(opciones: PRESENCIAL, VIRTUAL, A DISTANCIA, DUAL, HÍBRIDA / SEMIPRESENCIAL)*
+  - **Total Créditos Académicos *:** `160`
+  - **Número de Semestres *:** `10`
+- **Acción:** Pulsar **`💾 Registrar Programa`** (Python) o **`Guardar`** (C++).
 - **Verificación:**
-  - [ ] El programa queda vinculado a la facultad `FIT` con 160 créditos y estado `ACTIVO`.
+  - [ ] El programa queda vinculado a la facultad `FIT` con 160 créditos y badge `ACTIVO`.
 
 ---
 
@@ -55,57 +61,80 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 *Cumple Requerimientos #3, #4, #8 y #10 del Taller (TAD con Creación, Inclusión, Consulta, Modificación, Desactivación).*
 
 ### Caso 2.1: Registro de Profesor de Planta (Dec. 1279)
-- **Ruta:** Menú Lateral ➔ **Personas** ➔ Botón **`+ Registrar Persona / Rol`**
-- **Datos Personales:**
-  - **Tipo Doc:** `CC` | **Número:** `12345678`
-  - **Nombres:** `Carlos Alberto` | **Apellidos:** `Gomez Solano`
-  - **Correo:** `cgomez@unicesar.edu.co` | **Ciudad:** `Valledupar`
-- **Rol Asignado:** Seleccionar `Profesor`
-  - **Código Profesor:** `DOC-001`
-  - **Tipo Profesor:** `DOCENTE_PLANTA`
-  - **Dedicación:** `TIEMPO_COMPLETO`
-  - **Horas Semanales:** `40.0`
-  - **Categoría Docente:** `ASISTENTE` (Piso legal mínimo: 58 puntos)
-  - **Puntos Salariales Iniciales:** `250.0`
+- **Ruta:** Menú Lateral ➔ **Personas** ➔ Botón **`+ Registrar Persona / Rol`** (Python) o **`+ Nueva Persona`** (C++)
+- **1. Información Personal y de Contacto:**
+  - **Tipo Documento *:** `CC` | **Número de Documento *:** `12345678`
+  - **Primer Nombre *:** `Carlos` | **Segundo Nombre:** `Alberto`
+  - **Primer Apellido *:** `Gomez` | **Segundo Apellido:** `Solano`
+  - **Correo Institucional / Personal:** `cgomez@unicesar.edu.co`
+  - **Ciudad de Residencia:** `Valledupar` | **Teléfono:** `3001234567`
+- **2. Rol y Vinculación en PITA:**
+  - **Rol Institucional a Asignar:** Seleccionar `PROFESOR` (o `Profesor`)
+  - **Código Profesor *:** `DOC-001`
+  - **Programa Principal *:** Seleccionar `Ingenieria de Sistemas`
+  - **Tipo de Profesor / Vinculación *:** `PLANTA` *(opciones disponibles: PLANTA, OCASIONAL, CATEDRATICO, CATEDRATICO_AD_HONOREM)*
+  - **Categoría Docente *:** `ASISTENTE` *(opciones disponibles: AUXILIAR, ASISTENTE, ASOCIADO, TITULAR, NO_CATEGORIZADO)*
+  - **Dedicación *:** `TIEMPO_COMPLETO` *(opciones disponibles: TIEMPO_COMPLETO, MEDIO_TIEMPO, HORA_CATEDRA)*
+  - **Horas Semanales:** `40`
+  - **Máximo Nivel de Estudio:** `MAESTRIA`
+  - **Puntos Salariales (Dec. 1279):** `250`
+  - **Título Profesional:** `Ingeniero de Sistemas` | **Área:** `Ingeniería de Software`
+- **Acción:** Pulsar **`💾 Registrar Persona y Guardar Rol`** (Python) o **`Guardar`** (C++).
 - **Verificación:**
-  - [ ] Se visualiza en pestaña **Personas** y en pestaña **Profesores** con 250 pts salariales.
+  - [ ] Se visualiza en la pestaña **Personas** y en la pestaña **Profesores** con 250 pts y badge `ACTIVO`.
 
 ### Caso 2.2: Registro de Profesor de Cátedra (Acuerdo 027/2024)
 - **Ruta:** Botón **`+ Registrar Persona / Rol`**
-- **Datos Personales:**
-  - **Tipo Doc:** `CC` | **Número:** `23456789`
-  - **Nombres:** `Maria Mercedes` | **Apellidos:** `Perez Cuello`
-  - **Correo:** `mperez@unicesar.edu.co` | **Ciudad:** `Valledupar`
-- **Rol Asignado:** Seleccionar `Profesor`
-  - **Código Profesor:** `DOC-002`
-  - **Tipo Profesor:** `DOCENTE_CATEDRA`
-  - **Dedicación:** `HORA_CATEDRA`
-  - **Horas Semanales:** `16.0` (Respetando tope legal de 18h)
-  - **Categoría:** `INSTRUCTOR`
-  - **Puntos Salariales:** `0.0`
+- **1. Información Personal y de Contacto:**
+  - **Tipo Documento *:** `CC` | **Número de Documento *:** `23456789`
+  - **Primer Nombre *:** `Maria` | **Segundo Nombre:** `Mercedes`
+  - **Primer Apellido *:** `Perez` | **Segundo Apellido:** `Cuello`
+  - **Correo Institucional / Personal:** `mperez@unicesar.edu.co`
+  - **Ciudad de Residencia:** `Valledupar` | **Teléfono:** `3002345678`
+- **2. Rol y Vinculación en PITA:**
+  - **Rol Institucional a Asignar:** Seleccionar `PROFESOR`
+  - **Código Profesor *:** `DOC-002`
+  - **Programa Principal *:** Seleccionar `Ingenieria de Sistemas`
+  - **Tipo de Profesor / Vinculación *:** `CATEDRATICO` *(valor exacto en dropdown)*
+  - **Categoría Docente *:** `AUXILIAR` *(o NO_CATEGORIZADO; no usar nombres fuera del escalafón oficial)*
+  - **Dedicación *:** `HORA_CATEDRA`
+  - **Horas Semanales:** `16` *(respetando tope legal de 18h cátedra)*
+  - **Máximo Nivel de Estudio:** `ESPECIALIZACION`
+  - **Puntos Salariales (Dec. 1279):** `0`
+  - **Título Profesional:** `Especialista en Telemática`
+- **Acción:** Pulsar **`💾 Registrar Persona y Guardar Rol`**.
 - **Verificación:**
-  - [ ] Aparece correctamente clasificado como `DOCENTE_CATEDRA` (16h semanales).
+  - [ ] Aparece correctamente clasificado en la tabla de **Profesores** como `CATEDRATICO` (16h semanales) con categoría `AUXILIAR`.
 
 ### Caso 2.3: Registro de Estudiantes (Regular y Caso EBRA)
 1. **Estudiante 1 (Rendimiento Óptimo):**
-   - **CC:** `1003456789` | **Nombre:** `Juan Diego Rodriguez Vega`
-   - **Rol:** `Estudiante` | **Código:** `EST-2026-001` | **Programa:** `Ingenieria de Sistemas` | **Semestre:** `3`
+   - **Información Personal:** `CC` | `1003456789` | `Juan Diego` `Rodriguez Vega` | `jrodriguez@unicesar.edu.co`
+   - **Rol:** `ESTUDIANTE` | **Código Estudiante *:** `EST-2026-001`
+   - **Semestre Actual:** `3` | **Programa:** `Ingenieria de Sistemas` | **Estado Académico:** `ACTIVO`
 2. **Estudiante 2 (Candidato a Alerta EBRA):**
-   - **CC:** `1004567890` | **Nombre:** `Andres Felipe Morales Mejia`
-   - **Rol:** `Estudiante` | **Código:** `EST-2026-002` | **Programa:** `Ingenieria de Sistemas` | **Semestre:** `2`
+   - **Información Personal:** `CC` | `1004567890` | `Andres Felipe` `Morales Mejia` | `amorales@unicesar.edu.co`
+   - **Rol:** `ESTUDIANTE` | **Código Estudiante *:** `EST-2026-002`
+   - **Semestre Actual:** `2` | **Programa:** `Ingenieria de Sistemas` | **Estado Académico:** `ACTIVO`
 - **Verificación:**
   - [ ] Ambos estudiantes figuran en la pestaña **Estudiantes** con estado inicial `ACTIVO`.
 
 ### Caso 2.4: Registro de Personal Administrativo
 - **Ruta:** Botón **`+ Registrar Persona / Rol`**
-- **Datos:** `CC 34567890` | `Laura Patricia Sanchez` | **Rol:** `Administrativo` | **Cargo:** `Secretaria Academica FIT`
+- **Información Personal:** `CC` | `34567890` | `Laura Patricia` `Sanchez Meza` | `lsanchez@unicesar.edu.co`
+- **Rol:** Seleccionar `ADMINISTRATIVO`
+  - **Código Empleado *:** `ADM-2026-01`
+  - **Cargo Institucional *:** `Secretaria Academica FIT`
+  - **Dependencia *:** `Facultad de Ingenierias y Tecnologicas`
+  - **Nivel / Categoría *:** `PROFESIONAL` *(opciones: PROFESIONAL, DIRECTIVO, ASESOR, TECNICO, ASISTENCIAL)*
+  - **Tipo Contratación:** `PLANTA` *(opciones: PLANTA, CARRERA_ADMINISTRATIVA, LIBRE_NOMBRAMIENTO, PROVISIONALIDAD, PRESTACION_SERVICIOS)*
+  - **Salario Base Mensual ($) *:** `3200000`
 - **Verificación:**
-  - [ ] Aparece en la pestaña **Administrativos** con su cargo y estado `ACTIVO`.
+  - [ ] Aparece en la pestaña **Administrativos** con cargo, dependencia, salario base y badge `ACTIVO`.
 
 ### Caso 2.5: Validación del Buscador en Tiempo Real y Desactivación
-- [ ] En la pestaña **Personas**, escribir `Morales` en el buscador: la tabla se filtra inmediatamente mostrando solo a Andrés.
-- [ ] Pulsar **`Limpiar`**: la tabla restaura todas las personas.
-- [ ] Probar botón **`Desactivar`** en una persona: su badge cambia a `INACTIVO`. Al pulsar **`Activar`**, regresa a `ACTIVO`.
+- [ ] En la pestaña **Personas**, escribir `Morales` en el campo de búsqueda: la tabla filtra instantáneamente mostrando únicamente a Andrés Felipe.
+- [ ] Pulsar **`Limpiar`**: la tabla restaura todas las personas registradas.
+- [ ] Probar el botón **`Desactivar`** en una fila: su badge cambia de `ACTIVO` a `INACTIVO`. Al pulsar **`Activar`**, regresa inmediatamente a `ACTIVO`.
 
 ---
 
@@ -113,29 +142,54 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 *Cumple Requerimientos #3, #11 y #12 del Taller.*
 
 ### Caso 3.1: Configuración de Período y Cursos
-- **Ruta:** Menú Lateral ➔ **Gestion Académica**
-1. **Pestaña Periodos:** Verificar o crear periodo activo `2026-1` (Estado: `ABIERTO`).
-2. **Pestaña Cursos & Ofertas ➔ Catálogo de Asignaturas ➔ `+ Nueva Asignatura`:**
-   - **Curso 1:** Código `SIS-301` | Nombre `Estructuras de Datos` | Créditos `3` | Horas: `3h T / 2h P` | **Nota Mínima Aprobatoria:** `3.0` | Cupo: `30`
-   - **Curso 2 (Umbral Diferenciado):** Código `SIS-401` | Nombre `Sistemas Operativos Avanzados` | Créditos `4` | Horas: `4h T / 1h P` | **Nota Mínima Aprobatoria:** `3.5` | Cupo: `25`
+- **Ruta:** Menú Lateral ➔ **Gestión Académica**
+1. **Pestaña Periodos:** Verificar o aperturar el período académico `2026-1` (Estado: `ABIERTO`).
+2. **Pestaña Cursos & Ofertas ➔ Catálogo de Asignaturas ➔ Botón `+ Nueva Asignatura`:**
+   - **Curso 1:**
+     - **Código de la Asignatura *:** `SIS-301`
+     - **Nombre de la Asignatura *:** `Estructuras de Datos`
+     - **Número de Créditos *:** `3`
+     - **Horas Teóricas:** `3` | **Horas Prácticas:** `2`
+     - **Nota Mínima Aprobatoria *:** `3.0`
+     - **Cupo Sugerido de Estudiantes:** `30`
+   - **Curso 2 (Umbral Diferenciado):**
+     - **Código de la Asignatura *:** `SIS-401`
+     - **Nombre de la Asignatura *:** `Sistemas Operativos Avanzados`
+     - **Número de Créditos *:** `4`
+     - **Horas Teóricas:** `4` | **Horas Prácticas:** `1`
+     - **Nota Mínima Aprobatoria *:** `3.5` *(umbral reglamentario especial de posgrado/avanzado)*
+     - **Cupo Sugerido de Estudiantes:** `25`
 - **Verificación:**
-  - [ ] Ambos cursos aparecen con sus créditos, distribución teórica/práctica y sus respectivas notas mínimas aprobatorias configurables.
+  - [ ] Ambos cursos aparecen en la tabla con sus créditos, distribución teórica/práctica y sus respectivas notas mínimas aprobatorias configurables.
 
 ### Caso 3.2: Apertura de Oferta / Grupo Abierto
-- **Ruta:** Pestaña **Cursos & Ofertas** ➔ **Ofertas y Grupos Abiertos** ➔ **`+ Nueva Oferta`**
-- **Oferta 1:** `SIS-301 Estructuras de Datos` (Grupo `01`, Aula `204 Sabanas`, Cupo: `30`, Profesor: `DOC-001`).
-- **Oferta 2:** `SIS-401 Sistemas Operativos Avanzados` (Grupo `01`, Aula `301 Sabanas`, Cupo: `25`, Profesor: `DOC-002`).
+- **Ruta:** Pestaña **Cursos & Ofertas** ➔ **Ofertas y Grupos Abiertos** ➔ Botón **`+ Nueva Oferta`**
+- **Oferta 1:**
+  - **Asignatura a Ofertar *:** `SIS-301 | Estructuras de Datos`
+  - **Periodo Académico *:** `2026-1`
+  - **Grupo *:** `01` | **Cupo Máximo *:** `30`
+  - **Aula:** `204 Sabanas` | **Sede:** `Sede Sabanas` | **Modalidad:** `PRESENCIAL`
+  - **Profesor Asignado:** Seleccionar `DOC-001 | Carlos Gomez`
+- **Oferta 2:**
+  - **Asignatura a Ofertar *:** `SIS-401 | Sistemas Operativos Avanzados`
+  - **Periodo Académico *:** `2026-1`
+  - **Grupo *:** `01` | **Cupo Máximo *:** `25`
+  - **Aula:** `301 Sabanas` | **Sede:** `Sede Sabanas` | **Modalidad:** `PRESENCIAL`
+  - **Profesor Asignado:** Seleccionar `DOC-002 | Maria Mercedes Perez`
 - **Verificación:**
-  - [ ] Los semáforos de cupos muestran disponibilidad completa (`30 / 30` y `25 / 25`) en color verde.
+  - [ ] Las ofertas quedan aperturadas y sus semáforos de cupos reflejan disponibilidad total (`30 / 30` y `25 / 25`).
 
 ### Caso 3.3: Matrícula de Cursos
-- **Ruta:** Pestaña **Matrículas de Cursos** ➔ Botón **`+ Matricular Estudiante`**
-1. Matricular `EST-2026-001 - Juan Diego Rodriguez` en oferta `SIS-301`.
-2. Matricular `EST-2026-002 - Andres Felipe Morales` en oferta `SIS-301` y en oferta `SIS-401`.
+- **Ruta:** Pestaña **Matrículas**
+- **Acción en el panel superior de inscripción:**
+  1. En el combobox **Estudiante a Matricular:** seleccionar `EST-2026-001 - Juan Diego Rodriguez`.
+  2. En el combobox **Oferta / Curso Disponible:** seleccionar `SIS-301`.
+  3. Pulsar el botón **`✍️ Matricular Estudiante`**.
+  4. Repetir la operación para matricular a `EST-2026-002 - Andres Felipe Morales` en la oferta `SIS-301` y en la oferta `SIS-401`.
 - **Verificación:**
-  - [ ] Se crean las inscripciones de detalle de matrícula.
-  - [ ] Los cupos disponibles se descuentan correctamente.
-  - [ ] Se visualiza la opción de **`Cancelar`** matrícula en cada fila.
+  - [ ] Se crean las filas de detalle en la tabla de inscripciones (`INS-1`, `INS-2`, `INS-3`).
+  - [ ] En la pestaña **Cursos & Ofertas**, los cupos disponibles se descuentan automáticamente.
+  - [ ] Cada fila activa cuenta con el botón **`🚫 Cancelar`** para cancelaciones reglamentarias de asignaturas.
 
 ---
 
@@ -143,32 +197,36 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 *Cumple Requerimientos #11, #12 y Cierre de Brechas #4 y #6 (Umbral dinámico `notaMinimaAprobatoria` y detección EBRA en lote en UI).*
 
 ### Caso 4.1: Calificaciones con Umbrales Dinámicos
-- **Ruta:** Pestaña **Evaluaciones y Calificaciones** ➔ Botón **`+ Registrar Calificacion`**
-1. **Estudiante Juan Diego (`EST-2026-001`) en `SIS-301` (Umbral 3.0):**
-   - Calificación final: `4.2`
-   - [ ] Estado: `APROBADO` en verde.
-2. **Estudiante Andrés Morales (`EST-2026-002`) en `SIS-301` (Umbral 3.0):**
-   - Calificación final: `2.1`
-   - [ ] Estado: `REPROBADO` en rojo brillante.
-3. **Estudiante Andrés Morales (`EST-2026-002`) en `SIS-401` (Umbral 3.5):**
-   - Calificación: `3.2` (Nota inferior a 3.5 pero superior a 3.0)
-   - [ ] **Comportamiento Dinámico Verificado:** Se clasifica como `REPROBADO` debido a que la asignatura exige 3.5 de nota mínima.
+- **Ruta:** Pestaña **Calificaciones** (o **Evaluaciones**)
+- **Acción en el formulario superior `📝 Asignación de Calificaciones y Evaluaciones`:**
+  1. **Juan Diego (`EST-2026-001`) en `SIS-301` (Umbral 3.0):**
+     - Seleccionar inscripción `INS-1 | EST-2026-001 - Juan Diego Rodriguez — Estructuras de Datos`
+     - En **Nota Definitiva (0.0 - 5.0):** ingresar `4.2`
+     - Pulsar **`💾 Registrar Nota`**
+     - [ ] Estado: badge `Aprobado` en color verde.
+  2. **Andrés Morales (`EST-2026-002`) en `SIS-301` (Umbral 3.0):**
+     - Seleccionar inscripción `INS-2 | EST-2026-002 - Andres Felipe Morales — Estructuras de Datos`
+     - En **Nota Definitiva (0.0 - 5.0):** ingresar `2.1`
+     - Pulsar **`💾 Registrar Nota`**
+     - [ ] Estado: badge `Reprobado` en color rojo.
+  3. **Andrés Morales (`EST-2026-002`) en `SIS-401` (Umbral 3.5):**
+     - Seleccionar inscripción `INS-3 | EST-2026-002 - Andres Felipe Morales — Sistemas Operativos Avanzados`
+     - En **Nota Definitiva (0.0 - 5.0):** ingresar `3.2` *(nota superior a 3.0 pero inferior a 3.5)*
+     - Pulsar **`💾 Registrar Nota`**
+     - [ ] **Comportamiento Dinámico Verificado:** Se clasifica como badge `Reprobado` porque este curso exige `3.5` como nota mínima aprobatoria.
 
 ### Caso 4.2: Detección y Panel de Alertas EBRA en Tiempo Real
-- **Ruta:** Pestaña **Alertas EBRA** (o **Informe Alertas EBRA**)
-- **Acción:** Pulsar el botón interactivo **`⚡ Ejecutar Detección EBRA Masiva`**
+- **Ruta:** Pestaña **Alertas EBRA**
+- **Acción:** En la barra superior, pulsar el botón interactivo **`⚡ Ejecutar Detección EBRA Masiva`**
 - **Verificación:**
-  - [ ] Se ejecuta `evaluar_alertas_periodo` / `evaluarAlertasPeriodo` en backend.
-  - [ ] Diálogo / Mensaje confirma las alertas EBRA evaluadas y registradas.
+  - [ ] El sistema ejecuta la evaluación masiva y muestra mensaje de confirmación: *"Evaluación finalizada. Se detectaron/actualizaron alertas EBRA."*
   - [ ] **Tarjetas KPI EBRA:**
-    - `Total Estudiantes`: Refleja el censo activo.
-    - `En Riesgo EBRA`: Marca los estudiantes con promedio < 3.0 o condición EBRA en rojo crítico.
-  - [ ] **Tabla de Alertas / Diagnóstico:**
-    - Fila generada para `EST-2026-002 (Andrés Felipe Morales)`.
-    - Tipo de Alerta: `EBRA`.
-    - Motivo: `Bajo Rendimiento Académico`.
-    - Acción Recomendada: Badge `Plan Tutoria UPC` / Remitir a acompañamiento institucional.
-  - [ ] En el **Dashboard General**: La tarjeta KPI y el panel de alertas en riesgo reflejan inmediatamente el estado de Andrés.
+    - `Total Estudiantes Registrados`: Refleja el censo activo (2).
+    - `En Riesgo EBRA (Promedio < 3.0)`: Refleja a los estudiantes con promedio crítico (Andrés Morales: promedio 2.65).
+  - [ ] **Tabla de Diagnóstico EBRA:**
+    - Fila generada para `EST-2026-002 (Andres Felipe Morales Mejia)`.
+    - Badge `⚠️ EBRA` y plan de tutoría UPC sugerido.
+  - [ ] En el **Dashboard General**: La tarjeta KPI de alertas refleja el estado de riesgo académico.
 
 ---
 
@@ -176,44 +234,55 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 *Cumple Requerimientos #4, #5, #6, #7, #9, #13 y Cierre de Brecha #2 (Pisos de escalafón 37/58/74/96).*
 
 ### Caso 5.1: Vinculación Contractual Obligatoria
-- **Ruta:** Menú Lateral ➔ **Contratos & Factores Salariales** ➔ Botón **`+ Registrar Contrato`**
+- **Ruta:** Menú Lateral ➔ **Contratos & Factores** ➔ Botón **`➕ Registrar Contrato`**
 1. **Contrato Docente Planta:**
-   - **Docente:** `Carlos Alberto Gomez Solano`
-   - **Tipo Contrato:** `PLANTA` | **Dedicación:** `TIEMPO_COMPLETO` | **Horas:** `40.0`
-   - **Régimen:** `DECRETO_1279`
+   - **Selector de Personal:** `👨‍🏫 Personal Docente`
+   - **Docente *:** `DOC-001 - Carlos Alberto Gomez Solano [ASISTENTE, 250 pts]`
+   - **Modalidad Contractual / Régimen Jurídico:** `DOCENTE_PLANTA (Dec. 1279)` *(valor exacto en dropdown)*
+   - **Dedicación:** `TIEMPO_COMPLETO` | **Horas Semanales:** `40`
    - **Vigencia:** `2026-01-01` al `2026-12-31`
+   - **Asistente:** Pulsar **`⚡ Calcular Según Régimen`** para autocalcular el salario según puntos.
+   - Pulsar **`💾 Formalizar y Registrar Vinculación Contractual`**.
 2. **Contrato Docente Cátedra:**
-   - **Docente:** `Maria Mercedes Perez Cuello`
-   - **Tipo Contrato:** `CATEDRA` | **Dedicación:** `HORA_CATEDRA` | **Horas:** `16.0` (Validar control legal <= 18h)
+   - **Selector de Personal:** `👨‍🏫 Personal Docente`
+   - **Docente *:** `DOC-002 - Maria Mercedes Perez Cuello [AUXILIAR, 0 pts]`
+   - **Modalidad Contractual / Régimen Jurídico:** `DOCENTE_CATEDRATICO (Ac. 027/2024)` *(valor exacto en dropdown)*
+   - **Dedicación:** `HORA_CATEDRA` | **Horas Semanales:** `16` *(validar control legal <= 18h)*
    - **Vigencia:** `2026-02-01` al `2026-06-30`
+   - **Asistente:** Pulsar **`⚡ Calcular Según Régimen`** y formalizar.
 3. **Contrato Administrativo:**
-   - **Funcionario:** `Laura Patricia Sanchez`
-   - **Tipo Contrato:** `TERMINO_INDEFINIDO` | **Horas:** `40.0`
+   - **Selector de Personal:** `👔 Personal Administrativo`
+   - **Funcionario *:** `ADM-2026-01 - Laura Patricia Sanchez (Secretaria Academica FIT)`
+   - **Modalidad Contractual:** `TERMINO_INDEFINIDO (CST)`
+   - **Asistente:** Pulsar **`⚡ Asignar Salario del Cargo`** (`$3.200.000 COP`) y formalizar.
 - **Verificación:**
-  - [ ] Todos los contratos se registran con su cargo y vigencia.
-  - [ ] Las tarjetas KPI consolidan contratos activos, distribución docente y masa salarial.
+  - [ ] Los contratos quedan formalizados y listados en la pestaña **📜 Contratos Docentes Vigentes**.
+  - [ ] Las tarjetas KPI consolidan el conteo de contratos y la nómina proyectada.
 
 ### Caso 5.2: Reconocimiento de Puntos y Pisos Salariales de Escalafón
-- **Ruta:** Pestaña **Factores Salariales & Producción** ➔ Botón **`⭐ Reconocer Puntos / Productividad`**
-1. **Puntos por Título Académico:**
-   - **Docente:** `Carlos Alberto Gomez Solano` (Categoría `ASISTENTE`)
-   - **Tipo Factor:** `TITULO_ACADEMICO`
-   - **Concepto:** `Doctorado en Ciencias de la Computacion`
-   - **Puntos:** `120.0` | **Acto Administrativo:** `Resolucion VRA-042-2026`
-   - [ ] Al confirmar, se listan los 120 pts reconocidos.
-2. **Puntos por Producción Intelectual:**
-   - **Docente:** `Carlos Alberto Gomez Solano`
-   - **Tipo de Obra:** `ARTICULO`
-   - **Título:** `Optimizacion de Algoritmos en Grafos Paralelos`
+- **Ruta:** Botón superior **`⭐ Reconocer Puntos / Productividad`** (Modal `⭐ Comité de Puntaje Salarial (Decreto 1279)`)
+1. **Sub-pestaña `📜 Títulos y Escalafón`:**
+   - **Docente Beneficiario:** `DOC-001 - Carlos Alberto Gomez Solano`
+   - **Tipo de Factor Salarial:** `TITULO_ACADEMICO` *(opciones: TITULO_ACADEMICO, CATEGORIA_DOCENTE, EXPERIENCIA_CALIFICADA, CARGO_DIRECCION_ACADEMICA)*
+   - **Concepto / Denominación:** `Título de Doctorado en Ciencias de la Computación`
+   - **Puntos Salariales a Asignar (+):** `120`
+   - **Resolución:** `Resolución CIARP N° 045-2026`
+   - Pulsar **`💾 Formalizar y Asignar Puntos Salariales`**.
+   - [ ] Al guardar, los puntos del docente se incrementan a **370 pts** en tiempo real.
+2. **Sub-pestaña `🔬 Producción Intelectual`:**
+   - **Docente Autor:** `DOC-001 - Carlos Alberto Gomez Solano`
+   - **Tipo de Obra Intelectual (MinCiencias):** `ARTICULO_A2 (12 pts)` *(opciones: ARTICULO_A1, ARTICULO_A2, ARTICULO_B, LIBRO_INVESTIGACION, PATENTE_INVENCION, SOFTWARE_REGISTRADO)*
+   - **Título de la Obra o Producto:** `Optimizacion de Algoritmos en Grafos Paralelos`
    - **Revista / Editorial:** `IEEE Transactions on Computers`
-   - **Número de Autores:** `2` (Se aplica factor de coautoría legal del 80%)
-   - **Puntos Reconocidos:** `12.0`
-   - [ ] Al confirmar, la producción queda registrada con acto administrativo.
-3. **Piso Legal de Escalafón (Brecha 2):**
-   - [ ] Si un docente de planta tiene categoría `TITULAR` y acumula pocos puntos, el sistema le garantiza automáticamente el piso legal de **96 puntos**.
+   - **Número Total de Autores:** `2 (50%)` *(aplica factor de coautoría legal del 50%)*
+   - **Puntos Base Producto:** `12`
+   - Pulsar **`💾 Registrar y Reconocer Producción Intelectual`**.
+   - [ ] Al guardar, se le reconocen **6 puntos netos** (12 × 50%) y se suman a su acumulado.
+3. **Garantía de Pisos Legales de Escalafón (Brecha 2):**
+   - [ ] Si un docente de planta tiene categoría `AUXILIAR`, el sistema garantiza mínimo **37 puntos**.
    - [ ] Si es `ASISTENTE`, garantiza mínimo **58 puntos**.
-   - [ ] Si es `AUXILIAR`, garantiza mínimo **37 puntos**.
    - [ ] Si es `ASOCIADO`, garantiza mínimo **74 puntos**.
+   - [ ] Si es `TITULAR`, garantiza mínimo **96 puntos**.
 
 ---
 
@@ -222,25 +291,36 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 
 ### Caso 6.1: Regla de Negocio: Bloqueo de Liquidación sin Contrato
 - **Prueba de Control:**
-  - [ ] Intentar liquidar un docente que no tenga contrato activo en el período: el sistema **no** lo incluye en la nómina y emite advertencia de contrato ausente.
+  - Menú Lateral ➔ **Nómina Docente** ➔ Botón **`👤 Liquidar Empleado`**
+  - Seleccionar un docente o administrativo que no cuente con contrato activo en el período seleccionado.
+  - [ ] El sistema bloquea la acción con mensaje explícito: *"⚠️ Este empleado NO cuenta con un contrato activo registrado. Debe formalizar su vinculación en el módulo de Contratos antes de liquidar."*
 
-### Caso 6.2: Liquidación de Nómina con Prestaciones del Decreto 1279
+### Caso 6.2: Liquidación de Nómina Multi-Régimen y Validación con Desprendible Real UPC
 - **Ruta:** Menú Lateral ➔ **Nómina Docente**
-1. **Pestaña Periodos:** Seleccionar periodo `2026-01` (Enero 2026, Estado: `ABIERTO`).
-2. **Acción:** Pulsar el botón **`⚡ Liquidar Nomina General`**.
-- **Verificación de Desprendible Detallado (Brecha 1):**
-  - Pulsar **`👁️ Ver Desprendible`** sobre Carlos Gómez (Planta):
-  - [ ] **Sueldo Básico:** Calculado como `Puntos × Valor Punto ($23.924 COP)`.
-  - [ ] **Deducciones de Ley:** Salud (4%), Pensión (4%), Fondo de Solidaridad Pensional (1% al superar 4 SMMLV).
-  - [ ] **Prestaciones Especiales Decreto 1279 Verificadas en Desprendible:**
-    - **Provisión Prima de Vacaciones:** 5.56% de la base prestacional calculada y no vacía.
-    - **Bonificación por Servicios Prestados:** Calculada (50% / 35% mensualizado según tope) con base en doceavas.
-    - **Cesantías (8.33%), Intereses (1%), Prima de Servicios (8.33%), Vacaciones (4.17%)**.
+1. **Pestaña Periodos de Nómina:** Seleccionar el período `2026-08` (Agosto 2026, Estado: `ABIERTO` o `EN_CURSO`).
+2. **Acción:** Pulsar el botón **`⚙️ Liquidar Periodo Completo`** (o **`👤 Liquidar Empleado`** para liquidación individual).
+3. **Validación Cruce 100% con Desprendible Oficial UPC (Prof. Adith Bismarck Pérez Orozco - Ocasional Tiempo Completo):**
+   - En la pestaña **Liquidaciones del Periodo**, pulsar el botón **`📋 Desglose`** en la fila de Adith Bismarck Pérez:
+   - [ ] **Sueldo Básico Ordinario (30 días):** `$ 6.313.763,00 COP`
+   - [ ] **Bonificación por Posgrado (Doctorado 90% SMMLV Dec. 1279):** `$ 1.575.815,00 COP`
+   - [ ] **Total Devengados:** `$ 7.889.578,00 COP`
+   - [ ] **Deducciones de Ley e Institucionales Verificadas al Peso:**
+     - **Aporte Salud Trabajador (4% - Redondeo PILA Dec. 1990/2016 a centena):** `$ 252.600,00 COP`
+     - **Aporte Pensión Trabajador (4% - Redondeo PILA Dec. 1990/2016 a centena):** `$ 252.600,00 COP`
+     - **Retención en la Fuente Salarial (Art. 383 E.T. > 95 UVT):** `$ 107.000,00 COP`
+     - **Descuento Estampilla Pro-Universidad (0.2% salario básico):** `$ 12.628,00 COP`
+   - [ ] **Total Deducciones:** `$ 624.828,00 COP`
+   - [ ] **Neto a Pagar Exacto:** **`$ 7.264.750,00 COP`** *(Coincidencia exacta al 100% con el volante oficial UPC Código FGH-37 v.01)*.
+4. **Verificación de Prestaciones Especiales Decreto 1279 (Docente de Planta):**
+   - En la fila de docente Planta (Carlos Gómez):
+   - [ ] **Provisión Prima de Vacaciones:** 5.56% de la base prestacional calculada y no vacía.
+   - [ ] **Bonificación por Servicios Prestados:** Calculada (50% / 35% mensualizado según tope legal de SMMLV) con base en doceavas.
+   - [ ] **Cesantías (8.33%), Intereses (1%), Prima de Servicios (8.33%), Vacaciones (4.17%)**.
 
 ### Caso 6.3: Flujo Completo de Reliquidación (CU-25 en UI - Brecha 5)
 - **Ruta:** Pestaña **Liquidaciones del Periodo** o Modal de Desprendible
 1. Con la liquidación en estado `GENERADA` (no pagada):
-   - [ ] Se visualiza el botón interactivo **`🔄 Reliquidar`** en la fila de la tabla y en el pie del modal de desprendible.
+   - [ ] Se visualiza el botón interactivo **`🔄 Reliquidar`** en la fila de la tabla y **`🔄 Reliquidar Nómina`** en el pie del modal de desprendible.
 2. Actualizar los puntos del docente o corregir parámetros normativos.
 3. Pulsar **`🔄 Reliquidar`**:
    - [ ] El sistema ejecuta el ciclo de vida de reliquidación (`ciclo_vida.reliquidar()`).

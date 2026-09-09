@@ -222,6 +222,8 @@ enum class ParametroNormativoCodigo {
     PORCENTAJE_BONIFICACION_SERVICIOS_SOBRE_TOPE,
     PORCENTAJE_RETENCION_FUENTE,
     BASE_MINIMA_RETENCION_FUENTE,
+    PORCENTAJE_ESTAMPILLA,
+    RETENCION_FUENTE_SALARIO,
     NOTA_MINIMA_APROBATORIA,
     PROMEDIO_MINIMO_EBRA,
     MAXIMO_CREDITOS_PERIODO
@@ -249,6 +251,8 @@ inline std::string to_string(ParametroNormativoCodigo val) {
         case ParametroNormativoCodigo::PORCENTAJE_BONIFICACION_SERVICIOS_SOBRE_TOPE: return "PORCENTAJE_BONIFICACION_SERVICIOS_SOBRE_TOPE";
         case ParametroNormativoCodigo::PORCENTAJE_RETENCION_FUENTE: return "PORCENTAJE_RETENCION_FUENTE";
         case ParametroNormativoCodigo::BASE_MINIMA_RETENCION_FUENTE: return "BASE_MINIMA_RETENCION_FUENTE";
+        case ParametroNormativoCodigo::PORCENTAJE_ESTAMPILLA: return "PORCENTAJE_ESTAMPILLA";
+        case ParametroNormativoCodigo::RETENCION_FUENTE_SALARIO: return "RETENCION_FUENTE_SALARIO";
         case ParametroNormativoCodigo::NOTA_MINIMA_APROBATORIA: return "NOTA_MINIMA_APROBATORIA";
         case ParametroNormativoCodigo::PROMEDIO_MINIMO_EBRA: return "PROMEDIO_MINIMO_EBRA";
         case ParametroNormativoCodigo::MAXIMO_CREDITOS_PERIODO: return "MAXIMO_CREDITOS_PERIODO";
@@ -277,6 +281,8 @@ inline ParametroNormativoCodigo parametro_normativo_from_string(const std::strin
     if (s == "PORCENTAJE_BONIFICACION_SERVICIOS_SOBRE_TOPE") return ParametroNormativoCodigo::PORCENTAJE_BONIFICACION_SERVICIOS_SOBRE_TOPE;
     if (s == "PORCENTAJE_RETENCION_FUENTE") return ParametroNormativoCodigo::PORCENTAJE_RETENCION_FUENTE;
     if (s == "BASE_MINIMA_RETENCION_FUENTE") return ParametroNormativoCodigo::BASE_MINIMA_RETENCION_FUENTE;
+    if (s == "PORCENTAJE_ESTAMPILLA") return ParametroNormativoCodigo::PORCENTAJE_ESTAMPILLA;
+    if (s == "RETENCION_FUENTE_SALARIO") return ParametroNormativoCodigo::RETENCION_FUENTE_SALARIO;
     if (s == "NOTA_MINIMA_APROBATORIA") return ParametroNormativoCodigo::NOTA_MINIMA_APROBATORIA;
     if (s == "PROMEDIO_MINIMO_EBRA") return ParametroNormativoCodigo::PROMEDIO_MINIMO_EBRA;
     return ParametroNormativoCodigo::MAXIMO_CREDITOS_PERIODO;

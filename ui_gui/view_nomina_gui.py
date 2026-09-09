@@ -749,6 +749,7 @@ class NominaViewGUI(ctk.CTkFrame):
             "DESCUENTO_PENSION": ("Aporte Pensión Trabajador (4%)", "DEDUCCION"),
             "FONDO_SOLIDARIDAD": ("Fondo de Solidaridad Pensional (1%)", "DEDUCCION"),
             "RETENCION_FUENTE": ("Retención en la Fuente", "DEDUCCION"),
+            "DESCUENTO_ESTAMPILLA": ("Descuento Estampilla", "DEDUCCION"),
             "DESCUENTO_INCUMPLIMIENTO": ("Descuento por Horas Incumplidas", "DEDUCCION"),
             "APORTE_SALUD_PATRONAL": ("Salud Patronal (8.5%)", "PATRONAL"),
             "APORTE_PENSION_PATRONAL": ("Pensión Patronal (12%)", "PATRONAL"),
@@ -846,10 +847,18 @@ class NominaViewGUI(ctk.CTkFrame):
             fsp = getattr(liq, "fondoSolidaridadPensional", None)
             if fsp and Decimal(str(fsp)) > 0:
                 deducciones.append(("Fondo de Solidaridad Pensional (1%)", "FONDO_SOLIDARIDAD", Decimal(str(fsp))))
+            
+            ret = getattr(liq, "retencionFuente", None)
+            if ret and Decimal(str(ret)) > 0:
+                deducciones.append(("Retención en la Fuente", "RETENCION_FUENTE", Decimal(str(ret))))
+
+            est = getattr(liq, "otrosDescuentos", None)
+            if est and Decimal(str(est)) > 0:
+                deducciones.append(("Descuento Estampilla", "DESCUENTO_ESTAMPILLA", Decimal(str(est))))
             else:
-                resto_desc = desc - (salud + pension)
+                resto_desc = desc - (salud + pension + (Decimal(str(fsp)) if fsp else Decimal("0")) + (Decimal(str(ret)) if ret else Decimal("0")))
                 if resto_desc > 0:
-                    deducciones.append(("Fondo de Solidaridad Pensional (1%)", "FONDO_SOLIDARIDAD", resto_desc))
+                    deducciones.append(("Descuento Estampilla", "DESCUENTO_ESTAMPILLA", resto_desc))
 
             # Aportes patronales
             ap_salud = getattr(liq, "aportePatronalSalud", None)
@@ -886,7 +895,7 @@ class NominaViewGUI(ctk.CTkFrame):
             ctk.CTkLabel(header_f, text=titulo, font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=color_titulo).pack(side="left")
 
             total_sec = sum((it[2] for it in items), Decimal("0"))
-            txt_tot_sec = f"$ {int(total_sec):,} COP".replace(",", ".")
+            txt_tot_sec = f"$ {int(round(total_sec)):,} COP".replace(",", ".")
             ctk.CTkLabel(header_f, text=txt_tot_sec, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=color_titulo).pack(side="right")
 
             sep = ctk.CTkFrame(card, height=1, fg_color=Colors.BORDER_SUBTLE)
@@ -897,7 +906,7 @@ class NominaViewGUI(ctk.CTkFrame):
                 row_ibc = ctk.CTkFrame(card, fg_color="transparent")
                 row_ibc.pack(fill="x", padx=12, pady=2)
                 ctk.CTkLabel(row_ibc, text="IBC Seguridad Social (Base Cotización):", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MUTED).pack(side="left")
-                ctk.CTkLabel(row_ibc, text=f"$ {int(base_ibc):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="right")
+                ctk.CTkLabel(row_ibc, text=f"$ {int(round(base_ibc)):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="right")
                 ctk.CTkFrame(card, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
             for nom, _, val in items:
@@ -913,7 +922,7 @@ class NominaViewGUI(ctk.CTkFrame):
                 ).pack(side="left")
 
                 signo = "- " if es_deduccion else ("+ " if not es_patronal else "")
-                val_str = f"{signo}$ {int(val):,} COP".replace(",", ".")
+                val_str = f"{signo}$ {int(round(val)):,} COP".replace(",", ".")
                 color_val = "#EF4444" if es_deduccion else ("#0284C7" if not es_patronal else Colors.TEXT_MUTED)
 
                 ctk.CTkLabel(
