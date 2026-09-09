@@ -1,5 +1,5 @@
 1|DEV-01|Sueldo Básico|DEVENGADO|DEVENGADO|||||||||ACTIVO|||||||1||||||||||||
-2|DEV-02|Bonificación Posgrado|DEVENGADO|DEVENGADO|||||||||ACTIVO|||||||1||||||||||||
+2|DEV-02|Bonificación Posgrado|DEVENGADO|DEVENGADO|||||||||ACTIVO|||||||0||||||||||||
 3|DED-01|Descuento Salud (4%)|DEDUCCION|DEDUCCION|||||||||ACTIVO|||||||0||||||||||||
 4|DED-02|Descuento Pensión (4%)|DEDUCCION|DEDUCCION|||||||||ACTIVO|||||||0||||||||||||
 5|DED-03|Fondo Solidaridad Pensional (1%)|DEDUCCION|DEDUCCION|||||||||ACTIVO|||||||0||||||||||||

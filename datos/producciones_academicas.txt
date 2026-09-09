@@ -1,1 +1,2 @@
-1|1|ARTICULO|Algoritmos Genéticos Aplicados a Tráfico|2023-04-10|IEEE Transactions|||15|||APROBADO||||A1||||||2||||||||1.0|||||||
+1|1|ARTICULO|Algoritmos Genéticos y Grafos Paralelos|2024-05-12|IEEE Transactions|||15|||APROBADO||||A1||||||2||||||||1.0|||||||
+2|3|ARTICULO|Modelos de Optimización en Epidemiología|2023-04-10|Springer Nature|||15|||APROBADO||||A1||||||1||||||||1.0|||||||

@@ -111,7 +111,7 @@ def generar() -> None:
     p_e2 = Persona(idPersona=2, tipoDocumento="CC", numeroDocumento="1065987654", primerNombre="Ana", segundoNombre="María", primerApellido="Gómez", segundoApellido="López", fechaNacimiento=date(2004, 8, 22), direccion="Cra 9 #15-30", telefono="3159876543", correoPersonal="ana@gmail.com", correoInstitucional="agomez@unicesar.edu.co", ciudadResidencia="Valledupar", fechaRegistro=date(2023, 1, 15), estado="ACTIVO")
     p_e3 = Persona(idPersona=3, tipoDocumento="CC", numeroDocumento="1065444555", primerNombre="Juan", segundoNombre="David", primerApellido="Pérez", segundoApellido="Castro", fechaNacimiento=date(2002, 11, 30), direccion="Calle 20 #12-05", telefono="3205556677", correoPersonal="juan@gmail.com", correoInstitucional="jperezc@unicesar.edu.co", ciudadResidencia="Valledupar", fechaRegistro=date(2022, 8, 10), estado="ACTIVO")
 
-    p_p1 = Persona(idPersona=4, tipoDocumento="CC", numeroDocumento="77123456", primerNombre="Adith", segundoNombre="Enrique", primerApellido="Pérez", segundoApellido="Orozco", fechaNacimiento=date(1980, 4, 10), direccion="Av. Universidad", telefono="3104567890", correoPersonal="adith@gmail.com", correoInstitucional="adithperez@unicesar.edu.co", ciudadResidencia="Valledupar", fechaRegistro=date(2010, 2, 1), estado="ACTIVO")
+    p_p1 = Persona(idPersona=4, tipoDocumento="CC", numeroDocumento="79985291", primerNombre="Adith", segundoNombre="Bismarck", primerApellido="Pérez", segundoApellido="Orozco", fechaNacimiento=date(1980, 4, 10), direccion="Campus Sabanas, Dpto. Sistemas", telefono="3104567890", correoPersonal="adith@gmail.com", correoInstitucional="adithperez@unicesar.edu.co", ciudadResidencia="Valledupar", fechaRegistro=date(2010, 2, 1), estado="ACTIVO")
     p_p2 = Persona(idPersona=5, tipoDocumento="CC", numeroDocumento="77987654", primerNombre="Roberto", segundoNombre="Carlos", primerApellido="Martínez", segundoApellido="Díaz", fechaNacimiento=date(1985, 11, 5), direccion="Calle 16 #9-40", telefono="3017654321", correoPersonal="roberto@gmail.com", correoInstitucional="rmartinez@unicesar.edu.co", ciudadResidencia="Valledupar", fechaRegistro=date(2015, 8, 10), estado="ACTIVO")
     p_p3 = Persona(idPersona=6, tipoDocumento="CC", numeroDocumento="77555111", primerNombre="Laura", segundoNombre="Elena", primerApellido="Sánchez", segundoApellido="Vargas", fechaNacimiento=date(1988, 7, 14), direccion="Cra 12 #8-19", telefono="3182223344", correoPersonal="laura@gmail.com", correoInstitucional="lsanchez@unicesar.edu.co", ciudadResidencia="Valledupar", fechaRegistro=date(2018, 1, 20), estado="ACTIVO")
 
@@ -125,9 +125,9 @@ def generar() -> None:
     ]
 
     profesores = [
-        Profesor(idProfesor=1, idPersona=4, codigoProfesor="PROF-001", idProgramaPrincipal=1, fechaVinculacion=date(2010, 2, 1), tipoProfesor=TipoProfesor.PLANTA, categoriaDocente="TITULAR", dedicacion=Dedicacion.TIEMPO_COMPLETO, maximoNivelEstudio="DOCTORADO", tituloProfesional="Ingeniero de Sistemas", areaConocimiento="Estructura de Datos", numeroHorasSemanales=Decimal("40"), puntosSalariales=Decimal("450"), estado="ACTIVO", regimenSalarial="Decreto 1279"),
+        Profesor(idProfesor=1, idPersona=4, codigoProfesor="DOC-5277", idProgramaPrincipal=1, fechaVinculacion=date(2010, 2, 1), tipoProfesor=TipoProfesor.OCASIONAL, categoriaDocente="ASOCIADO", dedicacion=Dedicacion.TIEMPO_COMPLETO, maximoNivelEstudio="DOCTORADO", nivelPosgradoReconocido="DOCTORADO", tituloProfesional="Ingeniero de Sistemas", areaConocimiento="Estructura de Datos e Ingeniería de Software", numeroHorasSemanales=Decimal("40"), puntosSalariales=Decimal("0"), estado="ACTIVO", regimenSalarial="Acuerdo 027"),
         Profesor(idProfesor=2, idPersona=5, codigoProfesor="PROF-002", idProgramaPrincipal=1, fechaVinculacion=date(2020, 1, 15), tipoProfesor=TipoProfesor.CATEDRATICO, categoriaDocente="ASISTENTE", dedicacion=Dedicacion.HORA_CATEDRA, maximoNivelEstudio="MAESTRIA", tituloProfesional="Ingeniero de Sistemas", areaConocimiento="Bases de Datos", numeroHorasSemanales=Decimal("12"), puntosSalariales=Decimal("0"), estado="ACTIVO", regimenSalarial="Acuerdo 027"),
-        Profesor(idProfesor=3, idPersona=6, codigoProfesor="PROF-003", idProgramaPrincipal=2, fechaVinculacion=date(2018, 1, 20), tipoProfesor=TipoProfesor.OCASIONAL, categoriaDocente="ASOCIADO", dedicacion=Dedicacion.TIEMPO_COMPLETO, maximoNivelEstudio="MAESTRIA", tituloProfesional="Enfermera Especialista", areaConocimiento="Salud Pública", numeroHorasSemanales=Decimal("40"), puntosSalariales=Decimal("0"), estado="ACTIVO", regimenSalarial="Acuerdo 027"),
+        Profesor(idProfesor=3, idPersona=6, codigoProfesor="PROF-003", idProgramaPrincipal=2, fechaVinculacion=date(2018, 1, 20), tipoProfesor=TipoProfesor.PLANTA, categoriaDocente="TITULAR", dedicacion=Dedicacion.TIEMPO_COMPLETO, maximoNivelEstudio="DOCTORADO", tituloProfesional="Enfermera Especialista", areaConocimiento="Salud Pública", numeroHorasSemanales=Decimal("40"), puntosSalariales=Decimal("450"), estado="ACTIVO", regimenSalarial="Decreto 1279"),
     ]
 
     administrativos = [
@@ -172,9 +172,9 @@ def generar() -> None:
     ]
 
     contratos = [
-        Contrato(idContrato=1, idPersona=4, numeroContrato="CONT-2026-001", tipoContrato="DOCENTE_PLANTA", fechaInicio=date(2026, 1, 1), fechaFin=date(2026, 12, 31), dedicacion=Dedicacion.TIEMPO_COMPLETO, horasSemanales=Decimal("40"), salarioBase=Decimal("10765800"), estado="ACTIVO"),
-        Contrato(idContrato=2, idPersona=5, numeroContrato="CONT-2026-002", tipoContrato="DOCENTE_CATEDRATICO", fechaInicio=date(2026, 2, 1), fechaFin=date(2026, 6, 30), dedicacion=Dedicacion.HORA_CATEDRA, horasSemanales=Decimal("12"), salarioBase=Decimal("1848000"), estado="ACTIVO"),
-        Contrato(idContrato=3, idPersona=6, numeroContrato="CONT-2026-003", tipoContrato="DOCENTE_OCASIONAL", fechaInicio=date(2026, 1, 15), fechaFin=date(2026, 12, 15), dedicacion=Dedicacion.TIEMPO_COMPLETO, horasSemanales=Decimal("40"), salarioBase=Decimal("3800000"), estado="ACTIVO"),
+        Contrato(idContrato=1, idPersona=4, numeroContrato="CONT-2026-001", tipoContrato="DOCENTE_OCASIONAL", modalidadProfesor="OCASIONAL", fechaInicio=date(2026, 1, 15), fechaFin=date(2026, 12, 15), dedicacion=Dedicacion.TIEMPO_COMPLETO, horasSemanales=Decimal("40"), salarioBase=Decimal("6313763.00"), observaciones="Banco de Bogotá Cta Ahorros #863032983", estado="ACTIVO"),
+        Contrato(idContrato=2, idPersona=5, numeroContrato="CONT-2026-002", tipoContrato="DOCENTE_CATEDRATICO", modalidadProfesor="CATEDRATICO", fechaInicio=date(2026, 2, 1), fechaFin=date(2026, 11, 30), dedicacion=Dedicacion.HORA_CATEDRA, horasSemanales=Decimal("12"), salarioBase=Decimal("1848000"), observaciones="Bancolombia Cta Ahorros #123456789", estado="ACTIVO"),
+        Contrato(idContrato=3, idPersona=6, numeroContrato="CONT-2026-003", tipoContrato="DOCENTE_PLANTA", modalidadProfesor="PLANTA", regimenAplicable="DECRETO_1279", fechaInicio=date(2026, 1, 1), fechaFin=date(2026, 12, 31), dedicacion=Dedicacion.TIEMPO_COMPLETO, horasSemanales=Decimal("40"), salarioBase=Decimal("10765800"), observaciones="Davivienda Cta Ahorros #987654321", estado="ACTIVO"),
     ]
 
     categorias = [
@@ -185,16 +185,17 @@ def generar() -> None:
     ]
 
     factores = [
-        FactorSalarial(idFactor=1, idProfesor=1, tipoFactor=TipoFactor.TITULO_ACADEMICO, nombre="Doctorado en Ciencias Computacionales", puntosReconocidos=Decimal("120"), fechaReconocimiento=date(2015, 6, 1), actoAdministrativo="Res. 102", estado="ACTIVO"),
-        FactorSalarial(idFactor=2, idProfesor=1, tipoFactor=TipoFactor.PRODUCTIVIDAD_ACADEMICA, nombre="Artículo A1 en Revista Indexada Q1", puntosReconocidos=Decimal("15"), fechaReconocimiento=date(2023, 4, 10), actoAdministrativo="Res. 205", estado="ACTIVO"),
+        FactorSalarial(idFactor=1, idProfesor=3, tipoFactor=TipoFactor.TITULO_ACADEMICO, nombre="Doctorado en Ciencias Computacionales", puntosReconocidos=Decimal("120"), fechaReconocimiento=date(2015, 6, 1), actoAdministrativo="Res. 102", estado="ACTIVO"),
+        FactorSalarial(idFactor=2, idProfesor=3, tipoFactor=TipoFactor.PRODUCTIVIDAD_ACADEMICA, nombre="Artículo A1 en Revista Indexada Q1", puntosReconocidos=Decimal("15"), fechaReconocimiento=date(2023, 4, 10), actoAdministrativo="Res. 205", estado="ACTIVO"),
     ]
 
     producciones = [
-        ProduccionAcademica(idProduccion=1, idProfesor=1, tipoProduccion="ARTICULO", titulo="Algoritmos Genéticos Aplicados a Tráfico", fechaPublicacion=date(2023, 4, 10), entidadPublicadora="IEEE Transactions", clasificacionRevista="A1", puntosReconocidos=Decimal("15"), numeroAutores=2, factorCoautoria=Decimal("1.0"), estadoValidacion="APROBADO"),
+        ProduccionAcademica(idProduccion=1, idProfesor=1, tipoProduccion="ARTICULO", titulo="Algoritmos Genéticos y Grafos Paralelos", fechaPublicacion=date(2024, 5, 12), entidadPublicadora="IEEE Transactions", clasificacionRevista="A1", puntosReconocidos=Decimal("15"), numeroAutores=2, factorCoautoria=Decimal("1.0"), estadoValidacion="APROBADO"),
+        ProduccionAcademica(idProduccion=2, idProfesor=3, tipoProduccion="ARTICULO", titulo="Modelos de Optimización en Epidemiología", fechaPublicacion=date(2023, 4, 10), entidadPublicadora="Springer Nature", clasificacionRevista="A1", puntosReconocidos=Decimal("15"), numeroAutores=1, factorCoautoria=Decimal("1.0"), estadoValidacion="APROBADO"),
     ]
 
     periodos_nomina = [
-        PeriodoNomina(idPeriodoNomina=1, anio=2026, mes=3, fechaInicio=date(2026, 3, 1), fechaFin=date(2026, 3, 31), estado="ABIERTO"),
+        PeriodoNomina(idPeriodoNomina=1, anio=2026, mes=8, fechaInicio=date(2026, 8, 1), fechaFin=date(2026, 8, 31), fechaPago=date(2026, 8, 31), diasBaseLiquidacion=30, estado="ABIERTO"),
     ]
 
     parametros = [
@@ -222,7 +223,7 @@ def generar() -> None:
 
     conceptos = [
         ConceptoNomina(idConcepto=1, codigo="DEV-01", nombre="Sueldo Básico", tipoConcepto="DEVENGADO", naturaleza="DEVENGADO", esSalarial=True, estado="ACTIVO"),
-        ConceptoNomina(idConcepto=2, codigo="DEV-02", nombre="Bonificación Posgrado", tipoConcepto="DEVENGADO", naturaleza="DEVENGADO", esSalarial=True, estado="ACTIVO"),
+        ConceptoNomina(idConcepto=2, codigo="DEV-02", nombre="Bonificación Posgrado", tipoConcepto="DEVENGADO", naturaleza="DEVENGADO", esSalarial=False, estado="ACTIVO"),
         ConceptoNomina(idConcepto=3, codigo="DED-01", nombre="Descuento Salud (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
         ConceptoNomina(idConcepto=4, codigo="DED-02", nombre="Descuento Pensión (4%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
         ConceptoNomina(idConcepto=5, codigo="DED-03", nombre="Fondo Solidaridad Pensional (1%)", tipoConcepto="DEDUCCION", naturaleza="DEDUCCION", esSalarial=False, estado="ACTIVO"),
@@ -248,15 +249,14 @@ def generar() -> None:
         factores=factores,
         producciones=producciones,
     )
-    gestor_nom.liquidarProfesorPlanta(id_contrato=1, id_periodo_nomina=1, fecha_liquidacion=date(2026, 9, 6))
-    gestor_nom.liquidarProfesorCatedratico(id_contrato=2, id_periodo_nomina=1, fecha_liquidacion=date(2026, 9, 6))
-    gestor_nom.liquidarProfesorOcasional(id_contrato=3, id_periodo_nomina=1, fecha_liquidacion=date(2026, 9, 6))
+    gestor_nom.liquidarProfesorOcasional(id_contrato=1, id_periodo_nomina=1, fecha_liquidacion=date(2026, 8, 31))
+    gestor_nom.liquidarProfesorCatedratico(id_contrato=2, id_periodo_nomina=1, fecha_liquidacion=date(2026, 8, 31))
+    gestor_nom.liquidarProfesorPlanta(id_contrato=3, id_periodo_nomina=1, fecha_liquidacion=date(2026, 8, 31))
 
     liquidaciones = gestor_nom.liquidaciones
     detalles_liq = gestor_nom.detalles_liquidacion
 
-    gp = GestorPersistencia("datos")
-    gp.guardar_todos_los_datos({
+    diccionario_datos = {
         Universidad: [uni],
         Facultad: facultades,
         ProgramaAcademico: programas,
@@ -286,8 +286,12 @@ def generar() -> None:
         ConceptoNomina: conceptos,
         DetalleLiquidacion: detalles_liq,
         ParametroNormativo: parametros,
-    })
-    print("¡Persistencia limpia generada con éxito!")
+    }
+
+    for dir_nombre in ["datos", "cpp/datos"]:
+        gp = GestorPersistencia(dir_nombre)
+        gp.guardar_todos_los_datos(diccionario_datos)
+        print(f"¡Persistencia limpia generada con éxito en '{dir_nombre}/'!")
 
 
 if __name__ == "__main__":
