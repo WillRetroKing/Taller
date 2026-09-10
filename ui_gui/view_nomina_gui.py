@@ -53,7 +53,7 @@ class NominaViewGUI(ctk.CTkFrame):
         )
         btn_periodo.pack(side="left", padx=4)
 
-        btn_indiv = ctk.CTkButton(
+        self.btn_indiv = ctk.CTkButton(
             h_btns,
             text="👤 Liquidar Empleado",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
@@ -63,9 +63,9 @@ class NominaViewGUI(ctk.CTkFrame):
             corner_radius=8,
             command=self._abrir_modal_liquidar_individual,
         )
-        btn_indiv.pack(side="left", padx=4)
+        self.btn_indiv.pack(side="left", padx=4)
 
-        btn_liquidar_todos = ctk.CTkButton(
+        self.btn_liquidar_todos = ctk.CTkButton(
             h_btns,
             text="⚙️ Liquidar Periodo Completo",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
@@ -75,7 +75,7 @@ class NominaViewGUI(ctk.CTkFrame):
             corner_radius=8,
             command=self._ejecutar_liquidacion_general,
         )
-        btn_liquidar_todos.pack(side="left", padx=4)
+        self.btn_liquidar_todos.pack(side="left", padx=4)
 
         # Barra de Selección y Filtro de Período Activo
         filter_bar = ctk.CTkFrame(self, fg_color="transparent")
@@ -130,26 +130,49 @@ class NominaViewGUI(ctk.CTkFrame):
             return self.controller.liquidaciones
         return [l for l in self.controller.liquidaciones if getattr(l, "idPeriodoNomina", None) == self.periodo_seleccionado_id]
 
+    def _es_periodo_cerrado(self, periodo: Any) -> bool:
+        if not periodo:
+            return False
+        if getattr(periodo, "estaCerrado", False) is True:
+            return True
+        est = str(getattr(periodo, "estado", "")).upper()
+        return est in ("CERRADO", "AUDITADO", "FINALIZADO") or (est != "" and est not in ("ABIERTO", "EN_PROCESO"))
+
+    def _actualizar_estado_botones_periodo(self, per: Any) -> None:
+        es_cerr = self._es_periodo_cerrado(per)
+        if hasattr(self, "lbl_estado_periodo"):
+            if not per:
+                self.lbl_estado_periodo.configure(text="")
+            elif not es_cerr:
+                self.lbl_estado_periodo.configure(text="● PERÍODO EN PROCESO (ABIERTO)", text_color="#10B981")
+            else:
+                self.lbl_estado_periodo.configure(text="🔒 PERÍODO CERRADO / AUDITADO", text_color="#EF4444")
+
+        if hasattr(self, "btn_indiv"):
+            if es_cerr:
+                self.btn_indiv.configure(state="disabled", fg_color="#475569")
+            else:
+                self.btn_indiv.configure(state="normal", fg_color="#2563EB")
+
+        if hasattr(self, "btn_liquidar_todos"):
+            if es_cerr:
+                self.btn_liquidar_todos.configure(state="disabled", fg_color="#475569")
+            else:
+                self.btn_liquidar_todos.configure(state="normal", fg_color="#0067C0")
+
     def _cambiar_periodo_filtro(self, seleccion: str) -> None:
+        per = None
         if seleccion == "Todos los Períodos" or not seleccion:
             self.periodo_seleccionado_id = None
-            if hasattr(self, "lbl_estado_periodo"):
-                self.lbl_estado_periodo.configure(text="")
         else:
             try:
                 p_id = int(seleccion.split(" - ")[0].replace("#", "").strip())
                 self.periodo_seleccionado_id = p_id
                 per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == p_id), None)
-                if per and hasattr(self, "lbl_estado_periodo"):
-                    est = str(getattr(per, "estado", "ABIERTO")).upper()
-                    if est == "ABIERTO":
-                        self.lbl_estado_periodo.configure(text="● PERÍODO EN PROCESO (ABIERTO)", text_color="#10B981")
-                    else:
-                        self.lbl_estado_periodo.configure(text="🔒 PERÍODO CERRADO / AUDITADO", text_color="#EF4444")
             except Exception:
                 self.periodo_seleccionado_id = None
-                if hasattr(self, "lbl_estado_periodo"):
-                    self.lbl_estado_periodo.configure(text="")
+
+        self._actualizar_estado_botones_periodo(per)
 
         self._crear_tarjetas_kpi()
         self._llenar_tab_liquidaciones()
@@ -266,7 +289,7 @@ class NominaViewGUI(ctk.CTkFrame):
             badge_tuple = ("badge", tipo_label, b_type)
 
             per_liq = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == getattr(liq, "idPeriodoNomina", None)), None)
-            es_cerrado = bool(per_liq and (getattr(per_liq, "estaCerrado", False) or str(getattr(per_liq, "estado", "")).upper() == "CERRADO"))
+            es_cerrado = self._es_periodo_cerrado(per_liq)
 
             acciones_list: list[tuple[Any, ...]] = [
                 ("📋 Desglose", lambda l_id=liq.idLiquidacion: self._abrir_modal_detalle_liquidacion(l_id), "#6366F1", "#4F46E5", 85, 28),
@@ -1132,7 +1155,7 @@ class NominaViewGUI(ctk.CTkFrame):
         footer_modal.pack(fill="x", padx=16, pady=(0, 12))
 
         per_obj = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == getattr(liq, "idPeriodoNomina", None)), None)
-        es_cerr = bool(per_obj and (getattr(per_obj, "estaCerrado", False) or str(getattr(per_obj, "estado", "")).upper() == "CERRADO"))
+        es_cerr = self._es_periodo_cerrado(per_obj)
         if not es_cerr and not getattr(liq, "pagada", False) and str(getattr(liq, "estadoLiquidacion", "")).upper() != "PAGADA":
             def _hacer_reliquidacion():
                 dialog.destroy()
@@ -1240,8 +1263,9 @@ class NominaViewGUI(ctk.CTkFrame):
         liq = next((l for l in self.controller.liquidaciones if l.idLiquidacion == id_liquidacion), None)
         if liq:
             per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == liq.idPeriodoNomina), None)
-            if per and (getattr(per, "estaCerrado", False) or str(getattr(per, "estado", "")).upper() == "CERRADO"):
-                # No se puede anular una liquidación de un período cerrado contablemente
+            if self._es_periodo_cerrado(per):
+                from tkinter import messagebox
+                messagebox.showwarning("Período Cerrado", "No se puede anular una liquidación de un período cerrado contablemente y auditado.")
                 return
         self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idLiquidacion != id_liquidacion]
         self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) != id_liquidacion]
@@ -1250,6 +1274,13 @@ class NominaViewGUI(ctk.CTkFrame):
         self.actualizar()
 
     def _reliquidar_accion(self, id_liquidacion: int) -> None:
+        liq = next((l for l in self.controller.liquidaciones if l.idLiquidacion == id_liquidacion), None)
+        if liq:
+            per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == liq.idPeriodoNomina), None)
+            if self._es_periodo_cerrado(per):
+                from tkinter import messagebox
+                messagebox.showwarning("Período Cerrado", "No se puede reliquidar en un período cerrado y auditado.")
+                return
         try:
             self.controller.gestor_nomina.ciclo_vida.reliquidar(id_liquidacion)
             self.controller._recrear_gestores()
@@ -1363,17 +1394,8 @@ class NominaViewGUI(ctk.CTkFrame):
         if hasattr(self, "combo_periodo_filtro"):
             self.combo_periodo_filtro.configure(values=opciones)
             self.combo_periodo_filtro.set(val_actual)
-            if self.periodo_seleccionado_id:
-                per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == self.periodo_seleccionado_id), None)
-                if per and hasattr(self, "lbl_estado_periodo"):
-                    est = str(getattr(per, "estado", "ABIERTO")).upper()
-                    if est == "ABIERTO":
-                        self.lbl_estado_periodo.configure(text="● PERÍODO EN PROCESO (ABIERTO)", text_color="#10B981")
-                    else:
-                        self.lbl_estado_periodo.configure(text="🔒 PERÍODO CERRADO / AUDITADO", text_color="#EF4444")
-            else:
-                if hasattr(self, "lbl_estado_periodo"):
-                    self.lbl_estado_periodo.configure(text="")
+            per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == self.periodo_seleccionado_id), None) if self.periodo_seleccionado_id else None
+            self._actualizar_estado_botones_periodo(per)
 
         self._crear_tarjetas_kpi()
         self._llenar_tab_liquidaciones()
