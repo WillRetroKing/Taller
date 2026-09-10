@@ -662,29 +662,42 @@ LiquidacionNomina CicloVidaNomina::reliquidar(int idLiquidacion) {
 
     std::string fechaLiq = orig.fechaLiquidacion.value_or("");
 
+    std::string estadoPrevio = orig.estado.value_or("PROCESADA");
+    bool requierePrevio = orig.requiereReliquidacion.value_or(false);
+    std::string motivoPrevio = orig.motivoReliquidacion.value_or("");
+
+    orig.estado = "RELIQUIDADA";
+    orig.requiereReliquidacion = true;
+    orig.motivoReliquidacion = "Reliquidacion version " + std::to_string(nuevaVersion) + " solicitada";
+
     LiquidacionNomina nueva;
-    if (!orig.tipoProfesorLiquidado.has_value() ||
-        (orig.regimenLiquidado.has_value() &&
-         (orig.regimenLiquidado->find("ADMINISTRATIVO") != std::string::npos || orig.regimenLiquidado->find("CST") != std::string::npos))) {
-        nueva = gestor.liquidadorAdministrativo.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
-    } else {
-        TipoProfesor tipo = *orig.tipoProfesorLiquidado;
-        if (tipo == TipoProfesor::PLANTA) {
-            nueva = gestor.liquidadorPlanta.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
-        } else if (tipo == TipoProfesor::OCASIONAL) {
-            double horasInc = orig.horasIncumplidas.value_or(0.0);
-            nueva = gestor.liquidadorOcasional.liquidar(*orig.idContrato, *orig.idPeriodoNomina, horasInc, fechaLiq);
-        } else if (tipo == TipoProfesor::CATEDRATICO) {
-            nueva = gestor.liquidadorCatedratico.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
+    try {
+        if (!orig.tipoProfesorLiquidado.has_value() ||
+            (orig.regimenLiquidado.has_value() &&
+             (orig.regimenLiquidado->find("ADMINISTRATIVO") != std::string::npos || orig.regimenLiquidado->find("CST") != std::string::npos))) {
+            nueva = gestor.liquidadorAdministrativo.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
         } else {
-            throw ErrorNomina("Tipo de vinculacion no soportado para reliquidacion");
+            TipoProfesor tipo = *orig.tipoProfesorLiquidado;
+            if (tipo == TipoProfesor::PLANTA) {
+                nueva = gestor.liquidadorPlanta.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
+            } else if (tipo == TipoProfesor::OCASIONAL) {
+                double horasInc = orig.horasIncumplidas.value_or(0.0);
+                nueva = gestor.liquidadorOcasional.liquidar(*orig.idContrato, *orig.idPeriodoNomina, horasInc, fechaLiq);
+            } else if (tipo == TipoProfesor::CATEDRATICO) {
+                nueva = gestor.liquidadorCatedratico.liquidar(*orig.idContrato, *orig.idPeriodoNomina, fechaLiq);
+            } else {
+                throw ErrorNomina("Tipo de vinculacion no soportado para reliquidacion");
+            }
         }
+    } catch (...) {
+        orig.estado = estadoPrevio;
+        orig.requiereReliquidacion = requierePrevio;
+        orig.motivoReliquidacion = motivoPrevio;
+        throw;
     }
 
     nueva.version = nuevaVersion;
     nueva.liquidacionOrigen = idLiquidacion;
-    orig.requiereReliquidacion = true;
-    orig.motivoReliquidacion = "Reliquidacion version " + std::to_string(nuevaVersion) + " solicitada";
 
     gestor.eliminarDetallesVersion(idLiquidacion);
     return nueva;
@@ -908,7 +921,8 @@ void GestorNomina::evitarLiquidacionDuplicadaVersion(int idContrato, int idPerio
 ListaEnlazada<LiquidacionNomina> GestorNomina::liquidacionesPeriodo(int idPeriodoNomina) {
     ListaEnlazada<LiquidacionNomina> res;
     for (const auto& l : liquidaciones) {
-        if (l.idPeriodoNomina.has_value() && *l.idPeriodoNomina == idPeriodoNomina) {
+        if (l.idPeriodoNomina.has_value() && *l.idPeriodoNomina == idPeriodoNomina &&
+            (!l.estado.has_value() || *l.estado != "RELIQUIDADA")) {
             res.push_back(l);
         }
     }

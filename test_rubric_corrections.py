@@ -110,5 +110,61 @@ class TestRubricCorrections(unittest.TestCase):
         self.assertEqual(caja, Decimal("70036.20"))
 
 
+    def test_reliquidacion_ciclo_vida_sin_error_duplicado(self):
+        """Verifica que reliquidar una liquidación existente funcione correctamente sin arrojar error de duplicado."""
+        prof_ocasional = Profesor(
+            idProfesor=200,
+            idPersona=200,
+            tipoProfesor="OCASIONAL",
+            categoriaDocente="ASISTENTE",
+            dedicacion="TIEMPO_COMPLETO",
+            estado="ACTIVO",
+        )
+        contrato_ocasional = Contrato(
+            idContrato=200,
+            idPersona=200,
+            modalidadProfesor="OCASIONAL",
+            dedicacion="TIEMPO_COMPLETO",
+            fechaInicio=date(2026, 1, 1),
+            fechaFin=date(2026, 12, 31),
+            estado="ACTIVO",
+        )
+        periodo = PeriodoNomina(
+            idPeriodoNomina=200,
+            anio=2026,
+            mes=4,
+            fechaInicio=date(2026, 4, 1),
+            fechaFin=date(2026, 4, 30),
+            estado="ABIERTO",
+        )
+        gestor = GestorNomina(
+            contratos=[contrato_ocasional],
+            profesores=[prof_ocasional],
+            periodos_nomina=[periodo],
+            parametros=self.parametros,
+        )
+
+        liq_orig = gestor.liquidarProfesorOcasional(200, 200, fecha_liquidacion=date(2026, 4, 30))
+        self.assertEqual(liq_orig.estado, "PROCESADA")
+        self.assertEqual(liq_orig.version, None)
+
+        # Reliquidar
+        liq_nueva = gestor.ciclo_vida.reliquidar(liq_orig.idLiquidacion)
+
+        # La original debe quedar marcada como RELIQUIDADA y requerir reliquidación
+        self.assertEqual(liq_orig.estado, "RELIQUIDADA")
+        self.assertTrue(liq_orig.requiereReliquidacion)
+
+        # La nueva debe ser versión 1, apuntar al origen y estar PROCESADA
+        self.assertEqual(liq_nueva.version, 1)
+        self.assertEqual(liq_nueva.liquidacionOrigen, liq_orig.idLiquidacion)
+        self.assertEqual(liq_nueva.estado, "PROCESADA")
+
+        # El período debe contener solo la liquidación activa en liquidacionesPeriodo
+        liqs_activas = gestor._liquidaciones_periodo(200)
+        self.assertIn(liq_nueva, liqs_activas)
+        self.assertNotIn(liq_orig, liqs_activas)
+
+
 if __name__ == "__main__":
     unittest.main()

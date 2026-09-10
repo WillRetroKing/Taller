@@ -3,6 +3,6 @@
 3|CC|1065444555|Juan|David|Pérez|Castro|2002-11-30|Calle 20 #12-05|3205556677|juan@gmail.com|jperezc@unicesar.edu.co|Valledupar|2022-08-10|ACTIVO
 4|CC|79985291|Adith|Bismarck|Pérez|Orozco|1980-04-10|Campus Sabanas, Dpto. Sistemas|3104567890|adith@gmail.com|adithperez@unicesar.edu.co|Valledupar|2010-02-01|ACTIVO
 5|CC|77987654|Roberto|Carlos|Martínez|Díaz|1985-11-05|Calle 16 #9-40|3017654321|roberto@gmail.com|rmartinez@unicesar.edu.co|Valledupar|2015-08-10|ACTIVO
-6|CC|77555111|Laura|Elena|Sánchez|Vargas|1988-07-14|Cra 12 #8-19|3182223344|laura@gmail.com|lsanchez@unicesar.edu.co|Valledupar|2018-01-20|ACTIVO
+6|CC|77555111|Laura|Elena|Sánchez|Vargas|1988-07-14||3182223344||lsanchez@unicesar.edu.co||2018-01-20|ACTIVO
 7|CC|49777888|María|Fernanda|Torres|Suárez|1982-02-28|Calle 8 #14-22|3004445566|mfer@gmail.com|mtorres@unicesar.edu.co|Valledupar|2012-05-01|ACTIVO
 8|CC|1065999888|Carlos|Alberto|Mendoza|Guerra|1983-04-12|Calle 15 #10-20|3115554433|cmendoza@gmail.com|cmendoza@unicesar.edu.co|Valledupar|2026-08-01|ACTIVO

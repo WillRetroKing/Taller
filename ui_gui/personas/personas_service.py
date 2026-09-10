@@ -202,6 +202,7 @@ class PersonasService:
             est.estadoAcademico = EstadoAcademico.EBRA
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
 
     def actualizar_profesor(self, prof: Profesor, pers: Persona | None, datos_p: dict[str, Any], datos_pr: dict[str, Any]) -> None:
         if pers:
@@ -215,7 +216,25 @@ class PersonasService:
         prof.maximoNivelEstudio = datos_pr["maximoNivelEstudio"]
         prof.tituloProfesional = datos_pr["tituloProfesional"]
         prof.areaConocimiento = datos_pr["areaConocimiento"]
+
+        # Sincronizar automáticamente el salario base del contrato activo si es docente de planta
+        if "PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper():
+            val_pto = Decimal("23924")
+            p_val = next((p for p in self.controller.parametros if p.codigo == "VALOR_PUNTO_SALARIAL"), None)
+            if p_val and p_val.valor:
+                try:
+                    val_pto = Decimal(str(p_val.valor))
+                except Exception:
+                    pass
+            for c in self.controller.contratos:
+                if c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO":
+                    f_ded = Decimal("0.5") if "MEDIO" in str(getattr(c, "dedicacion", "")).upper() else Decimal("1")
+                    c.salarioBase = (Decimal(str(prof.puntosSalariales or 0)) * val_pto * f_ded).quantize(Decimal("1"))
+                    c.salarioMensualPactado = c.salarioBase
+                    break
+
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
 
     def actualizar_administrativo(self, adm: Administrativo, pers: Persona | None, datos_p: dict[str, Any], datos_a: dict[str, Any]) -> None:
         if pers:
@@ -236,6 +255,7 @@ class PersonasService:
                 break
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
 
     # ------------------------------------------------------------------
     # ACTIVACIÓN Y DESACTIVACIÓN DE ESTADOS

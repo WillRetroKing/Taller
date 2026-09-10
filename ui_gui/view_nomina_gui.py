@@ -127,8 +127,12 @@ class NominaViewGUI(ctk.CTkFrame):
 
     def _obtener_liquidaciones_filtradas(self) -> list[Any]:
         if not self.periodo_seleccionado_id or self.periodo_seleccionado_id == 0:
-            return self.controller.liquidaciones
-        return [l for l in self.controller.liquidaciones if getattr(l, "idPeriodoNomina", None) == self.periodo_seleccionado_id]
+            return [l for l in self.controller.liquidaciones if getattr(l, "estado", "") != "RELIQUIDADA"]
+        return [
+            l for l in self.controller.liquidaciones
+            if getattr(l, "idPeriodoNomina", None) == self.periodo_seleccionado_id
+            and getattr(l, "estado", "") != "RELIQUIDADA"
+        ]
 
     def _es_periodo_cerrado(self, periodo: Any) -> bool:
         if not periodo:
@@ -301,8 +305,11 @@ class NominaViewGUI(ctk.CTkFrame):
 
             act_spec = ("actions", acciones_list)
 
+            v_num = getattr(liq, "version", 0) or 0
+            v_badge = f" [v{v_num}]" if v_num > 0 else ""
+
             cells = [
-                (nom_prof, "#F8FAFC"),
+                (f"{nom_prof}{v_badge}", "#F8FAFC"),
                 badge_tuple,
                 sueldo_fmt,
                 (dev_fmt, "#38BDF8"),
@@ -801,9 +808,12 @@ class NominaViewGUI(ctk.CTkFrame):
             text_color=Colors.TEXT_MUTED,
         ).pack(anchor="w", padx=14, pady=(0, 2))
 
+        v_num = getattr(liq, "version", 0) or 0
+        v_badge_txt = f"  •  [Versión {v_num} - Reliquidada]" if v_num > 0 else ""
+
         ctk.CTkLabel(
             header_card,
-            text=f"📅 Período Liquidado: {txt_periodo_full}",
+            text=f"📅 Período Liquidado: {txt_periodo_full}{v_badge_txt}",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             text_color=Colors.WIN_BLUE,
         ).pack(anchor="w", padx=14, pady=(0, 10))
@@ -1047,8 +1057,30 @@ class NominaViewGUI(ctk.CTkFrame):
         if prest_val > 0:
             row_pr = ctk.CTkFrame(card_costo, fg_color="transparent")
             row_pr.pack(fill="x", padx=12, pady=3)
-            ctk.CTkLabel(row_pr, text="Provisión Prestaciones Sociales (Cesantías, Primas, Vac.)", font=ctk.CTkFont(family="Segoe UI", size=11), text_color=Colors.TEXT_MUTED).pack(side="left")
-            ctk.CTkLabel(row_pr, text=f"$ {int(prest_val):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11), text_color=Colors.TEXT_MUTED).pack(side="right")
+            ctk.CTkLabel(row_pr, text="Provisión Prestaciones Sociales:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left")
+            ctk.CTkLabel(row_pr, text=f"$ {int(prest_val):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color="#F59E0B").pack(side="right")
+
+            sub_prest = []
+            if getattr(liq, "provisionCesantias", None):
+                sub_prest.append(("  • Cesantías (Art. Decreto 1279)", liq.provisionCesantias))
+            if getattr(liq, "provisionInteresesCesantias", None):
+                sub_prest.append(("  • Intereses sobre Cesantías (1% mensual / 12% anual)", liq.provisionInteresesCesantias))
+            if getattr(liq, "provisionPrimaServicios", None):
+                sub_prest.append(("  • Prima de Servicios (8.33%)", liq.provisionPrimaServicios))
+            if getattr(liq, "provisionPrimaNavidad", None):
+                sub_prest.append(("  • Prima de Navidad (Dec. 1279)", liq.provisionPrimaNavidad))
+            if getattr(liq, "provisionVacaciones", None):
+                sub_prest.append(("  • Vacaciones (Base salarial enriquecida)", liq.provisionVacaciones))
+            if getattr(liq, "provisionPrimaVacaciones", None):
+                sub_prest.append(("  • Prima de Vacaciones (Dec. 1279 / Base 540)", liq.provisionPrimaVacaciones))
+            if getattr(liq, "bonificacionServiciosPrestados", None):
+                sub_prest.append(("  • Bonificación de Servicios Prestados (Dec. 1279)", liq.bonificacionServiciosPrestados))
+
+            for s_nom, s_val in sub_prest:
+                row_sub = ctk.CTkFrame(card_costo, fg_color="transparent")
+                row_sub.pack(fill="x", padx=16, pady=1)
+                ctk.CTkLabel(row_sub, text=s_nom, font=ctk.CTkFont(family="Segoe UI", size=10), text_color=Colors.TEXT_MUTED).pack(side="left")
+                ctk.CTkLabel(row_sub, text=f"$ {int(round(s_val)):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=10), text_color=Colors.TEXT_MUTED).pack(side="right")
 
         ctk.CTkFrame(card_costo, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
@@ -1282,10 +1314,14 @@ class NominaViewGUI(ctk.CTkFrame):
                 messagebox.showwarning("Período Cerrado", "No se puede reliquidar en un período cerrado y auditado.")
                 return
         try:
-            self.controller.gestor_nomina.ciclo_vida.reliquidar(id_liquidacion)
+            nueva = self.controller.gestor_nomina.ciclo_vida.reliquidar(id_liquidacion)
+            self.controller.liquidaciones = list(self.controller.gestor_nomina.liquidaciones)
+            self.controller.detalles_liquidacion = list(self.controller.gestor_nomina.detalles_liquidacion)
             self.controller._recrear_gestores()
             self.controller.guardar_datos()
             self.actualizar()
+            from tkinter import messagebox
+            messagebox.showinfo("Reliquidación Exitosa", f"Se reliquidó correctamente la liquidación #{id_liquidacion}.\n\nSe generó la nueva liquidación #{nueva.idLiquidacion} (Versión {nueva.version or 1}) con los cálculos actualizados.")
         except Exception as err:
             from tkinter import messagebox
             messagebox.showerror("Error al reliquidar", f"No se pudo reliquidar: {err}")

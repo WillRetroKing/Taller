@@ -309,7 +309,7 @@ class GestorNomina:
                 raise ErrorNomina("Ya existe una versión de liquidación para ese contrato y periodo")
 
     def _liquidaciones_periodo(self, id_periodo_nomina: int | None) -> list[LiquidacionNomina]:
-        return [item for item in self.liquidaciones if item.idPeriodoNomina == id_periodo_nomina]
+        return [item for item in self.liquidaciones if item.idPeriodoNomina == id_periodo_nomina and item.estado != "RELIQUIDADA"]
 
     def _total_periodo(self, id_periodo_nomina: int | None, campo: str) -> Decimal:
         return self._redondear(sum((getattr(item, campo) or self.CERO for item in self._liquidaciones_periodo(id_periodo_nomina)), self.CERO))
@@ -337,6 +337,10 @@ class GestorNomina:
             {"AUXILIAR": Decimal("37"), "ASISTENTE": Decimal("58"), "ASOCIADO": Decimal("74"), "TITULAR": Decimal("96")}.get(cat_str, Decimal("0")),
         )
 
+        pts_guardados = Decimal(str(profesor.puntosSalariales or self.CERO))
+        if pts_guardados > self.CERO:
+            return pts_guardados
+
         codigos_categoria = {str(profesor.categoriaDocente or "").upper(), str(profesor.categoriaReconocida or "").upper()}
         tiene_categoria = any(categoria.idCategoria == profesor.idCategoriaDocente or str(getattr(categoria.codigo, "value", categoria.codigo or "")).upper() in codigos_categoria for categoria in self.categorias)
         tiene_posgrado = bool(profesor.nivelPosgradoReconocido or profesor.maximoNivelEstudio)
@@ -347,9 +351,6 @@ class GestorNomina:
             fecha = periodo.fechaFin or periodo.fechaInicio or date.today()
             pts_calculados = GestorFactores(self.categorias, self.factores, self.producciones, self.profesores).calcular_puntos_profesor(profesor.idProfesor, fecha)
 
-        pts_guardados = Decimal(str(profesor.puntosSalariales or self.CERO))
-        if pts_guardados > self.CERO:
-            return pts_guardados
         return max(pts_escalafon, pts_calculados)
 
     def _parametro_decimal(self, codigo: str, fecha: date | None = None) -> Decimal | None:
@@ -412,4 +413,4 @@ class GestorNomina:
             )
 
     def _eliminar_detalles_version(self, id_liquidacion_original: int) -> None:
-        self.detalles_liquidacion = [d for d in self.detalles_liquidacion if d.idLiquidacion != id_liquidacion_original]
+        self.detalles_liquidacion[:] = [d for d in self.detalles_liquidacion if d.idLiquidacion != id_liquidacion_original]

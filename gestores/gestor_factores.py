@@ -188,12 +188,15 @@ class GestorFactores:
         puntos_produccion = sum((self._puntos_produccion(produccion, fecha) for produccion in self.producciones if produccion.idProfesor == id_profesor), Decimal("0"))
 
         total = puntos_categoria + puntos_factores + puntos_produccion
-        profesor.puntosSalariales = total
+        if profesor.puntosSalariales is None or profesor.puntosSalariales == Decimal("0"):
+            profesor.puntosSalariales = total
         return total
 
     def _actualizar_puntos_profesor(self, id_profesor: int | None) -> None:
-        if id_profesor is not None and any(item.idProfesor == id_profesor for item in self.profesores):
-            self.calcular_puntos_profesor(id_profesor)
+        if id_profesor is not None:
+            prof = next((item for item in self.profesores if item.idProfesor == id_profesor), None)
+            if prof is not None:
+                prof.puntosSalariales = self.calcular_puntos_profesor(id_profesor)
 
     def _categoria_vigente(self, profesor: Profesor, fecha: date) -> CategoriaDocente | None:
         codigos = {str(profesor.categoriaDocente or "").upper(), str(profesor.categoriaReconocida or "").upper()}

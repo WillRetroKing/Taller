@@ -126,30 +126,44 @@ class CicloVidaNomina:
         tipo = liquidacion_original.tipoProfesorLiquidado
         fecha_liq = liquidacion_original.fechaLiquidacion
 
-        if tipo == TipoProfesor.PLANTA:
-            nueva = self.gestor.liquidador_planta.liquidar(
-                liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
-            )
-        elif tipo == TipoProfesor.OCASIONAL:
-            horas_inc = liquidacion_original.horasIncumplidas or self.CERO
-            nueva = self.gestor.liquidador_ocasional.liquidar(
-                liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, horas_incumplidas=horas_inc, fecha_liquidacion=fecha_liq
-            )
-        elif tipo == TipoProfesor.CATEDRATICO:
-            nueva = self.gestor.liquidador_catedratico.liquidar(
-                liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
-            )
-        elif tipo is None or "ADMINISTRATIVO" in str(liquidacion_original.regimenLiquidado or "").upper() or "CST" in str(liquidacion_original.regimenLiquidado or "").upper():
-            nueva = self.gestor.liquidador_administrativo.liquidar(
-                liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
-            )
-        else:
-            raise ErrorNomina("Tipo de profesor no soportado para reliquidación")
+        estado_previo = liquidacion_original.estado
+        requiere_previo = liquidacion_original.requiereReliquidacion
+        motivo_previo = liquidacion_original.motivoReliquidacion
+
+        # Marcar como RELIQUIDADA antes del cálculo para que _evitar_liquidacion_duplicada
+        # no bloquee la creación de la nueva versión.
+        liquidacion_original.estado = "RELIQUIDADA"
+        liquidacion_original.requiereReliquidacion = True
+        liquidacion_original.motivoReliquidacion = f"Reliquidación version {nueva_version} solicitada"
+
+        try:
+            if tipo == TipoProfesor.PLANTA:
+                nueva = self.gestor.liquidador_planta.liquidar(
+                    liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
+                )
+            elif tipo == TipoProfesor.OCASIONAL:
+                horas_inc = liquidacion_original.horasIncumplidas or self.CERO
+                nueva = self.gestor.liquidador_ocasional.liquidar(
+                    liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, horas_incumplidas=horas_inc, fecha_liquidacion=fecha_liq
+                )
+            elif tipo == TipoProfesor.CATEDRATICO:
+                nueva = self.gestor.liquidador_catedratico.liquidar(
+                    liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
+                )
+            elif tipo is None or "ADMINISTRATIVO" in str(liquidacion_original.regimenLiquidado or "").upper() or "CST" in str(liquidacion_original.regimenLiquidado or "").upper():
+                nueva = self.gestor.liquidador_administrativo.liquidar(
+                    liquidacion_original.idContrato, liquidacion_original.idPeriodoNomina, fecha_liquidacion=fecha_liq
+                )
+            else:
+                raise ErrorNomina("Tipo de profesor no soportado para reliquidación")
+        except Exception:
+            liquidacion_original.estado = estado_previo
+            liquidacion_original.requiereReliquidacion = requiere_previo
+            liquidacion_original.motivoReliquidacion = motivo_previo
+            raise
 
         nueva.version = nueva_version
         nueva.liquidacionOrigen = id_liquidacion
-        liquidacion_original.requiereReliquidacion = True
-        liquidacion_original.motivoReliquidacion = f"Reliquidación version {nueva_version} solicitada"
 
         self.gestor._eliminar_detalles_version(id_liquidacion)
         return nueva
