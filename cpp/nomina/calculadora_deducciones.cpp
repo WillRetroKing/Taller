@@ -90,8 +90,7 @@ double CalculadoraDeducciones::calcularFondoSolidaridad(double ibc, double salar
 }
 
 double CalculadoraDeducciones::calcularRetencionFuente(double ibc, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
-    double baseMinima = obtenerParametroDecimal("BASE_MINIMA_RETENCION_FUENTE", fecha).value_or(4500000.0);
-    if (ibc < baseMinima) {
+    if (ibc <= 0.0) {
         return 0.0;
     }
 
@@ -101,6 +100,11 @@ double CalculadoraDeducciones::calcularRetencionFuente(double ibc, const std::st
             (*codigosUtilizados)["RETENCION_FUENTE_SALARIO"] = std::to_string(*valFijo);
         }
         return redondear(*valFijo);
+    }
+
+    double baseMinima = obtenerParametroDecimal("BASE_MINIMA_RETENCION_FUENTE", fecha).value_or(4500000.0);
+    if (ibc < baseMinima) {
+        return 0.0;
     }
 
     double pct = obtenerPorcentaje("PORCENTAJE_RETENCION_FUENTE", 0.0, fecha, codigosUtilizados);

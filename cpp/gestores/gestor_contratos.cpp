@@ -117,7 +117,7 @@ double GestorContratos::horasActivas(std::optional<int> idPersona, const std::st
         if (item.idPersona == idPersona && esActivo(item.estado)) {
             std::string itemTipo = tipo(item);
             if (t == "CATEDRATICO") {
-                if (itemTipo == "CATEDRATICO" || itemTipo == "CATEDRATICO_AD_HONOREM") {
+                if (itemTipo == "CATEDRATICO" || itemTipo == "CATEDRATICO_AD_HONOREM" || itemTipo == "DOCENTE_CATEDRA") {
                     total += horasSemanales(item);
                 }
             } else if (itemTipo == t) {
@@ -166,7 +166,8 @@ void GestorContratos::validarContrato(const Contrato& c, std::optional<bool> jub
         }
     }
 
-    if (t == "CATEDRATICO" || t == "CATEDRATICO_AD_HONOREM") {
+    bool esCatedra = (t == "CATEDRATICO" || t == "CATEDRATICO_AD_HONOREM" || t == "DOCENTE_CATEDRA");
+    if (esCatedra) {
         double totalHoras = horasActivas(c.idPersona, "CATEDRATICO") + h;
         if (totalHoras > HORAS_MAXIMAS_CATEDRATICO) {
             throw ErrorContrato("Los catedraticos no pueden superar 18 horas semanales");
@@ -180,7 +181,8 @@ void GestorContratos::validarContrato(const Contrato& c, std::optional<bool> jub
         }
     }
 
-    if (t == "OCASIONAL") {
+    bool esOcasional = (t == "OCASIONAL" || t == "DOCENTE_OCASIONAL");
+    if (esOcasional) {
         if (ded != "TIEMPO_COMPLETO" && ded != "MEDIO_TIEMPO") {
             throw ErrorContrato("Los profesores ocasionales solo pueden ser de tiempo completo o medio tiempo");
         }
@@ -189,7 +191,8 @@ void GestorContratos::validarContrato(const Contrato& c, std::optional<bool> jub
         }
     }
 
-    if ((t == "OCASIONAL" || t == "PLANTA") && esJubilado(c.idPersona, jubilado)) {
+    bool esPlanta = (t == "PLANTA" || t == "DOCENTE_PLANTA");
+    if ((esOcasional || esPlanta) && esJubilado(c.idPersona, jubilado)) {
         throw ErrorContrato("No se pueden vincular docentes jubilados en modalidad ocasional o planta");
     }
 }

@@ -23,7 +23,17 @@ double CalculadoraPrestaciones::calcularAuxilioTransporte(
     const std::string& fecha,
     std::map<std::string, std::string>* codigosUtilizados
 ) {
-    if (contrato.aplicaAuxilioTransporte.value_or(false) && salario <= 2.0 * smmlv) {
+    std::string dedicacion = contrato.dedicacion.has_value() ? to_string(*contrato.dedicacion) :
+                            (contrato.tipoDedicacion.value_or(""));
+    dedicacion = a_mayusculas(dedicacion);
+
+    // Docentes de hora cátedra no devengan auxilio legal mensual salvo pacto
+    if (dedicacion.find("CATEDRA") != std::string::npos && !contrato.aplicaAuxilioTransporte.value_or(false)) {
+        return 0.0;
+    }
+
+    // Por mandato legal (Ley 15/1959), si devenga hasta 2 SMMLV aplica auxilio de transporte
+    if (salario <= 2.0 * smmlv) {
         auto valorOpt = calcDed.obtenerParametroDecimal("VALOR_AUXILIO_TRANSPORTE_VIGENTE", fecha);
         if (codigosUtilizados) {
             (*codigosUtilizados)["VALOR_AUXILIO_TRANSPORTE_VIGENTE"] = valorOpt.has_value() ? std::to_string(*valorOpt) : "0";
@@ -41,14 +51,29 @@ double CalculadoraPrestaciones::calcularBonificacionPosgrado(
     bool incluirBonificaciones,
     std::map<std::string, std::string>* codigosUtilizados
 ) {
+    std::string tipoProf = profesor.tipoProfesor.has_value() ? to_string(*profesor.tipoProfesor) : "";
+    std::string modContra = contrato.modalidadProfesor.value_or(contrato.tipoContrato.value_or(""));
+    tipoProf = a_mayusculas(tipoProf);
+    modContra = a_mayusculas(modContra);
+    if (tipoProf.find("PLANTA") != std::string::npos || modContra.find("PLANTA") != std::string::npos) {
+        return 0.0;
+    }
+
     if ((contrato.permiteBonificacionPosgrado.has_value() && !*contrato.permiteBonificacionPosgrado) || !incluirBonificaciones) {
         return 0.0;
     }
-    std::string nivel = profesor.nivelPosgradoReconocido.has_value() ? a_mayusculas(*profesor.nivelPosgradoReconocido) : "";
+
+    std::string nivel = profesor.nivelPosgradoReconocido.value_or(
+        profesor.maximoNivelEstudio.value_or(
+            contrato.nivelPosgradoAlVincular.value_or("")
+        )
+    );
+    nivel = a_mayusculas(nivel);
+
     double factor = 0.0;
-    if (nivel == "ESPECIALIZACION") factor = 0.10;
-    else if (nivel == "MAESTRIA") factor = 0.45;
-    else if (nivel == "DOCTORADO") factor = 0.90;
+    if (nivel.find("DOCTOR") != std::string::npos) factor = 0.90;
+    else if (nivel.find("MAESTR") != std::string::npos) factor = 0.45;
+    else if (nivel.find("ESPEC") != std::string::npos) factor = 0.10;
 
     if (codigosUtilizados) {
         (*codigosUtilizados)["BONIFICACION_POSGRADO"] = std::to_string(factor);
@@ -101,10 +126,12 @@ std::map<std::string, double> CalculadoraPrestaciones::calcularProvisiones(
     bool regimenEspecial
 ) {
     std::map<std::string, double> provisiones;
-    provisiones["cesantias"] = redondear(basePrestacional * dias / 360.0);
-    provisiones["intereses"] = redondear(basePrestacional * dias * 0.12 / 360.0);
+    double cesantias = redondear(basePrestacional * dias / 360.0);
+    double intereses = redondear(cesantias * dias * 0.12 / 360.0);
+    provisiones["cesantias"] = cesantias;
+    provisiones["intereses"] = intereses;
     provisiones["prima_servicios"] = redondear(basePrestacional * dias / 360.0);
-    provisiones["prima_navidad"] = redondear(basePrestacional * dias / 360.0);
+    provisiones["prima_navidad"] = regimenEspecial ? redondear(basePrestacional * dias / 360.0) : 0.0;
     provisiones["vacaciones"] = redondear(ibc * dias / 720.0);
     provisiones["prima_vacaciones"] = 0.0;
     provisiones["bonificacion_servicios"] = 0.0;

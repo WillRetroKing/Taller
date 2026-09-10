@@ -99,6 +99,9 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
         totalPrestaciones += kv.second;
     }
     double neto = totalDevengado - totalDescuentos;
+    double devRed = GestorNomina::redondear(totalDevengado);
+    double netoRed = GestorNomina::redondear(neto);
+    double descRed = GestorNomina::redondear(devRed - netoRed);
 
     LiquidacionNomina liq;
     liq.idLiquidacion = gestor.siguienteId();
@@ -107,15 +110,15 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     liq.idPeriodoNomina = periodo.idPeriodoNomina;
     liq.fechaLiquidacion = fechaLiquidacion.empty() ? fecha_hoy() : fechaLiquidacion;
     liq.salarioBase = salarioBase;
-    liq.totalDevengado = GestorNomina::redondear(totalDevengado);
-    liq.totalDescuentos = GestorNomina::redondear(totalDescuentos);
+    liq.totalDevengado = devRed;
+    liq.totalDescuentos = descRed;
     liq.totalPrestaciones = GestorNomina::redondear(totalPrestaciones);
     liq.baseLiquidacionPrestaciones = GestorNomina::redondear(basePrestacional);
     liq.baseCotizacionSeguridadSocial = GestorNomina::redondear(ibc);
     liq.valorAuxilioTransporteCotizado = GestorNomina::redondear(auxilio);
     liq.aportePatronalSENA = GestorNomina::redondear(aporteSena);
     liq.aportePatronalICBF = GestorNomina::redondear(aporteIcbf);
-    liq.netoPagar = GestorNomina::redondear(neto);
+    liq.netoPagar = netoRed;
     liq.estado = "PROCESADA";
     liq.tipoProfesorLiquidado = tipo;
     liq.regimenLiquidado = contrato.regimenAplicable;
@@ -293,8 +296,13 @@ LiquidacionNomina LiquidadorOcasional::liquidar(
         factor = (dedContra.find("MEDIO") != std::string::npos) ? 1.3225 : 2.645;
     }
 
-    // CU-21: salarioBase = SALARIO_MINIMO * factorCategoriaDedicacion (no asignar SMMLV directo)
-    double salarioBase = GestorNomina::redondear(salarioMinimo * factor);
+    // CU-21: Si el contrato tiene salario base explícito pactado, respetarlo; si no, calcular SALARIO_MINIMO * factor
+    double salarioBase = 0.0;
+    if (contrato.salarioBase.has_value() && *contrato.salarioBase > 0.0) {
+        salarioBase = *contrato.salarioBase;
+    } else {
+        salarioBase = GestorNomina::redondear(salarioMinimo * factor);
+    }
     double horasNoCumplidas = horasIncumplidas.value_or(contrato.horasIncumplidas.value_or(0.0));
     gestor.validarHorasIncumplidas(contrato, horasNoCumplidas);
 
@@ -443,14 +451,29 @@ LiquidacionNomina LiquidadorAdministrativo::liquidar(
     double fondoSolidaridad = calcDed.calcularFondoSolidaridad(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
     double retencion = calcDed.calcularRetencionFuente(ibc, fechaParam, &codigosUtilizados);
 
-    // Aportes patronales CST / Ley 100
-    double aporteSalud = calcDed.calcularAporteSaludPatronal(ibc, salarioMinimo, fechaParam, &codigosUtilizados, true);
+    // Aportes patronales CST / Ley 100 con bandera de exoneración
+    bool aplicaExoneracion = true;
+    auto paramExon = calcDed.obtenerParametroDecimal("APLICA_EXONERACION_LEY_1819", fechaParam);
+    if (paramExon.has_value()) {
+        aplicaExoneracion = (*paramExon > 0.0);
+    }
+
+    double aporteSalud = 0.0;
+    double aporteSena = 0.0;
+    double aporteIcbf = 0.0;
+    if (aplicaExoneracion && ibc < 10.0 * salarioMinimo) {
+        aporteSalud = 0.0;
+        aporteSena = 0.0;
+        aporteIcbf = 0.0;
+    } else {
+        aporteSalud = calcDed.calcularAporteSaludPatronal(ibc, salarioMinimo, fechaParam, &codigosUtilizados, false);
+        aporteSena = calcDed.calcularAporteSena(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
+        aporteIcbf = calcDed.calcularAporteIcbf(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
+    }
     double aportePension = calcDed.calcularAportePensionPatronal(ibc, fechaParam, &codigosUtilizados);
     std::string claseARL = contrato.claseARL.value_or("RIESGO_I");
     double aporteArl = calcDed.calcularAporteArl(ibc, claseARL, fechaParam, &codigosUtilizados);
     double aporteCaja = calcDed.calcularAporteCaja(ibc, fechaParam, &codigosUtilizados);
-    double aporteSena = calcDed.calcularAporteSena(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
-    double aporteIcbf = calcDed.calcularAporteIcbf(ibc, salarioMinimo, fechaParam, &codigosUtilizados);
 
     double dias = periodo.diasBaseLiquidacion.value_or(30);
     auto provisiones = gestor.calcPrestaciones.calcularProvisiones(basePrestacional, ibc, dias, false);
@@ -463,6 +486,10 @@ LiquidacionNomina LiquidadorAdministrativo::liquidar(
     }
     double neto = totalDevengado - totalDescuentos;
 
+    double devRed = GestorNomina::redondear(totalDevengado);
+    double netoRed = GestorNomina::redondear(neto);
+    double descRed = GestorNomina::redondear(devRed - netoRed);
+
     std::string cargo = (adm && adm->cargo.has_value()) ? *adm->cargo : "ADMINISTRATIVO";
 
     LiquidacionNomina liq;
@@ -472,15 +499,15 @@ LiquidacionNomina LiquidadorAdministrativo::liquidar(
     liq.idPeriodoNomina = periodo.idPeriodoNomina;
     liq.fechaLiquidacion = fechaLiquidacion.empty() ? fecha_hoy() : fechaLiquidacion;
     liq.salarioBase = salarioBase;
-    liq.totalDevengado = GestorNomina::redondear(totalDevengado);
-    liq.totalDescuentos = GestorNomina::redondear(totalDescuentos);
+    liq.totalDevengado = devRed;
+    liq.totalDescuentos = descRed;
     liq.totalPrestaciones = GestorNomina::redondear(totalPrestaciones);
     liq.baseLiquidacionPrestaciones = GestorNomina::redondear(basePrestacional);
     liq.baseCotizacionSeguridadSocial = GestorNomina::redondear(ibc);
     liq.valorAuxilioTransporteCotizado = GestorNomina::redondear(auxilio);
     liq.aportePatronalSENA = GestorNomina::redondear(aporteSena);
     liq.aportePatronalICBF = GestorNomina::redondear(aporteIcbf);
-    liq.netoPagar = GestorNomina::redondear(neto);
+    liq.netoPagar = netoRed;
     liq.estado = "PROCESADA";
     liq.tipoProfesorLiquidado = std::nullopt;
     liq.regimenLiquidado = contrato.regimenAplicable.value_or("LEY_100_CST");
@@ -942,8 +969,26 @@ bool GestorNomina::esRegimen1279(const std::optional<std::string>& regimen) {
 }
 
 double GestorNomina::puntosPlanta(const Profesor& prof, const PeriodoNomina& per) {
+    std::string tipoStr = prof.tipoProfesor.has_value() ? to_string(*prof.tipoProfesor) : "";
+    tipoStr = a_mayusculas(tipoStr);
+    if (tipoStr == "OCASIONAL" || tipoStr == "CATEDRATICO" || tipoStr == "CATEDRATICO_AD_HONOREM" || tipoStr == "AD_HONOREM") {
+        return 0.0;
+    }
+
+    double ptsGuardados = prof.puntosSalariales.value_or(0.0);
+    if (ptsGuardados > 0.0) {
+        return ptsGuardados;
+    }
+
     std::string catDoc = prof.categoriaDocente.has_value() ? a_mayusculas(*prof.categoriaDocente) : "";
     std::string catRec = prof.categoriaReconocida.has_value() ? a_mayusculas(*prof.categoriaReconocida) : "";
+    std::string catBusqueda = catDoc.empty() ? catRec : catDoc;
+
+    double ptsEscalafon = 0.0;
+    if (catBusqueda.find("TITULAR") != std::string::npos) ptsEscalafon = 450.0;
+    else if (catBusqueda.find("ASOCIADO") != std::string::npos) ptsEscalafon = 350.0;
+    else if (catBusqueda.find("ASISTENTE") != std::string::npos) ptsEscalafon = 250.0;
+    else if (catBusqueda.find("AUXILIAR") != std::string::npos) ptsEscalafon = 180.0;
 
     bool tieneCat = false;
     for (const auto& c : categorias) {
@@ -970,31 +1015,18 @@ double GestorNomina::puntosPlanta(const Profesor& prof, const PeriodoNomina& per
         }
     }
 
-    double pts = 0.0;
-    if (tieneCat || tieneFact || tieneProd) {
+    bool tienePosgrado = prof.nivelPosgradoReconocido.has_value() || prof.maximoNivelEstudio.has_value();
+
+    double ptsCalculados = 0.0;
+    if (tieneCat || tieneFact || tieneProd || tienePosgrado) {
         GestorFactores gf(categorias, factores, producciones, profesores);
         std::string fecha = per.fechaFin.value_or(per.fechaInicio.value_or(fecha_hoy()));
-        pts = gf.calcularPuntosProfesor(*prof.idProfesor, fecha);
-    } else {
-        pts = prof.puntosSalariales.value_or(0.0);
+        if (prof.idProfesor.has_value()) {
+            ptsCalculados = gf.calcularPuntosProfesor(*prof.idProfesor, fecha);
+        }
     }
 
-    // Decreto 1279: Pisos mínimos de escalafón por categoría (Auxiliar: 37, Asistente: 58, Asociado: 74, Titular: 96)
-    double piso = 0.0;
-    std::string catBusqueda = catDoc.empty() ? catRec : catDoc;
-    if (catBusqueda.find("TITULAR") != std::string::npos) {
-        piso = 96.0;
-    } else if (catBusqueda.find("ASOCIADO") != std::string::npos) {
-        piso = 74.0;
-    } else if (catBusqueda.find("ASISTENTE") != std::string::npos) {
-        piso = 58.0;
-    } else if (catBusqueda.find("AUXILIAR") != std::string::npos) {
-        piso = 37.0;
-    }
-    if (pts < piso) {
-        pts = piso;
-    }
-    return pts;
+    return std::max(ptsEscalafon, ptsCalculados);
 }
 
 double GestorNomina::salarioMinimo(const Contrato& c, const PeriodoNomina& p, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
@@ -1175,6 +1207,16 @@ std::map<std::string, double> GestorNomina::resumenNominaPeriodo(int idPeriodoNo
 
 std::map<std::string, std::map<std::string, double>> GestorNomina::totalesPorTipoProfesor(int idPeriodoNomina) {
     return cicloVida.totalesPorTipoProfesor(idPeriodoNomina);
+}
+
+DesgloseNominaAnual GestorNomina::desgloseNominaAnual(int idContrato, int anio) {
+    CalculadorDesgloseAnual calc(*this, nullptr);
+    return calc.generarDesglosePorContrato(idContrato, anio, true);
+}
+
+ResumenNominaAnual GestorNomina::resumenNominaAnual(int anio) {
+    CalculadorDesgloseAnual calc(*this, nullptr);
+    return calc.generarDesgloseInstitucional(anio);
 }
 
 } // namespace pita

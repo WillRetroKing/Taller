@@ -367,16 +367,16 @@ double GestorFactores::puntosCategoria(const CategoriaDocente* cat, const Profes
     }
     std::string cod = prof.categoriaReconocida.value_or(prof.categoriaDocente.value_or(""));
     cod = a_mayusculas(cod);
-    if (cod == "AUXILIAR") return 37.0;
-    if (cod == "ASISTENTE") return 58.0;
-    if (cod == "ASOCIADO") return 74.0;
-    if (cod == "TITULAR") return 96.0;
+    if (cod == "AUXILIAR") return 180.0;
+    if (cod == "ASISTENTE") return 250.0;
+    if (cod == "ASOCIADO") return 350.0;
+    if (cod == "TITULAR") return 450.0;
     return 0.0;
 }
 
 double GestorFactores::puntosFactor(const FactorSalarial& f, const std::string& fecha) {
     std::string est = f.estado.has_value() ? a_mayusculas(*f.estado) : "";
-    if (est != "APROBADO") return 0.0;
+    if (est != "APROBADO" && est != "ACTIVO" && est != "RECONOCIDO") return 0.0;
     if (f.tipoFactor.has_value() && *f.tipoFactor == TipoFactor::CATEGORIA_DOCENTE) return 0.0;
 
     std::string inicio;
@@ -389,17 +389,21 @@ double GestorFactores::puntosFactor(const FactorSalarial& f, const std::string& 
 
     if (f.puntosReconocidos.has_value()) return *f.puntosReconocidos;
     if (f.puntosAprobados.has_value()) return *f.puntosAprobados;
+    if (f.puntosSolicitados.has_value()) return *f.puntosSolicitados;
     return 0.0;
 }
 
 double GestorFactores::puntosProduccion(const ProduccionAcademica& p, const std::string& fecha) {
     std::string est = p.estadoValidacion.has_value() ? a_mayusculas(*p.estadoValidacion) : "";
-    if (est != "VALIDADO") return 0.0;
+    if (est != "VALIDADO" && est != "APROBADO" && est != "ACTIVO" && est != "RECONOCIDO") return 0.0;
 
     std::string fechaEfecto = p.fechaActoReconocimiento.value_or(p.fechaReconocimiento.value_or(""));
     if (!fechaEfecto.empty() && fechaEfecto > fecha) return 0.0;
 
-    return p.puntosReconocidosProfesor.value_or(0.0);
+    if (p.puntosReconocidosProfesor.has_value()) return *p.puntosReconocidosProfesor;
+    if (p.puntosReconocidos.has_value()) return *p.puntosReconocidos;
+    if (p.puntosSolicitados.has_value()) return *p.puntosSolicitados;
+    return 0.0;
 }
 
 double GestorFactores::calcularPuntosProfesor(int idProfesor, const std::string& fechaCorte) {
@@ -414,17 +418,55 @@ double GestorFactores::calcularPuntosProfesor(int idProfesor, const std::string&
         throw ErrorFactor("No existe el profesor con ID " + std::to_string(idProfesor));
     }
 
+    // Validación de régimen: solo profesores de PLANTA acumulan puntos de carrera docente (Dec. 1279)
+    std::string tipoProf = prof->tipoProfesor.has_value() ? to_string(*prof->tipoProfesor) : "";
+    tipoProf = a_mayusculas(tipoProf);
+    if (tipoProf == "OCASIONAL" || tipoProf == "CATEDRATICO" || tipoProf == "CATEDRATICO_AD_HONOREM" || tipoProf == "AD_HONOREM") {
+        prof->puntosSalariales = 0.0;
+        return 0.0;
+    }
+
     std::string fecha = fechaCorte.empty() ? fecha_hoy() : fechaCorte;
     CategoriaDocente* cat = categoriaVigente(*prof, fecha);
     double ptsCat = puntosCategoria(cat, *prof);
 
+    // 1. Puntos por factores salariales aprobados / activos
     double ptsFact = 0.0;
+    bool tieneFactorTitulo = false;
     for (const auto& f : factores) {
         if (f.idProfesor.has_value() && *f.idProfesor == idProfesor) {
-            ptsFact += puntosFactor(f, fecha);
+            double ptsF = puntosFactor(f, fecha);
+            ptsFact += ptsF;
+            std::string tipoF = f.tipoFactor.has_value() ? to_string(*f.tipoFactor) : "";
+            std::string nomF = f.nombre.value_or("");
+            tipoF = a_mayusculas(tipoF);
+            nomF = a_mayusculas(nomF);
+            if (tipoF == "TITULO_ACADEMICO" || tipoF == "POSGRADO" ||
+                nomF.find("DOCTOR") != std::string::npos || nomF.find("MAESTR") != std::string::npos ||
+                nomF.find("TITULO") != std::string::npos || nomF.find("ESPEC") != std::string::npos) {
+                if (ptsF > 0.0) {
+                    tieneFactorTitulo = true;
+                }
+            }
         }
     }
 
+    // 2. Reconocimiento estatutario de puntos por posgrado (Decreto 1279 Arts. 10 y 11)
+    // Si el docente de planta tiene título de posgrado en su perfil y no tiene factor registrado,
+    // se reconocen los puntos normativos de ley (Doctorado: 120 pts, Maestría: 40 pts, Especialización: 20 pts)
+    if (!tieneFactorTitulo) {
+        std::string nivel = prof->nivelPosgradoReconocido.value_or(prof->maximoNivelEstudio.value_or(""));
+        nivel = a_mayusculas(nivel);
+        if (nivel.find("DOCTOR") != std::string::npos) {
+            ptsFact += 120.0;
+        } else if (nivel.find("MAESTR") != std::string::npos) {
+            ptsFact += 40.0;
+        } else if (nivel.find("ESPEC") != std::string::npos) {
+            ptsFact += 20.0;
+        }
+    }
+
+    // 3. Puntos por productividad académica (artículos, libros, etc.)
     double ptsProd = 0.0;
     for (const auto& p : producciones) {
         if (p.idProfesor.has_value() && *p.idProfesor == idProfesor) {

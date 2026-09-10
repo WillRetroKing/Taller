@@ -10,6 +10,7 @@
 #include "../dominio/modelo_datos.h"
 #include "calculadora_deducciones.h"
 #include "calculadora_prestaciones.h"
+#include "desglose_anual.h"
 
 namespace pita {
 
@@ -192,6 +193,10 @@ public:
 
     std::map<std::string, double> resumenNominaPeriodo(int idPeriodoNomina);
     std::map<std::string, std::map<std::string, double>> totalesPorTipoProfesor(int idPeriodoNomina);
+
+    // Desglose y Proyección Anual
+    DesgloseNominaAnual desgloseNominaAnual(int idContrato, int anio = 2026);
+    ResumenNominaAnual resumenNominaAnual(int anio = 2026);
 
     // Helpers internos
     Contrato& contrato(int idContrato);

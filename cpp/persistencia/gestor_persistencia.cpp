@@ -122,8 +122,8 @@ std::string GestorPersistencia::serializarUniversidad(const Universidad& e) {
 
 Universidad GestorPersistencia::deserializarUniversidad(const std::string& linea) {
     std::vector<std::string> parts = split(linea, '|');
-    if (parts.size() != 11) {
-        throw std::runtime_error("Error en universidad.txt: se esperaban 11 campos pero se obtuvieron " + std::to_string(parts.size()));
+    if (parts.size() < 11) {
+        throw std::runtime_error("Error en universidad.txt: se esperaban al menos 11 campos pero se obtuvieron " + std::to_string(parts.size()));
     }
     Universidad e;
     e.idUniversidad = parseOptionalInt(parts[0]);
@@ -137,6 +137,9 @@ Universidad GestorPersistencia::deserializarUniversidad(const std::string& linea
     e.correoInstitucional = parseOptionalString(parts[8]);
     e.sitioWeb = parseOptionalString(parts[9]);
     e.estado = parseOptionalString(parts[10]);
+    if (parts.size() > 11) e.cajaCompensacion = parseOptionalString(parts[11]);
+    if (parts.size() > 12) e.arl = parseOptionalString(parts[12]);
+    if (parts.size() > 13) e.aplicaExoneracionLey1819 = parseOptionalBool(parts[13]);
     return e;
 }
 
@@ -190,8 +193,8 @@ std::string GestorPersistencia::serializarFacultad(const Facultad& e) {
 
 Facultad GestorPersistencia::deserializarFacultad(const std::string& linea) {
     std::vector<std::string> parts = split(linea, '|');
-    if (parts.size() != 10) {
-        throw std::runtime_error("Error en facultades.txt: se esperaban 10 campos pero se obtuvieron " + std::to_string(parts.size()));
+    if (parts.size() < 10) {
+        throw std::runtime_error("Error en facultades.txt: se esperaban al menos 10 campos pero se obtuvieron " + std::to_string(parts.size()));
     }
     Facultad e;
     e.idFacultad = parseOptionalInt(parts[0]);
@@ -1741,8 +1744,8 @@ std::string GestorPersistencia::serializarContrato(const Contrato& e) {
 
 Contrato GestorPersistencia::deserializarContrato(const std::string& linea) {
     std::vector<std::string> parts = split(linea, '|');
-    if (parts.size() != 81) {
-        throw std::runtime_error("Error en contratos.txt: se esperaban 81 campos pero se obtuvieron " + std::to_string(parts.size()));
+    if (parts.size() < 81) {
+        throw std::runtime_error("Error en contratos.txt: se esperaban al menos 81 campos pero se obtuvieron " + std::to_string(parts.size()));
     }
     Contrato e;
     e.idContrato = parseOptionalInt(parts[0]);

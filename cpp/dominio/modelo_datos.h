@@ -226,7 +226,8 @@ enum class ParametroNormativoCodigo {
     RETENCION_FUENTE_SALARIO,
     NOTA_MINIMA_APROBATORIA,
     PROMEDIO_MINIMO_EBRA,
-    MAXIMO_CREDITOS_PERIODO
+    MAXIMO_CREDITOS_PERIODO,
+    APLICA_EXONERACION_LEY_1819
 };
 
 inline std::string to_string(ParametroNormativoCodigo val) {
@@ -256,6 +257,7 @@ inline std::string to_string(ParametroNormativoCodigo val) {
         case ParametroNormativoCodigo::NOTA_MINIMA_APROBATORIA: return "NOTA_MINIMA_APROBATORIA";
         case ParametroNormativoCodigo::PROMEDIO_MINIMO_EBRA: return "PROMEDIO_MINIMO_EBRA";
         case ParametroNormativoCodigo::MAXIMO_CREDITOS_PERIODO: return "MAXIMO_CREDITOS_PERIODO";
+        case ParametroNormativoCodigo::APLICA_EXONERACION_LEY_1819: return "APLICA_EXONERACION_LEY_1819";
     }
     return "";
 }
@@ -285,6 +287,7 @@ inline ParametroNormativoCodigo parametro_normativo_from_string(const std::strin
     if (s == "RETENCION_FUENTE_SALARIO") return ParametroNormativoCodigo::RETENCION_FUENTE_SALARIO;
     if (s == "NOTA_MINIMA_APROBATORIA") return ParametroNormativoCodigo::NOTA_MINIMA_APROBATORIA;
     if (s == "PROMEDIO_MINIMO_EBRA") return ParametroNormativoCodigo::PROMEDIO_MINIMO_EBRA;
+    if (s == "APLICA_EXONERACION_LEY_1819") return ParametroNormativoCodigo::APLICA_EXONERACION_LEY_1819;
     return ParametroNormativoCodigo::MAXIMO_CREDITOS_PERIODO;
 }
 
@@ -304,6 +307,9 @@ struct Universidad {
     std::optional<std::string> correoInstitucional;
     std::optional<std::string> sitioWeb;
     std::optional<std::string> estado;
+    std::optional<std::string> cajaCompensacion;
+    std::optional<std::string> arl;
+    std::optional<bool> aplicaExoneracionLey1819;
 };
 
 struct Facultad {

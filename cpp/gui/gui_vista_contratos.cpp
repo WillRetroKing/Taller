@@ -234,7 +234,7 @@ void PITAApp::renderContratos() {
                 ImGui::TableSetupColumn("Asignacion Basica", ImGuiTableColumnFlags_WidthFixed, 130);
                 ImGui::TableSetupColumn("Vigencia", ImGuiTableColumnFlags_WidthFixed, 160);
                 ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 85);
-                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 90);
+                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 205);
                 ImGui::TableHeadersRow();
 
                 std::string busq = conFiltroBusqueda;
@@ -358,18 +358,33 @@ void PITAApp::renderContratos() {
 
                     // Acciones
                     ImGui::TableNextColumn();
+                    int idCont = c.idContrato ? *c.idContrato : 0;
                     ImGui::PushID(i);
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::WIN_BLUE());
+                    if (ImGui::SmallButton("Detalle")) {
+                        idContratoDetalle = idCont;
+                        modalDetalleContratoAbierto = true;
+                    }
+                    ImGui::PopStyleColor();
+
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Editar")) {
+                        abrirModalEditarContrato(idCont);
+                    }
+
                     if (est == "ACTIVO") {
+                        ImGui::SameLine();
                         ImGui::PushStyleColor(ImGuiCol_Button, tema::ACCENT_DANGER());
                         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, tema::ACCENT_DANGER_H());
                         if (ImGui::SmallButton("Terminar")) {
-                            idContratoTerminando = c.idContrato ? *c.idContrato : 0;
+                            idContratoTerminando = idCont;
                             mensajeModal[0] = '\0';
                             errorModal = false;
                             modalTerminarContratoAbierto = true;
                         }
                         ImGui::PopStyleColor(2);
                     } else {
+                        ImGui::SameLine();
                         ImGui::TextDisabled("Cerrado");
                     }
                     ImGui::PopID();
@@ -576,7 +591,25 @@ void PITAApp::renderModalContrato() {
             }
 
             const char* tiposDoc[] = { "DOCENTE_PLANTA", "DOCENTE_OCASIONAL", "DOCENTE_CATEDRA" };
-            ImGui::Combo("Modalidad Docente *", &conTipoIdx, tiposDoc, IM_ARRAYSIZE(tiposDoc));
+            if (ImGui::Combo("Modalidad Docente *", &conTipoIdx, tiposDoc, IM_ARRAYSIZE(tiposDoc))) {
+                if (conTipoIdx == 0 || conTipoIdx == 1) {
+                    conDedicacionIdx = 0;
+                    conHoras = 40.0;
+                } else {
+                    conDedicacionIdx = 2;
+                    conHoras = 16.0;
+                }
+            }
+
+            if (conTipoIdx == 0 || conTipoIdx == 1) {
+                const char* dedOpc[] = { "TIEMPO_COMPLETO (40h)", "MEDIO_TIEMPO (20h)" };
+                if (ImGui::Combo("Dedicacion *", &conDedicacionIdx, dedOpc, IM_ARRAYSIZE(dedOpc))) {
+                    conHoras = (conDedicacionIdx == 0) ? 40.0 : 20.0;
+                }
+            } else {
+                conDedicacionIdx = 2;
+                ImGui::TextColored(tema::WIN_BLUE(), "Dedicacion: HORA_CATEDRA (Maximo legal 18h/semana)");
+            }
 
             ImGui::InputDouble("Horas Semanales", &conHoras, 1.0, 4.0, "%.1f");
             if (conTipoIdx == 2 && conHoras > 18.0) {
@@ -636,10 +669,16 @@ void PITAApp::renderModalContrato() {
                     c.tipoContrato = tiposDoc[conTipoIdx];
                     c.modalidadProfesor = tiposDoc[conTipoIdx];
                     c.regimenAplicable = (conTipoIdx == 0) ? "Decreto 1279 de 2002" : "Acuerdo 027 de 2024";
+                    if (conTipoIdx == 0 || conTipoIdx == 1) {
+                        c.dedicacion = (conDedicacionIdx == 0) ? Dedicacion::TIEMPO_COMPLETO : Dedicacion::MEDIO_TIEMPO;
+                    } else {
+                        c.dedicacion = Dedicacion::HORA_CATEDRA;
+                    }
                 } else {
                     const char* tiposAdm[] = { "TERMINO_INDEFINIDO", "TERMINO_FIJO", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD" };
                     c.tipoContrato = tiposAdm[conTipoIdx];
                     c.modalidadProfesor = tiposAdm[conTipoIdx];
+                    c.dedicacion = Dedicacion::TIEMPO_COMPLETO;
                     c.regimenAplicable = "CST_LEY100_ADMINISTRATIVO";
                     c.aplicaAuxilioTransporte = (conSalarioBase <= 3501810.0);
 
@@ -918,6 +957,280 @@ void PITAApp::renderModalReconocerPuntos() {
         ImGui::SameLine();
         if (ImGui::Button("Cancelar", ImVec2(120, 32))) {
             modalReconocerPuntosAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void PITAApp::renderModalDetalleContrato() {
+    if (modalDetalleContratoAbierto) {
+        ImGui::OpenPopup("Detalle del Contrato");
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(620, 0), ImGuiCond_Always);
+
+    if (ImGui::BeginPopupModal("Detalle del Contrato", &modalDetalleContratoAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
+        Contrato* contrato = nullptr;
+        for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+            auto& c = ctrl.datos.contratos.obtener(i);
+            if (c.idContrato && *c.idContrato == idContratoDetalle) {
+                contrato = &c;
+                break;
+            }
+        }
+
+        if (!contrato) {
+            ImGui::TextColored(tema::ACCENT_DANGER(), "No se encontro el contrato solicitado.");
+            if (ImGui::Button("Cerrar", ImVec2(120, 0))) {
+                modalDetalleContratoAbierto = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+            return;
+        }
+
+        std::string nom = getNombreDocente(ctrl, contrato->idPersona.value_or(0));
+        std::string num = contrato->numeroContrato.value_or("CNT-" + std::to_string(contrato->idContrato.value_or(0)));
+        std::string est = contrato->estado.value_or("ACTIVO");
+
+        ImGui::TextColored(tema::WIN_BLUE(), "Contrato: %s (ID: %d)", num.c_str(), contrato->idContrato.value_or(0));
+        ImGui::TextColored(tema::TEXT_MUTED(), "Titular: %s", nom.c_str());
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::BeginTable("##TablaDetalleContrato", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH)) {
+            ImGui::TableSetupColumn("Campo", ImGuiTableColumnFlags_WidthFixed, 200);
+            ImGui::TableSetupColumn("Detalle Registrado", ImGuiTableColumnFlags_WidthStretch);
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Modalidad / Tipo");
+            ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "%s", contrato->tipoContrato.value_or(contrato->modalidadProfesor.value_or("---")).c_str());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Regimen Legal");
+            ImGui::TableNextColumn(); ImGui::Text("%s", contrato->regimenAplicable.value_or("General").c_str());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Dedicacion");
+            std::string dedStr = contrato->dedicacion ? to_string(*contrato->dedicacion) : "TIEMPO_COMPLETO";
+            ImGui::TableNextColumn(); ImGui::Text("%s", dedStr.c_str());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Horas Semanales");
+            ImGui::TableNextColumn(); ImGui::Text("%.1f horas", contrato->horasSemanales.value_or(40.0));
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Asignacion Basica");
+            ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_SUCCESS(), "$%.0f COP", contrato->salarioBase.value_or(0.0));
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Auxilio de Transporte");
+            ImGui::TableNextColumn();
+            if (contrato->aplicaAuxilioTransporte.value_or(false)) {
+                ImGui::TextColored(tema::ACCENT_SUCCESS(), "Aplica ($249.095 COP)");
+            } else {
+                ImGui::TextColored(tema::TEXT_MUTED(), "No Aplica (> 2 SMMLV)");
+            }
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Periodo de Vigencia");
+            ImGui::TableNextColumn(); ImGui::Text("%s a %s", contrato->fechaInicio.value_or("---").c_str(), contrato->fechaFin.value_or("---").c_str());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Clase ARL");
+            ImGui::TableNextColumn(); ImGui::Text("%s", contrato->claseARL.value_or("Clase I (0.522%)").c_str());
+
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn(); ImGui::Text("Estado Vinculacion");
+            ImGui::TableNextColumn();
+            if (est == "ACTIVO") {
+                ImGui::TextColored(tema::ACCENT_SUCCESS(), "ACTIVO VIGENTE");
+            } else {
+                ImGui::TextColored(tema::ACCENT_DANGER(), "%s", est.c_str());
+            }
+
+            if (contrato->observaciones.has_value() && !contrato->observaciones->empty()) {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn(); ImGui::Text("Observaciones");
+                ImGui::TableNextColumn(); ImGui::TextWrapped("%s", contrato->observaciones->c_str());
+            }
+
+            ImGui::EndTable();
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Cerrar", ImVec2(120, 0))) {
+            modalDetalleContratoAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+// ======================================================================
+// MODAL: EDITAR PARÁMETROS DEL CONTRATO
+// ======================================================================
+
+void PITAApp::abrirModalEditarContrato(int idContrato) {
+    idContratoEditando = idContrato;
+    mensajeModal[0] = '\0';
+    errorModal = false;
+
+    for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+        auto& c = ctrl.datos.contratos.obtener(i);
+        if (c.idContrato && *c.idContrato == idContrato) {
+            strncpy(editConNumero, c.numeroContrato ? c.numeroContrato->c_str() : "", sizeof(editConNumero) - 1);
+            editConNumero[sizeof(editConNumero) - 1] = '\0';
+
+            // Dedicación
+            editConDedicacionIdx = 0;
+            if (c.dedicacion) {
+                if (*c.dedicacion == Dedicacion::TIEMPO_COMPLETO) editConDedicacionIdx = 0;
+                else if (*c.dedicacion == Dedicacion::MEDIO_TIEMPO) editConDedicacionIdx = 1;
+                else if (*c.dedicacion == Dedicacion::HORA_CATEDRA) editConDedicacionIdx = 2;
+            }
+
+            editConHoras = c.horasSemanales.value_or(40.0);
+            editConSalarioBase = c.salarioBase.value_or(3500000.0);
+
+            strncpy(editConFechaFin, c.fechaFin ? c.fechaFin->c_str() : "2026-11-30", sizeof(editConFechaFin) - 1);
+            editConFechaFin[sizeof(editConFechaFin) - 1] = '\0';
+
+            strncpy(editConCDP, c.numeroCDP ? c.numeroCDP->c_str() : (c.certificadoDisponibilidadPresupuestal ? c.certificadoDisponibilidadPresupuestal->c_str() : ""), sizeof(editConCDP) - 1);
+            editConCDP[sizeof(editConCDP) - 1] = '\0';
+
+            strncpy(editConResolucion, c.resolucionRectoral ? c.resolucionRectoral->c_str() : (c.actoAdministrativo ? c.actoAdministrativo->c_str() : ""), sizeof(editConResolucion) - 1);
+            editConResolucion[sizeof(editConResolucion) - 1] = '\0';
+
+            // Clase ARL
+            std::string arl = c.claseARL.value_or("CLASE I");
+            if (arl.find("II") != std::string::npos) editConClaseARLIdx = 1;
+            else if (arl.find("III") != std::string::npos) editConClaseARLIdx = 2;
+            else editConClaseARLIdx = 0;
+
+            // Estado
+            std::string est = c.estado.value_or("ACTIVO");
+            if (est == "TERMINADO") editConEstadoIdx = 1;
+            else if (est == "SUSPENDIDO") editConEstadoIdx = 2;
+            else editConEstadoIdx = 0;
+
+            break;
+        }
+    }
+    modalEditarContratoAbierto = true;
+}
+
+void PITAApp::renderModalEditarContrato() {
+    if (modalEditarContratoAbierto) {
+        ImGui::OpenPopup("Modificar Contrato");
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(560, 0), ImGuiCond_Always);
+
+    if (ImGui::BeginPopupModal("Modificar Contrato", &modalEditarContratoAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (strlen(mensajeModal) > 0) {
+            ImGui::TextColored(errorModal ? tema::ACCENT_DANGER() : tema::ACCENT_SUCCESS(), "%s", mensajeModal);
+            ImGui::Separator();
+        }
+
+        ImGui::TextColored(tema::WIN_BLUE(), "Contrato: %s (ID: %d)", editConNumero, idContratoEditando);
+        ImGui::TextColored(tema::TEXT_MUTED(), "Actualice vigencia, dedicacion, asignacion salarial o datos presupuestales");
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        const char* opcionesDed[] = { "TIEMPO_COMPLETO (40h)", "MEDIO_TIEMPO (20h)", "HORA_CATEDRA" };
+        if (ImGui::Combo("Dedicacion *", &editConDedicacionIdx, opcionesDed, IM_ARRAYSIZE(opcionesDed))) {
+            if (editConDedicacionIdx == 0) editConHoras = 40.0;
+            else if (editConDedicacionIdx == 1) editConHoras = 20.0;
+            else if (editConDedicacionIdx == 2 && editConHoras > 18.0) editConHoras = 16.0;
+        }
+
+        ImGui::InputDouble("Horas Semanales *", &editConHoras, 1.0, 5.0, "%.0f");
+        if (editConHoras < 1.0) editConHoras = 1.0;
+        if (editConDedicacionIdx == 2 && editConHoras > 18.0) {
+            ImGui::TextColored(tema::ACCENT_DANGER(), "Nota: Docentes de catedra no pueden superar 18h/semana (Acuerdo 027).");
+        }
+
+        ImGui::InputDouble("Asignacion Basica Mensual ($ COP) *", &editConSalarioBase, 50000.0, 500000.0, "%.0f");
+        if (editConSalarioBase < 0.0) editConSalarioBase = 0.0;
+
+        ImGui::InputText("Fecha de Terminacion (YYYY-MM-DD)", editConFechaFin, sizeof(editConFechaFin));
+        ImGui::InputText("Numero CDP Presupuestal", editConCDP, sizeof(editConCDP));
+        ImGui::InputText("Resolucion Rectoral / Nombramiento", editConResolucion, sizeof(editConResolucion));
+
+        const char* opcionesARL[] = { "CLASE I (0.522%)", "CLASE II (1.044%)", "CLASE III (2.436%)" };
+        ImGui::Combo("Clase de Riesgo ARL", &editConClaseARLIdx, opcionesARL, IM_ARRAYSIZE(opcionesARL));
+
+        const char* opcionesEstado[] = { "ACTIVO", "TERMINADO", "SUSPENDIDO" };
+        ImGui::Combo("Estado del Contrato", &editConEstadoIdx, opcionesEstado, IM_ARRAYSIZE(opcionesEstado));
+
+        ImGui::Spacing();
+        ImGui::Separator();
+
+        if (ImGui::Button("Guardar Modificaciones", ImVec2(180, 0))) {
+            if (editConDedicacionIdx == 2 && editConHoras > 18.0) {
+                strncpy(mensajeModal, "Docentes de catedra no pueden exceder 18 horas semanales.", sizeof(mensajeModal) - 1);
+                errorModal = true;
+            } else {
+                for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+                    auto& c = ctrl.datos.contratos.obtener(i);
+                    if (c.idContrato && *c.idContrato == idContratoEditando) {
+                        if (editConDedicacionIdx == 0) c.dedicacion = Dedicacion::TIEMPO_COMPLETO;
+                        else if (editConDedicacionIdx == 1) c.dedicacion = Dedicacion::MEDIO_TIEMPO;
+                        else c.dedicacion = Dedicacion::HORA_CATEDRA;
+
+                        c.horasSemanales = editConHoras;
+                        c.salarioBase = editConSalarioBase;
+                        if (strlen(editConFechaFin) > 0) c.fechaFin = std::string(editConFechaFin);
+                        if (strlen(editConCDP) > 0) {
+                            c.numeroCDP = std::string(editConCDP);
+                            c.certificadoDisponibilidadPresupuestal = std::string(editConCDP);
+                        }
+                        if (strlen(editConResolucion) > 0) {
+                            c.resolucionRectoral = std::string(editConResolucion);
+                            c.actoAdministrativo = std::string(editConResolucion);
+                        }
+                        c.claseARL = std::string(opcionesARL[editConClaseARLIdx]);
+                        c.estado = std::string(opcionesEstado[editConEstadoIdx]);
+
+                        // Reevaluar auxilio de transporte (< 2 SMMLV)
+                        double smmlv = 1750905.0;
+                        for (size_t pIdx = 0; pIdx < ctrl.datos.parametrosNormativos.tamano(); ++pIdx) {
+                            auto& p = ctrl.datos.parametrosNormativos.obtener(pIdx);
+                            if (p.codigo && *p.codigo == ParametroNormativoCodigo::SALARIO_MINIMO && p.valor) {
+                                try {
+                                    smmlv = std::stod(*p.valor);
+                                } catch (...) {}
+                                break;
+                            }
+                        }
+                        c.aplicaAuxilioTransporte = (editConSalarioBase <= (2.0 * smmlv));
+                        break;
+                    }
+                }
+
+                ctrl.guardarDatos();
+                ctrl.setMensaje("Contrato modificado y actualizado exitosamente.");
+                modalEditarContratoAbierto = false;
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancelar", ImVec2(120, 0))) {
+            modalEditarContratoAbierto = false;
             ImGui::CloseCurrentPopup();
         }
 

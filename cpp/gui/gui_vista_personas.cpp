@@ -5,6 +5,8 @@
 
 #include <cstring>
 #include <string>
+#include <cmath>
+#include <algorithm>
 
 namespace pita {
 
@@ -21,7 +23,99 @@ static std::string formatearMoneda(double valor) {
             cont = 0;
         }
     }
-    return "$" + res;
+    return "$" + res + " COP";
+}
+
+// ======================================================================
+// HELPERS DE APERTURA DE MODALES
+// ======================================================================
+
+void PITAApp::abrirModalDetallePersona(int idPersona) {
+    idPersonaDetalle = idPersona;
+    modalDetallePersonaAbierto = true;
+}
+
+void PITAApp::abrirModalEditarEstudiante(int idEstudiante) {
+    idEstudianteEditando = idEstudiante;
+    mensajeModal[0] = '\0';
+    errorModal = false;
+
+    for (size_t i = 0; i < ctrl.datos.estudiantes.tamano(); ++i) {
+        auto& e = ctrl.datos.estudiantes.obtener(i);
+        if (e.idEstudiante && *e.idEstudiante == idEstudiante) {
+            strncpy(editEstCodigo, e.codigoEstudiante ? e.codigoEstudiante->c_str() : "", sizeof(editEstCodigo) - 1);
+            editEstCodigo[sizeof(editEstCodigo) - 1] = '\0';
+
+            editEstProgramaId = e.idPrograma.value_or(1);
+            editEstSemestre = e.semestreActual.value_or(1);
+            editEstCreditos = e.creditosAprobados.value_or(0);
+            editEstPromedio = static_cast<float>(e.promedioAcumulado.value_or(4.0));
+
+            // Estado académico
+            editEstEstadoAcadIdx = 0;
+            if (e.estadoAcademico) {
+                switch (*e.estadoAcademico) {
+                    case EstadoAcademico::MATRICULADO: editEstEstadoAcadIdx = 0; break;
+                    case EstadoAcademico::EBRA: editEstEstadoAcadIdx = 1; break;
+                    case EstadoAcademico::ACTIVO: editEstEstadoAcadIdx = 2; break;
+                    case EstadoAcademico::GRADUADO: editEstEstadoAcadIdx = 3; break;
+                    case EstadoAcademico::RETIRADO: editEstEstadoAcadIdx = 4; break;
+                    case EstadoAcademico::SUSPENDIDO: editEstEstadoAcadIdx = 5; break;
+                    default: editEstEstadoAcadIdx = 0; break;
+                }
+            }
+
+            editEstEstadoIdx = (e.estado && *e.estado == "INACTIVO") ? 1 : 0;
+            break;
+        }
+    }
+
+    modalEditarEstudianteAbierto = true;
+}
+
+void PITAApp::abrirModalEditarProfesor(int idProfesor) {
+    idProfesorEditando = idProfesor;
+    mensajeModal[0] = '\0';
+    errorModal = false;
+
+    for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+        auto& prof = ctrl.datos.profesores.obtener(i);
+        if (prof.idProfesor && *prof.idProfesor == idProfesor) {
+            strncpy(editProfCodigo, prof.codigoProfesor ? prof.codigoProfesor->c_str() : "", sizeof(editProfCodigo) - 1);
+            editProfCodigo[sizeof(editProfCodigo) - 1] = '\0';
+
+            // Tipo profesor
+            editProfTipoIdx = 0;
+            if (prof.tipoProfesor) {
+                if (*prof.tipoProfesor == TipoProfesor::OCASIONAL) editProfTipoIdx = 1;
+                else if (*prof.tipoProfesor == TipoProfesor::CATEDRATICO) editProfTipoIdx = 2;
+                else editProfTipoIdx = 0;
+            }
+
+            // Dedicación
+            editProfDedicacionIdx = 0;
+            if (prof.dedicacion) {
+                if (*prof.dedicacion == Dedicacion::MEDIO_TIEMPO) editProfDedicacionIdx = 1;
+                else if (*prof.dedicacion == Dedicacion::HORA_CATEDRA) editProfDedicacionIdx = 2;
+                else editProfDedicacionIdx = 0;
+            }
+
+            editProfHoras = prof.numeroHorasSemanales.value_or(40.0);
+            editProfPuntos = prof.puntosSalariales.value_or(0.0);
+
+            // Categoría
+            std::string cat = prof.categoriaDocente.value_or("TITULAR");
+            if (cat == "ASOCIADO") editProfCategoriaIdx = 1;
+            else if (cat == "ASISTENTE") editProfCategoriaIdx = 2;
+            else if (cat == "AUXILIAR") editProfCategoriaIdx = 3;
+            else editProfCategoriaIdx = 0;
+
+            editProfEstadoIdx = (prof.estado && *prof.estado == "INACTIVO") ? 1 : 0;
+            break;
+        }
+    }
+
+    modalEditarProfesorAbierto = true;
 }
 
 // ======================================================================
@@ -29,35 +123,47 @@ static std::string formatearMoneda(double valor) {
 // ======================================================================
 
 void PITAApp::renderPersonas() {
+    float btnWidth = 240.0f;
+    float availW = ImGui::GetContentRegionAvail().x;
+
     if (fuenteTitulo) ImGui::PushFont(fuenteTitulo);
-    ImGui::TextColored(tema::TEXT_MAIN(), "Gestion de Personas");
+    ImGui::TextColored(tema::TEXT_MAIN(), "Gestion de Personas e Identificacion");
     if (fuenteTitulo) ImGui::PopFont();
 
     if (fuentePequena) ImGui::PushFont(fuentePequena);
-    ImGui::TextColored(tema::TEXT_MUTED(), "Personas, Estudiantes, Profesores y Administrativos");
+    ImGui::TextColored(tema::TEXT_MUTED(), "Directorio maestro de Personas, Estudiantes, Profesores y Administrativos de la UPC");
     if (fuentePequena) ImGui::PopFont();
 
-    ImGui::Spacing();
-    if (ImGui::Button("+ Registrar Persona / Rol", ImVec2(210, 32))) {
+    ImGui::SameLine(availW - btnWidth);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - 6.0f);
+
+    ImGui::PushStyleColor(ImGuiCol_Button, tema::WIN_BLUE());
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, tema::WIN_BLUE_HOVER());
+    if (ImGui::Button("+ Registrar Persona / Asignar Rol", ImVec2(btnWidth, 32))) {
         abrirModalPersona(false, 0);
     }
+    ImGui::PopStyleColor(2);
+
+    ImGui::Spacing();
     ImGui::Spacing();
 
     if (ImGui::BeginTabBar("##TabsPersonas")) {
 
-        // Tab Personas
-        if (ImGui::BeginTabItem("Personas")) {
+        // ==============================================================
+        // TAB 1: PERSONAS (DIRECTORIO MAESTRO)
+        // ==============================================================
+        if (ImGui::BeginTabItem("Personas Maestro")) {
             ImGui::Spacing();
 
             // Buscador dinámico
-            ImGui::SetNextItemWidth(320);
-            ImGui::InputTextWithHint("##BuscarPersona", "Buscar persona por nombre, documento o correo...", perFiltroBusqueda, sizeof(perFiltroBusqueda));
+            ImGui::SetNextItemWidth(340);
+            ImGui::InputTextWithHint("##BuscarPersona", "Filtrar por documento, nombre o correo...", perFiltroBusqueda, sizeof(perFiltroBusqueda));
             ImGui::SameLine();
             if (ImGui::Button("Limpiar##Per")) {
                 perFiltroBusqueda[0] = '\0';
             }
             ImGui::SameLine();
-            ImGui::TextColored(tema::TEXT_MUTED(), "(%d registradas)", ctrl.datos.personas.tamano());
+            ImGui::TextColored(tema::TEXT_MUTED(), "(%d personas registradas)", ctrl.datos.personas.tamano());
 
             ImGui::Spacing();
 
@@ -65,23 +171,25 @@ void PITAApp::renderPersonas() {
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
+                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 45);
                 ImGui::TableSetupColumn("Tipo Doc.", ImGuiTableColumnFlags_WidthFixed, 80);
-                ImGui::TableSetupColumn("No. Documento", ImGuiTableColumnFlags_WidthFixed, 120);
+                ImGui::TableSetupColumn("No. Documento", ImGuiTableColumnFlags_WidthFixed, 115);
                 ImGui::TableSetupColumn("Nombre Completo", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("Correo", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("Ciudad", ImGuiTableColumnFlags_WidthFixed, 110);
+                ImGui::TableSetupColumn("Correo Electronico", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Ciudad Residencia", ImGuiTableColumnFlags_WidthFixed, 115);
                 ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 80);
-                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 140);
+                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 190);
                 ImGui::TableHeadersRow();
 
                 std::string busqPer = perFiltroBusqueda;
                 for (auto& ch : busqPer) ch = (char)tolower(ch);
 
-                for (int i = 0; i < ctrl.datos.personas.tamano(); i++) {
+                for (size_t i = 0; i < ctrl.datos.personas.tamano(); i++) {
                     auto& p = ctrl.datos.personas.obtener(i);
+                    int pId = p.idPersona.value_or(0);
+
                     std::string nombre = (p.primerNombre ? *p.primerNombre : "") + " " +
-                                         (p.segundoNombre ? *p.segundoNombre : "") + " " +
+                                         (p.segundoNombre ? *p.segundoNombre + " " : "") +
                                          (p.primerApellido ? *p.primerApellido : "") + " " +
                                          (p.segundoApellido ? *p.segundoApellido : "");
 
@@ -101,40 +209,66 @@ void PITAApp::renderPersonas() {
                     }
 
                     ImGui::TableNextRow();
-                    ImGui::TableNextColumn(); ImGui::Text("%d", p.idPersona ? *p.idPersona : 0);
-                    ImGui::TableNextColumn(); ImGui::Text("%s", p.tipoDocumento ? p.tipoDocumento->c_str() : "---");
+                    ImGui::TableNextColumn(); ImGui::Text("%d", pId);
+                    ImGui::TableNextColumn(); ImGui::Text("%s", p.tipoDocumento ? p.tipoDocumento->c_str() : "CC");
                     ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "%s", p.numeroDocumento ? p.numeroDocumento->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
                     ImGui::TableNextColumn(); ImGui::Text("%s", p.correoPersonal ? p.correoPersonal->c_str() : "---");
                     ImGui::TableNextColumn(); ImGui::Text("%s", p.ciudadResidencia ? p.ciudadResidencia->c_str() : "---");
+
                     ImGui::TableNextColumn();
-                    if (p.estado && *p.estado == "ACTIVO") {
+                    bool esActivo = (!p.estado || *p.estado == "ACTIVO");
+                    if (esActivo) {
                         ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
                         ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_ACTIVE_TXT());
                         ImGui::SmallButton("ACTIVO");
                         ImGui::PopStyleColor(2);
                     } else {
-                        ImGui::Text("%s", p.estado ? p.estado->c_str() : "---");
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.15f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
+                        ImGui::SmallButton("INACTIVO");
+                        ImGui::PopStyleColor(2);
                     }
+
                     ImGui::TableNextColumn();
-                    ImGui::PushID(i);
-                    if (ImGui::SmallButton("Editar")) {
-                        abrirModalPersona(true, p.idPersona ? *p.idPersona : 0);
+                    ImGui::PushID(static_cast<int>(i));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_INDIGO(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_INDIGO());
+                    if (ImGui::SmallButton("Ver")) {
+                        abrirModalDetallePersona(pId);
                     }
+                    ImGui::PopStyleColor(2);
+
                     ImGui::SameLine();
-                    if (p.estado && *p.estado == "ACTIVO") {
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::WIN_BLUE(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::WIN_BLUE());
+                    if (ImGui::SmallButton("Editar")) {
+                        abrirModalPersona(true, pId);
+                    }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine();
+                    if (esActivo) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
                         if (ImGui::SmallButton("Desactivar")) {
                             p.estado = "INACTIVO";
                             ctrl.guardarDatos();
-                            ctrl.setMensaje("Persona desactivada.");
+                            ctrl.setMensaje("Persona desactivada en el sistema.");
                         }
+                        ImGui::PopStyleColor(2);
                     } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_SUCCESS(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_SUCCESS());
                         if (ImGui::SmallButton("Activar")) {
                             p.estado = "ACTIVO";
                             ctrl.guardarDatos();
-                            ctrl.setMensaje("Persona activada.");
+                            ctrl.setMensaje("Persona activada en el sistema.");
                         }
+                        ImGui::PopStyleColor(2);
                     }
+
                     ImGui::PopID();
                 }
                 ImGui::EndTable();
@@ -142,47 +276,55 @@ void PITAApp::renderPersonas() {
             ImGui::EndTabItem();
         }
 
-        // Tab Estudiantes
+        // ==============================================================
+        // TAB 2: ESTUDIANTES
+        // ==============================================================
         if (ImGui::BeginTabItem("Estudiantes")) {
             ImGui::Spacing();
 
-            ImGui::SetNextItemWidth(300);
-            ImGui::InputTextWithHint("##BuscarEstudiante", "Buscar por nombre o codigo de estudiante...", estFiltroBusqueda, sizeof(estFiltroBusqueda));
+            ImGui::SetNextItemWidth(340);
+            ImGui::InputTextWithHint("##BuscarEstudiante", "Buscar por nombre, documento o codigo estudiantil...", estFiltroBusqueda, sizeof(estFiltroBusqueda));
             ImGui::SameLine();
             if (ImGui::Button("Limpiar##Est")) {
                 estFiltroBusqueda[0] = '\0';
             }
             ImGui::SameLine();
-            ImGui::TextColored(tema::TEXT_MUTED(), "(%d matriculados)", ctrl.datos.estudiantes.tamano());
+            ImGui::TextColored(tema::TEXT_MUTED(), "(%d estudiantes matriculados)", ctrl.datos.estudiantes.tamano());
 
             ImGui::Spacing();
 
-            if (ImGui::BeginTable("##TablaEstudiantes", 7,
+            if (ImGui::BeginTable("##TablaEstudiantes", 9,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
                 ImGui::TableSetupColumn("Codigo", ImGuiTableColumnFlags_WidthFixed, 105);
-                ImGui::TableSetupColumn("Nombre", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("Semestre", ImGuiTableColumnFlags_WidthFixed, 80);
-                ImGui::TableSetupColumn("Creditos Apr.", ImGuiTableColumnFlags_WidthFixed, 100);
-                ImGui::TableSetupColumn("Promedio", ImGuiTableColumnFlags_WidthFixed, 80);
-                ImGui::TableSetupColumn("Estado Acad.", ImGuiTableColumnFlags_WidthFixed, 100);
+                ImGui::TableSetupColumn("Documento", ImGuiTableColumnFlags_WidthFixed, 100);
+                ImGui::TableSetupColumn("Nombre Completo", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Sem.", ImGuiTableColumnFlags_WidthFixed, 55);
+                ImGui::TableSetupColumn("Cred.", ImGuiTableColumnFlags_WidthFixed, 55);
+                ImGui::TableSetupColumn("Promedio", ImGuiTableColumnFlags_WidthFixed, 75);
+                ImGui::TableSetupColumn("Condicion", ImGuiTableColumnFlags_WidthFixed, 85);
+                ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 80);
+                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 190);
                 ImGui::TableHeadersRow();
 
                 std::string busqEst = estFiltroBusqueda;
                 for (auto& ch : busqEst) ch = (char)tolower(ch);
 
-                for (int i = 0; i < ctrl.datos.estudiantes.tamano(); i++) {
+                for (size_t i = 0; i < ctrl.datos.estudiantes.tamano(); i++) {
                     auto& e = ctrl.datos.estudiantes.obtener(i);
-                    std::string nombre = "---";
-                    if (e.idPersona) {
-                        for (int j = 0; j < ctrl.datos.personas.tamano(); j++) {
-                            auto& p = ctrl.datos.personas.obtener(j);
-                            if (p.idPersona && *p.idPersona == *e.idPersona) {
-                                nombre = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
-                                break;
-                            }
+                    int eId = e.idEstudiante.value_or(0);
+                    int pId = e.idPersona.value_or(0);
+
+                    std::string doc = "N/A";
+                    std::string nombre = "Sin Persona";
+
+                    for (size_t j = 0; j < ctrl.datos.personas.tamano(); j++) {
+                        auto& p = ctrl.datos.personas.obtener(j);
+                        if (p.idPersona && *p.idPersona == pId) {
+                            doc = p.numeroDocumento.value_or("N/A");
+                            nombre = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
+                            break;
                         }
                     }
 
@@ -191,85 +333,164 @@ void PITAApp::renderPersonas() {
                         for (auto& ch : nLower) ch = (char)tolower(ch);
                         std::string codLower = e.codigoEstudiante ? *e.codigoEstudiante : "";
                         for (auto& ch : codLower) ch = (char)tolower(ch);
+                        std::string docLower = doc;
+                        for (auto& ch : docLower) ch = (char)tolower(ch);
 
-                        if (nLower.find(busqEst) == std::string::npos && codLower.find(busqEst) == std::string::npos) {
+                        if (nLower.find(busqEst) == std::string::npos &&
+                            codLower.find(busqEst) == std::string::npos &&
+                            docLower.find(busqEst) == std::string::npos) {
                             continue;
                         }
                     }
 
+                    double prom = e.promedioAcumulado.value_or(0.0);
+                    bool esEbra = (e.estadoAcademico && *e.estadoAcademico == EstadoAcademico::EBRA) || (prom < 3.0);
+                    bool esActivo = (!e.estado || *e.estado == "ACTIVO");
+
                     ImGui::TableNextRow();
-                    ImGui::TableNextColumn(); ImGui::Text("%d", e.idEstudiante ? *e.idEstudiante : 0);
-                    ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "%s", e.codigoEstudiante ? e.codigoEstudiante->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
-                    ImGui::TableNextColumn(); ImGui::Text("Sem. %d", e.semestreActual ? *e.semestreActual : 0);
-                    ImGui::TableNextColumn(); ImGui::Text("%d cr.", e.creditosAprobados ? *e.creditosAprobados : 0);
                     ImGui::TableNextColumn();
-                    if (e.promedioAcumulado && *e.promedioAcumulado < 3.0) {
-                        ImGui::TextColored(tema::ACCENT_DANGER(), "%.2f", *e.promedioAcumulado);
+                    ImGui::TextColored(tema::WIN_BLUE(), "%s", e.codigoEstudiante ? e.codigoEstudiante->c_str() : "---");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", doc.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", nombre.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", e.semestreActual ? *e.semestreActual : 1);
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", e.creditosAprobados ? *e.creditosAprobados : 0);
+
+                    ImGui::TableNextColumn();
+                    if (prom < 3.0) {
+                        ImGui::TextColored(tema::ACCENT_DANGER(), "%.2f", prom);
                     } else {
-                        ImGui::Text("%.2f", e.promedioAcumulado ? *e.promedioAcumulado : 0.0);
+                        ImGui::TextColored(tema::ACCENT_SUCCESS(), "%.2f", prom);
                     }
+
                     ImGui::TableNextColumn();
-                    if (e.estadoAcademico) {
-                        std::string ea = to_string(*e.estadoAcademico);
-                        if (*e.estadoAcademico == EstadoAcademico::EBRA) {
-                            ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_EBRA_BG());
-                            ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_EBRA_TXT());
-                            ImGui::SmallButton("EBRA");
-                            ImGui::PopStyleColor(2);
-                        } else {
-                            ImGui::Text("%s", ea.c_str());
+                    if (esEbra) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_EBRA_BG());
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_EBRA_TXT());
+                        ImGui::SmallButton("EBRA");
+                        ImGui::PopStyleColor(2);
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::TEXT_MUTED(), 0.15f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::TEXT_MUTED());
+                        ImGui::SmallButton("Regular");
+                        ImGui::PopStyleColor(2);
+                    }
+
+                    ImGui::TableNextColumn();
+                    if (esActivo) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_ACTIVE_TXT());
+                        ImGui::SmallButton("ACTIVO");
+                        ImGui::PopStyleColor(2);
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.15f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
+                        ImGui::SmallButton("INACTIVO");
+                        ImGui::PopStyleColor(2);
+                    }
+
+                    ImGui::TableNextColumn();
+                    ImGui::PushID(static_cast<int>(1000 + i));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_INDIGO(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_INDIGO());
+                    if (ImGui::SmallButton("Ver")) {
+                        abrirModalDetallePersona(pId);
+                    }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::WIN_BLUE(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::WIN_BLUE());
+                    if (ImGui::SmallButton("Editar")) {
+                        abrirModalEditarEstudiante(eId);
+                    }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine();
+                    if (esActivo) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
+                        if (ImGui::SmallButton("Desactivar")) {
+                            e.estado = "INACTIVO";
+                            ctrl.guardarDatos();
+                            ctrl.setMensaje("Estudiante desactivado.");
                         }
+                        ImGui::PopStyleColor(2);
                     } else {
-                        ImGui::Text("---");
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_SUCCESS(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_SUCCESS());
+                        if (ImGui::SmallButton("Activar")) {
+                            e.estado = "ACTIVO";
+                            ctrl.guardarDatos();
+                            ctrl.setMensaje("Estudiante activado.");
+                        }
+                        ImGui::PopStyleColor(2);
                     }
+
+                    ImGui::PopID();
                 }
                 ImGui::EndTable();
             }
             ImGui::EndTabItem();
         }
 
-        // Tab Profesores
+        // ==============================================================
+        // TAB 3: PROFESORES
+        // ==============================================================
         if (ImGui::BeginTabItem("Profesores")) {
             ImGui::Spacing();
 
-            ImGui::SetNextItemWidth(300);
-            ImGui::InputTextWithHint("##BuscarProfesor", "Buscar por nombre o codigo de docente...", profFiltroBusqueda, sizeof(profFiltroBusqueda));
+            ImGui::SetNextItemWidth(340);
+            ImGui::InputTextWithHint("##BuscarProfesor", "Buscar por nombre, documento o codigo docente...", profFiltroBusqueda, sizeof(profFiltroBusqueda));
             ImGui::SameLine();
             if (ImGui::Button("Limpiar##Prof")) {
                 profFiltroBusqueda[0] = '\0';
             }
             ImGui::SameLine();
-            ImGui::TextColored(tema::TEXT_MUTED(), "(%d vinculados)", ctrl.datos.profesores.tamano());
+            ImGui::TextColored(tema::TEXT_MUTED(), "(%d docentes vinculados)", ctrl.datos.profesores.tamano());
 
             ImGui::Spacing();
 
-            if (ImGui::BeginTable("##TablaProfesores", 7,
+            if (ImGui::BeginTable("##TablaProfesores", 9,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 50);
                 ImGui::TableSetupColumn("Codigo", ImGuiTableColumnFlags_WidthFixed, 105);
+                ImGui::TableSetupColumn("Documento", ImGuiTableColumnFlags_WidthFixed, 100);
                 ImGui::TableSetupColumn("Nombre Docente", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("Tipo / Modalidad", ImGuiTableColumnFlags_WidthFixed, 140);
-                ImGui::TableSetupColumn("Dedicacion", ImGuiTableColumnFlags_WidthFixed, 130);
-                ImGui::TableSetupColumn("Horas/Sem", ImGuiTableColumnFlags_WidthFixed, 90);
-                ImGui::TableSetupColumn("Puntos Dec. 1279", ImGuiTableColumnFlags_WidthFixed, 120);
+                ImGui::TableSetupColumn("Tipo / Modalidad", ImGuiTableColumnFlags_WidthFixed, 130);
+                ImGui::TableSetupColumn("Categoria", ImGuiTableColumnFlags_WidthFixed, 100);
+                ImGui::TableSetupColumn("Dedicacion", ImGuiTableColumnFlags_WidthFixed, 120);
+                ImGui::TableSetupColumn("Puntos Dec. 1279", ImGuiTableColumnFlags_WidthFixed, 115);
+                ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 80);
+                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 190);
                 ImGui::TableHeadersRow();
 
                 std::string busqProf = profFiltroBusqueda;
                 for (auto& ch : busqProf) ch = (char)tolower(ch);
 
-                for (int i = 0; i < ctrl.datos.profesores.tamano(); i++) {
+                for (size_t i = 0; i < ctrl.datos.profesores.tamano(); i++) {
                     auto& prof = ctrl.datos.profesores.obtener(i);
-                    std::string nombre = "---";
-                    if (prof.idPersona) {
-                        for (int j = 0; j < ctrl.datos.personas.tamano(); j++) {
-                            auto& p = ctrl.datos.personas.obtener(j);
-                            if (p.idPersona && *p.idPersona == *prof.idPersona) {
-                                nombre = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
-                                break;
-                            }
+                    int profId = prof.idProfesor.value_or(0);
+                    int pId = prof.idPersona.value_or(0);
+
+                    std::string doc = "N/A";
+                    std::string nombre = "Sin Persona";
+
+                    for (size_t j = 0; j < ctrl.datos.personas.tamano(); j++) {
+                        auto& p = ctrl.datos.personas.obtener(j);
+                        if (p.idPersona && *p.idPersona == pId) {
+                            doc = p.numeroDocumento.value_or("N/A");
+                            nombre = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
+                            break;
                         }
                     }
 
@@ -278,74 +499,198 @@ void PITAApp::renderPersonas() {
                         for (auto& ch : nLower) ch = (char)tolower(ch);
                         std::string codLower = prof.codigoProfesor ? *prof.codigoProfesor : "";
                         for (auto& ch : codLower) ch = (char)tolower(ch);
+                        std::string docLower = doc;
+                        for (auto& ch : docLower) ch = (char)tolower(ch);
 
-                        if (nLower.find(busqProf) == std::string::npos && codLower.find(busqProf) == std::string::npos) {
+                        if (nLower.find(busqProf) == std::string::npos &&
+                            codLower.find(busqProf) == std::string::npos &&
+                            docLower.find(busqProf) == std::string::npos) {
                             continue;
                         }
                     }
 
+                    bool esActivo = (!prof.estado || *prof.estado == "ACTIVO");
+
                     ImGui::TableNextRow();
-                    ImGui::TableNextColumn(); ImGui::Text("%d", prof.idProfesor ? *prof.idProfesor : 0);
-                    ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_INDIGO(), "%s", prof.codigoProfesor ? prof.codigoProfesor->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
-                    ImGui::TableNextColumn(); ImGui::Text("%s", prof.tipoProfesor ? to_string(*prof.tipoProfesor).c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", prof.dedicacion ? to_string(*prof.dedicacion).c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%.1f h", prof.numeroHorasSemanales ? *prof.numeroHorasSemanales : 0.0);
+                    ImGui::TableNextColumn();
+                    ImGui::TextColored(tema::ACCENT_INDIGO(), "%s", prof.codigoProfesor ? prof.codigoProfesor->c_str() : "---");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", doc.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", nombre.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", prof.tipoProfesor ? to_string(*prof.tipoProfesor).c_str() : "---");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", prof.categoriaDocente ? prof.categoriaDocente->c_str() : "TITULAR");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", prof.dedicacion ? to_string(*prof.dedicacion).c_str() : "---");
+
                     ImGui::TableNextColumn();
                     double pts = prof.puntosSalariales.value_or(0.0);
                     ImGui::TextColored(tema::ACCENT_WARNING(), "%.0f pts", pts);
+
+                    ImGui::TableNextColumn();
+                    if (esActivo) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_ACTIVE_TXT());
+                        ImGui::SmallButton("ACTIVO");
+                        ImGui::PopStyleColor(2);
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.15f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
+                        ImGui::SmallButton("INACTIVO");
+                        ImGui::PopStyleColor(2);
+                    }
+
+                    ImGui::TableNextColumn();
+                    ImGui::PushID(static_cast<int>(3000 + i));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_INDIGO(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_INDIGO());
+                    if (ImGui::SmallButton("Ver")) {
+                        abrirModalDetallePersona(pId);
+                    }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::WIN_BLUE(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::WIN_BLUE());
+                    if (ImGui::SmallButton("Editar")) {
+                        abrirModalEditarProfesor(profId);
+                    }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine();
+                    if (esActivo) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
+                        if (ImGui::SmallButton("Desactivar")) {
+                            prof.estado = "INACTIVO";
+                            ctrl.guardarDatos();
+                            ctrl.setMensaje("Profesor desactivado.");
+                        }
+                        ImGui::PopStyleColor(2);
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_SUCCESS(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_SUCCESS());
+                        if (ImGui::SmallButton("Activar")) {
+                            prof.estado = "ACTIVO";
+                            ctrl.guardarDatos();
+                            ctrl.setMensaje("Profesor activado.");
+                        }
+                        ImGui::PopStyleColor(2);
+                    }
+
+                    ImGui::PopID();
                 }
                 ImGui::EndTable();
             }
             ImGui::EndTabItem();
         }
 
-        // Tab Administrativos
+        // ==============================================================
+        // TAB 4: ADMINISTRATIVOS
+        // ==============================================================
         if (ImGui::BeginTabItem("Administrativos")) {
             ImGui::Spacing();
-            if (ImGui::BeginTable("##TablaAdmin", 8,
+
+            if (ImGui::BeginTable("##TablaAdmin", 9,
                 ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
                 ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-                ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 45);
                 ImGui::TableSetupColumn("Codigo", ImGuiTableColumnFlags_WidthFixed, 95);
+                ImGui::TableSetupColumn("Documento", ImGuiTableColumnFlags_WidthFixed, 100);
                 ImGui::TableSetupColumn("Nombre Completo", ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableSetupColumn("Cargo", ImGuiTableColumnFlags_WidthStretch);
                 ImGui::TableSetupColumn("Dependencia", ImGuiTableColumnFlags_WidthStretch);
-                ImGui::TableSetupColumn("Nivel", ImGuiTableColumnFlags_WidthFixed, 110);
+                ImGui::TableSetupColumn("Nivel", ImGuiTableColumnFlags_WidthFixed, 100);
                 ImGui::TableSetupColumn("Salario Base", ImGuiTableColumnFlags_WidthFixed, 120);
-                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 140);
+                ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 80);
+                ImGui::TableSetupColumn("Acciones", ImGuiTableColumnFlags_WidthFixed, 190);
                 ImGui::TableHeadersRow();
 
-                for (int i = 0; i < ctrl.datos.administrativos.tamano(); i++) {
+                for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); i++) {
                     auto& a = ctrl.datos.administrativos.obtener(i);
-                    std::string nombre = "---";
-                    if (a.idPersona) {
-                        for (int j = 0; j < ctrl.datos.personas.tamano(); j++) {
-                            auto& p = ctrl.datos.personas.obtener(j);
-                            if (p.idPersona && *p.idPersona == *a.idPersona) {
-                                nombre = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
-                                break;
-                            }
+                    int admId = a.idAdministrativo.value_or(0);
+                    int pId = a.idPersona.value_or(0);
+
+                    std::string doc = "N/A";
+                    std::string nombre = "Sin Persona";
+
+                    for (size_t j = 0; j < ctrl.datos.personas.tamano(); j++) {
+                        auto& p = ctrl.datos.personas.obtener(j);
+                        if (p.idPersona && *p.idPersona == pId) {
+                            doc = p.numeroDocumento.value_or("N/A");
+                            nombre = (p.primerNombre ? *p.primerNombre : "") + " " + (p.primerApellido ? *p.primerApellido : "");
+                            break;
                         }
                     }
+
+                    bool esActivo = (!a.estado || *a.estado == "ACTIVO");
+
                     ImGui::TableNextRow();
-                    ImGui::TableNextColumn(); ImGui::Text("%d", a.idAdministrativo ? *a.idAdministrativo : 0);
-                    ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "%s", a.codigoEmpleado ? a.codigoEmpleado->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", nombre.c_str());
-                    ImGui::TableNextColumn(); ImGui::Text("%s", a.cargo ? a.cargo->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", a.dependencia ? a.dependencia->c_str() : "---");
-                    ImGui::TableNextColumn(); ImGui::Text("%s", a.categoria ? a.categoria->c_str() : "PROFESIONAL");
+                    ImGui::TableNextColumn();
+                    ImGui::TextColored(tema::ACCENT_WARNING(), "%s", a.codigoEmpleado ? a.codigoEmpleado->c_str() : "---");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", doc.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", nombre.c_str());
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", a.cargo ? a.cargo->c_str() : "---");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", a.dependencia ? a.dependencia->c_str() : "---");
+
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", a.categoria ? a.categoria->c_str() : "PROFESIONAL");
+
                     ImGui::TableNextColumn();
                     double salVal = a.salarioBase.value_or(0.0);
                     ImGui::TextColored(tema::ACCENT_SUCCESS(), "%s", formatearMoneda(salVal).c_str());
+
                     ImGui::TableNextColumn();
-                    ImGui::PushID(i + 5000);
-                    if (ImGui::SmallButton("Editar")) {
-                        abrirModalEditarAdministrativo(a.idAdministrativo.value_or(0));
+                    if (esActivo) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::BADGE_ACTIVE_TXT());
+                        ImGui::SmallButton("ACTIVO");
+                        ImGui::PopStyleColor(2);
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.15f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
+                        ImGui::SmallButton("INACTIVO");
+                        ImGui::PopStyleColor(2);
                     }
+
+                    ImGui::TableNextColumn();
+                    ImGui::PushID(static_cast<int>(5000 + i));
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_INDIGO(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_INDIGO());
+                    if (ImGui::SmallButton("Ver")) {
+                        abrirModalDetallePersona(pId);
+                    }
+                    ImGui::PopStyleColor(2);
+
                     ImGui::SameLine();
-                    if (a.estado && *a.estado == "ACTIVO") {
+                    ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::WIN_BLUE(), 0.18f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, tema::WIN_BLUE());
+                    if (ImGui::SmallButton("Editar")) {
+                        abrirModalEditarAdministrativo(admId);
+                    }
+                    ImGui::PopStyleColor(2);
+
+                    ImGui::SameLine();
+                    if (esActivo) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_DANGER(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_DANGER());
                         if (ImGui::SmallButton("Desactivar")) {
                             a.estado = "INACTIVO";
                             if (a.idPersona) {
@@ -359,7 +704,10 @@ void PITAApp::renderPersonas() {
                             ctrl.guardarDatos();
                             ctrl.setMensaje("Administrativo y contrato desactivados.");
                         }
+                        ImGui::PopStyleColor(2);
                     } else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, tema::withAlpha(tema::ACCENT_SUCCESS(), 0.18f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, tema::ACCENT_SUCCESS());
                         if (ImGui::SmallButton("Activar")) {
                             a.estado = "ACTIVO";
                             if (a.idPersona) {
@@ -373,7 +721,9 @@ void PITAApp::renderPersonas() {
                             ctrl.guardarDatos();
                             ctrl.setMensaje("Administrativo y contrato activados.");
                         }
+                        ImGui::PopStyleColor(2);
                     }
+
                     ImGui::PopID();
                 }
                 ImGui::EndTable();
@@ -386,7 +736,410 @@ void PITAApp::renderPersonas() {
 }
 
 // ======================================================================
-// HELPER APERTURA MODAL PERSONA
+// MODAL: FICHA DETALLADA INTEGRAL DE PERSONA (DialogDetallePersona)
+// ======================================================================
+
+void PITAApp::renderModalDetallePersona() {
+    if (modalDetallePersonaAbierto) {
+        ImGui::OpenPopup("Ficha Detallada de Persona");
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(650, 680), ImGuiCond_Always);
+
+    if (ImGui::BeginPopupModal("Ficha Detallada de Persona", &modalDetallePersonaAbierto, ImGuiWindowFlags_None)) {
+        // Buscar persona
+        Persona* pPers = nullptr;
+        for (size_t i = 0; i < ctrl.datos.personas.tamano(); ++i) {
+            auto& p = ctrl.datos.personas.obtener(i);
+            if (p.idPersona && *p.idPersona == idPersonaDetalle) {
+                pPers = &p;
+                break;
+            }
+        }
+
+        if (!pPers) {
+            ImGui::TextColored(tema::ACCENT_DANGER(), "Persona no encontrada en el sistema.");
+            if (ImGui::Button("Cerrar", ImVec2(100, 30))) {
+                modalDetallePersonaAbierto = false;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+            return;
+        }
+
+        std::string nomCompleto = (pPers->primerNombre ? *pPers->primerNombre : "") + " " +
+                                  (pPers->segundoNombre ? *pPers->segundoNombre + " " : "") +
+                                  (pPers->primerApellido ? *pPers->primerApellido : "") + " " +
+                                  (pPers->segundoApellido ? *pPers->segundoApellido : "");
+
+        ImGui::TextColored(tema::WIN_BLUE(), "FICHA INTEGRAL DE PERSONA Y ROLES INSTITUCIONALES");
+        if (fuenteTitulo) ImGui::PushFont(fuenteTitulo);
+        ImGui::TextColored(tema::TEXT_MAIN(), "%s", nomCompleto.c_str());
+        if (fuenteTitulo) ImGui::PopFont();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::BeginChild("##ScrollDetallePersona", ImVec2(0, -45), ImGuiChildFlags_None);
+
+        // 1. Datos Personales
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, tema::BG_CARD());
+        ImGui::BeginChild("##CardDatosPersonales", ImVec2(0, 160), ImGuiChildFlags_Borders);
+        ImGui::SetCursorPos(ImVec2(12, 8));
+        ImGui::TextColored(tema::WIN_BLUE(), "Datos Personales y de Contacto");
+        ImGui::Separator();
+        ImGui::SetCursorPos(ImVec2(14, 34));
+        ImGui::Text("Documento Identidad: %s %s", pPers->tipoDocumento ? pPers->tipoDocumento->c_str() : "CC",
+                    pPers->numeroDocumento ? pPers->numeroDocumento->c_str() : "---");
+        ImGui::SetCursorPos(ImVec2(14, 56));
+        ImGui::Text("Correo Personal:     %s", pPers->correoPersonal ? pPers->correoPersonal->c_str() : "No registrado");
+        ImGui::SetCursorPos(ImVec2(14, 78));
+        ImGui::Text("Telefono Contacto:   %s", pPers->telefono ? pPers->telefono->c_str() : "No registrado");
+        ImGui::SetCursorPos(ImVec2(14, 100));
+        ImGui::Text("Direccion:           %s (%s)", pPers->direccion ? pPers->direccion->c_str() : "---",
+                    pPers->ciudadResidencia ? pPers->ciudadResidencia->c_str() : "Valledupar");
+        ImGui::SetCursorPos(ImVec2(14, 122));
+        ImGui::Text("Estado en Sistema:   %s", pPers->estado ? pPers->estado->c_str() : "ACTIVO");
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+
+        ImGui::Spacing();
+
+        // 2. Roles Institucionales
+        // Buscar si es Estudiante
+        Estudiante* pEst = nullptr;
+        for (size_t i = 0; i < ctrl.datos.estudiantes.tamano(); ++i) {
+            auto& e = ctrl.datos.estudiantes.obtener(i);
+            if (e.idPersona && *e.idPersona == idPersonaDetalle) {
+                pEst = &e;
+                break;
+            }
+        }
+
+        if (pEst) {
+            std::string nomProg = "---";
+            if (pEst->idPrograma) {
+                for (size_t k = 0; k < ctrl.datos.programas.tamano(); ++k) {
+                    auto& pr = ctrl.datos.programas.obtener(k);
+                    if (pr.idPrograma && *pr.idPrograma == *pEst->idPrograma) {
+                        nomProg = pr.nombre ? *pr.nombre : "---";
+                        break;
+                    }
+                }
+            }
+
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, tema::BG_CARD());
+            ImGui::BeginChild("##CardRolEstudiante", ImVec2(0, 130), ImGuiChildFlags_Borders);
+            ImGui::SetCursorPos(ImVec2(12, 8));
+            ImGui::TextColored(tema::ACCENT_SUCCESS(), "Rol Institucional: Estudiante de Pregrado/Posgrado");
+            ImGui::Separator();
+            ImGui::SetCursorPos(ImVec2(14, 34));
+            ImGui::Text("Codigo Estudiante:   %s", pEst->codigoEstudiante ? pEst->codigoEstudiante->c_str() : "---");
+            ImGui::SetCursorPos(ImVec2(14, 56));
+            ImGui::Text("Programa Academico:  %s", nomProg.c_str());
+            ImGui::SetCursorPos(ImVec2(14, 78));
+            ImGui::Text("Semestre Actual:     Semestre %d (%d creditos aprobados)",
+                        pEst->semestreActual ? *pEst->semestreActual : 1,
+                        pEst->creditosAprobados ? *pEst->creditosAprobados : 0);
+            ImGui::SetCursorPos(ImVec2(14, 100));
+            double prom = pEst->promedioAcumulado.value_or(0.0);
+            ImGui::Text("Promedio Acumulado:  %.2f", prom);
+            ImGui::SameLine(250);
+            if (prom < 3.0 || (pEst->estadoAcademico && *pEst->estadoAcademico == EstadoAcademico::EBRA)) {
+                ImGui::TextColored(tema::ACCENT_DANGER(), "[ALERTA TEMPRANA EBRA]");
+            } else {
+                ImGui::TextColored(tema::ACCENT_SUCCESS(), "[ESTADO REGULAR]");
+            }
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+            ImGui::Spacing();
+        }
+
+        // Buscar si es Profesor
+        Profesor* pProf = nullptr;
+        for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+            auto& prof = ctrl.datos.profesores.obtener(i);
+            if (prof.idPersona && *prof.idPersona == idPersonaDetalle) {
+                pProf = &prof;
+                break;
+            }
+        }
+
+        if (pProf) {
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, tema::BG_CARD());
+            ImGui::BeginChild("##CardRolProfesor", ImVec2(0, 130), ImGuiChildFlags_Borders);
+            ImGui::SetCursorPos(ImVec2(12, 8));
+            ImGui::TextColored(tema::ACCENT_INDIGO(), "Rol Institucional: Docente Universitario");
+            ImGui::Separator();
+            ImGui::SetCursorPos(ImVec2(14, 34));
+            ImGui::Text("Codigo Profesor:     %s", pProf->codigoProfesor ? pProf->codigoProfesor->c_str() : "---");
+            ImGui::SetCursorPos(ImVec2(14, 56));
+            ImGui::Text("Tipo / Regimen:      %s", pProf->tipoProfesor ? to_string(*pProf->tipoProfesor).c_str() : "---");
+            ImGui::SetCursorPos(ImVec2(14, 78));
+            ImGui::Text("Dedicacion:          %s (%.1f h/semana)",
+                        pProf->dedicacion ? to_string(*pProf->dedicacion).c_str() : "---",
+                        pProf->numeroHorasSemanales ? *pProf->numeroHorasSemanales : 40.0);
+            ImGui::SetCursorPos(ImVec2(14, 100));
+            ImGui::Text("Puntos Dec. 1279:    %.0f pts (Remuneracion Estatutaria)",
+                        pProf->puntosSalariales ? *pProf->puntosSalariales : 0.0);
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+            ImGui::Spacing();
+        }
+
+        // Buscar si es Administrativo
+        Administrativo* pAdm = nullptr;
+        for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); ++i) {
+            auto& a = ctrl.datos.administrativos.obtener(i);
+            if (a.idPersona && *a.idPersona == idPersonaDetalle) {
+                pAdm = &a;
+                break;
+            }
+        }
+
+        if (pAdm) {
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, tema::BG_CARD());
+            ImGui::BeginChild("##CardRolAdmin", ImVec2(0, 130), ImGuiChildFlags_Borders);
+            ImGui::SetCursorPos(ImVec2(12, 8));
+            ImGui::TextColored(tema::ACCENT_WARNING(), "Rol Institucional: Funcionario Administrativo");
+            ImGui::Separator();
+            ImGui::SetCursorPos(ImVec2(14, 34));
+            ImGui::Text("Codigo Empleado:     %s", pAdm->codigoEmpleado ? pAdm->codigoEmpleado->c_str() : "---");
+            ImGui::SetCursorPos(ImVec2(14, 56));
+            ImGui::Text("Cargo:               %s (%s)", pAdm->cargo ? pAdm->cargo->c_str() : "---",
+                        pAdm->categoria ? pAdm->categoria->c_str() : "PROFESIONAL");
+            ImGui::SetCursorPos(ImVec2(14, 78));
+            ImGui::Text("Dependencia:         %s", pAdm->dependencia ? pAdm->dependencia->c_str() : "---");
+            ImGui::SetCursorPos(ImVec2(14, 100));
+            ImGui::Text("Salario Base:        %s", formatearMoneda(pAdm->salarioBase.value_or(0.0)).c_str());
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+            ImGui::Spacing();
+        }
+
+        // 3. Contratos Laborales Asociados
+        bool tieneContratos = false;
+        for (size_t i = 0; i < ctrl.datos.contratos.tamano(); ++i) {
+            auto& c = ctrl.datos.contratos.obtener(i);
+            if (c.idPersona && *c.idPersona == idPersonaDetalle) {
+                if (!tieneContratos) {
+                    ImGui::TextColored(tema::TEXT_MUTED(), "Contratos Laborales Asociados:");
+                    tieneContratos = true;
+                }
+                ImGui::BulletText("Contrato #%d (%s): Salario Base %s - Estado: %s",
+                                  c.idContrato ? *c.idContrato : 0,
+                                  c.tipoContrato ? c.tipoContrato->c_str() : "LABORAL",
+                                  formatearMoneda(c.salarioBase.value_or(0.0)).c_str(),
+                                  c.estado ? c.estado->c_str() : "ACTIVO");
+            }
+        }
+
+        ImGui::EndChild();
+
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - 120) / 2.0f);
+        if (ImGui::Button("Cerrar Ficha", ImVec2(120, 32))) {
+            modalDetallePersonaAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+// ======================================================================
+// MODAL: EDITAR ESTUDIANTE (DialogEditarEstudiante)
+// ======================================================================
+
+void PITAApp::renderModalEditarEstudiante() {
+    if (modalEditarEstudianteAbierto) {
+        ImGui::OpenPopup("Modificar Datos Estudiante");
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(520, 0), ImGuiCond_Always);
+
+    if (ImGui::BeginPopupModal("Modificar Datos Estudiante", &modalEditarEstudianteAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (strlen(mensajeModal) > 0) {
+            ImGui::TextColored(errorModal ? tema::ACCENT_DANGER() : tema::ACCENT_SUCCESS(), "%s", mensajeModal);
+            ImGui::Separator();
+        }
+
+        ImGui::TextColored(tema::WIN_BLUE(), "Actualizar Ficha Academica: %s", editEstCodigo);
+        ImGui::Spacing();
+
+        ImGui::InputInt("Semestre Actual *", &editEstSemestre);
+        if (editEstSemestre < 1) editEstSemestre = 1;
+        if (editEstSemestre > 14) editEstSemestre = 14;
+
+        ImGui::InputInt("Creditos Aprobados *", &editEstCreditos);
+        if (editEstCreditos < 0) editEstCreditos = 0;
+
+        ImGui::InputFloat("Promedio Acumulado *", &editEstPromedio, 0.1f, 0.5f, "%.2f");
+        if (editEstPromedio < 0.0f) editEstPromedio = 0.0f;
+        if (editEstPromedio > 5.0f) editEstPromedio = 5.0f;
+
+        // Selector de Programa Académico
+        if (ctrl.datos.programas.tamano() > 0) {
+            std::string previewProg = "Seleccione Programa";
+            for (size_t i = 0; i < ctrl.datos.programas.tamano(); i++) {
+                auto& pr = ctrl.datos.programas.obtener(i);
+                if (pr.idPrograma && *pr.idPrograma == editEstProgramaId) {
+                    previewProg = pr.nombre ? *pr.nombre : "---";
+                    break;
+                }
+            }
+            if (ImGui::BeginCombo("Programa Academico *", previewProg.c_str())) {
+                for (size_t i = 0; i < ctrl.datos.programas.tamano(); i++) {
+                    auto& pr = ctrl.datos.programas.obtener(i);
+                    bool isSelected = (pr.idPrograma && *pr.idPrograma == editEstProgramaId);
+                    std::string label = pr.nombre ? *pr.nombre : "Programa";
+                    if (ImGui::Selectable(label.c_str(), isSelected)) {
+                        editEstProgramaId = pr.idPrograma.value_or(1);
+                    }
+                    if (isSelected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        const char* estadosAcad[] = { "MATRICULADO", "EBRA", "ACTIVO", "GRADUADO", "RETIRADO", "SUSPENDIDO" };
+        ImGui::Combo("Estado Academico", &editEstEstadoAcadIdx, estadosAcad, IM_ARRAYSIZE(estadosAcad));
+
+        const char* estadosGen[] = { "ACTIVO", "INACTIVO" };
+        ImGui::Combo("Estado Operativo", &editEstEstadoIdx, estadosGen, IM_ARRAYSIZE(estadosGen));
+
+        if (editEstPromedio < 3.0f) {
+            ImGui::TextColored(tema::ACCENT_DANGER(), "Nota: Promedio inferior a 3.0 situara al estudiante en condicion EBRA.");
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Guardar Cambios", ImVec2(150, 32))) {
+            for (size_t i = 0; i < ctrl.datos.estudiantes.tamano(); ++i) {
+                auto& e = ctrl.datos.estudiantes.obtener(i);
+                if (e.idEstudiante && *e.idEstudiante == idEstudianteEditando) {
+                    e.semestreActual = editEstSemestre;
+                    e.creditosAprobados = editEstCreditos;
+                    e.promedioAcumulado = editEstPromedio;
+                    e.idPrograma = editEstProgramaId;
+
+                    if (editEstPromedio < 3.0f) {
+                        e.estadoAcademico = EstadoAcademico::EBRA;
+                    } else {
+                        switch (editEstEstadoAcadIdx) {
+                            case 0: e.estadoAcademico = EstadoAcademico::MATRICULADO; break;
+                            case 1: e.estadoAcademico = EstadoAcademico::EBRA; break;
+                            case 2: e.estadoAcademico = EstadoAcademico::ACTIVO; break;
+                            case 3: e.estadoAcademico = EstadoAcademico::GRADUADO; break;
+                            case 4: e.estadoAcademico = EstadoAcademico::RETIRADO; break;
+                            default: e.estadoAcademico = EstadoAcademico::SUSPENDIDO; break;
+                        }
+                    }
+
+                    e.estado = (editEstEstadoIdx == 0 ? "ACTIVO" : "INACTIVO");
+                    break;
+                }
+            }
+
+            ctrl.guardarDatos();
+            ctrl.setMensaje("Estudiante actualizado exitosamente.");
+            modalEditarEstudianteAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancelar", ImVec2(120, 32))) {
+            modalEditarEstudianteAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+// ======================================================================
+// MODAL: EDITAR PROFESOR (DialogEditarProfesor)
+// ======================================================================
+
+void PITAApp::renderModalEditarProfesor() {
+    if (modalEditarProfesorAbierto) {
+        ImGui::OpenPopup("Modificar Datos Docente");
+    }
+
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(540, 0), ImGuiCond_Always);
+
+    if (ImGui::BeginPopupModal("Modificar Datos Docente", &modalEditarProfesorAbierto, ImGuiWindowFlags_AlwaysAutoResize)) {
+        if (strlen(mensajeModal) > 0) {
+            ImGui::TextColored(errorModal ? tema::ACCENT_DANGER() : tema::ACCENT_SUCCESS(), "%s", mensajeModal);
+            ImGui::Separator();
+        }
+
+        ImGui::TextColored(tema::WIN_BLUE(), "Actualizar Ficha Docente: %s", editProfCodigo);
+        ImGui::Spacing();
+
+        const char* tiposProf[] = { "PLANTA", "OCASIONAL", "CATEDRATICO" };
+        ImGui::Combo("Tipo / Regimen Salarial *", &editProfTipoIdx, tiposProf, IM_ARRAYSIZE(tiposProf));
+
+        const char* catsDoc[] = { "TITULAR", "ASOCIADO", "ASISTENTE", "AUXILIAR" };
+        ImGui::Combo("Categoria en Escalafon *", &editProfCategoriaIdx, catsDoc, IM_ARRAYSIZE(catsDoc));
+
+        const char* dedics[] = { "TIEMPO_COMPLETO", "MEDIO_TIEMPO", "HORA_CATEDRA" };
+        ImGui::Combo("Dedicacion *", &editProfDedicacionIdx, dedics, IM_ARRAYSIZE(dedics));
+
+        ImGui::InputDouble("Horas Semanales *", &editProfHoras, 1.0, 5.0, "%.1f h");
+        if (editProfHoras < 1.0) editProfHoras = 1.0;
+
+        ImGui::InputDouble("Puntos Salariales Dec. 1279", &editProfPuntos, 10.0, 50.0, "%.1f pts");
+        if (editProfPuntos < 0.0) editProfPuntos = 0.0;
+
+        const char* estadosGen[] = { "ACTIVO", "INACTIVO" };
+        ImGui::Combo("Estado General", &editProfEstadoIdx, estadosGen, IM_ARRAYSIZE(estadosGen));
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        if (ImGui::Button("Guardar Cambios", ImVec2(150, 32))) {
+            for (size_t i = 0; i < ctrl.datos.profesores.tamano(); ++i) {
+                auto& prof = ctrl.datos.profesores.obtener(i);
+                if (prof.idProfesor && *prof.idProfesor == idProfesorEditando) {
+                    prof.tipoProfesor = (editProfTipoIdx == 0 ? TipoProfesor::PLANTA : (editProfTipoIdx == 1 ? TipoProfesor::OCASIONAL : TipoProfesor::CATEDRATICO));
+                    prof.categoriaDocente = catsDoc[editProfCategoriaIdx];
+                    prof.dedicacion = (editProfDedicacionIdx == 0 ? Dedicacion::TIEMPO_COMPLETO : (editProfDedicacionIdx == 1 ? Dedicacion::MEDIO_TIEMPO : Dedicacion::HORA_CATEDRA));
+                    prof.numeroHorasSemanales = editProfHoras;
+                    prof.puntosSalariales = editProfPuntos;
+                    prof.estado = (editProfEstadoIdx == 0 ? "ACTIVO" : "INACTIVO");
+                    break;
+                }
+            }
+
+            ctrl.inicializarGestores();
+            ctrl.guardarDatos();
+            ctrl.setMensaje("Docente actualizado exitosamente.");
+            modalEditarProfesorAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Cancelar", ImVec2(120, 32))) {
+            modalEditarProfesorAbierto = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+// ======================================================================
+// HELPER APERTURA MODAL PERSONA (CREAR / EDITAR)
 // ======================================================================
 
 void PITAApp::abrirModalPersona(bool editar, int idPersona) {
@@ -396,7 +1149,7 @@ void PITAApp::abrirModalPersona(bool editar, int idPersona) {
     errorModal = false;
 
     if (editar && idPersona > 0) {
-        for (int i = 0; i < ctrl.datos.personas.tamano(); i++) {
+        for (size_t i = 0; i < ctrl.datos.personas.tamano(); i++) {
             auto& p = ctrl.datos.personas.obtener(i);
             if (p.idPersona && *p.idPersona == idPersona) {
                 strncpy(pTipoDoc, p.tipoDocumento ? p.tipoDocumento->c_str() : "CC", sizeof(pTipoDoc) - 1);
@@ -484,10 +1237,9 @@ void PITAApp::renderModalPersona() {
                 // Estudiante
                 ImGui::InputText("Codigo Estudiantil *", estCodigo, sizeof(estCodigo));
 
-                // Selector de Programa Académico
                 if (ctrl.datos.programas.tamano() > 0) {
                     std::string previewProg = "Seleccione Programa";
-                    for (int i = 0; i < ctrl.datos.programas.tamano(); i++) {
+                    for (size_t i = 0; i < ctrl.datos.programas.tamano(); i++) {
                         auto& pr = ctrl.datos.programas.obtener(i);
                         if (pr.idPrograma && *pr.idPrograma == estProgramaId) {
                             previewProg = pr.nombre ? *pr.nombre : "---";
@@ -495,7 +1247,7 @@ void PITAApp::renderModalPersona() {
                         }
                     }
                     if (ImGui::BeginCombo("Programa *", previewProg.c_str())) {
-                        for (int i = 0; i < ctrl.datos.programas.tamano(); i++) {
+                        for (size_t i = 0; i < ctrl.datos.programas.tamano(); i++) {
                             auto& pr = ctrl.datos.programas.obtener(i);
                             bool isSelected = (pr.idPrograma && *pr.idPrograma == estProgramaId);
                             std::string label = pr.nombre ? *pr.nombre : "Programa";
@@ -539,7 +1291,7 @@ void PITAApp::renderModalPersona() {
         ImGui::Separator();
         ImGui::Spacing();
 
-        if (ImGui::Button("Guardar", ImVec2(120, 0))) {
+        if (ImGui::Button("Guardar", ImVec2(120, 32))) {
             if (strlen(pNumDoc) == 0 || strlen(pPrimerNombre) == 0 || strlen(pPrimerApellido) == 0) {
                 strncpy(mensajeModal, "Documento, Primer Nombre y Primer Apellido son obligatorios.", sizeof(mensajeModal) - 1);
                 errorModal = true;
@@ -548,7 +1300,7 @@ void PITAApp::renderModalPersona() {
                     int idPersFinal = idPersonaEditando;
 
                     if (modoEditarPersona) {
-                        for (int i = 0; i < ctrl.datos.personas.tamano(); i++) {
+                        for (size_t i = 0; i < ctrl.datos.personas.tamano(); i++) {
                             auto& p = ctrl.datos.personas.obtener(i);
                             if (p.idPersona && *p.idPersona == idPersonaEditando) {
                                 p.tipoDocumento = pTipoDoc;
@@ -566,7 +1318,7 @@ void PITAApp::renderModalPersona() {
                     } else {
                         Persona p;
                         int maxId = 0;
-                        for (int i = 0; i < ctrl.datos.personas.tamano(); i++) {
+                        for (size_t i = 0; i < ctrl.datos.personas.tamano(); i++) {
                             auto& per = ctrl.datos.personas.obtener(i);
                             if (per.idPersona && *per.idPersona > maxId) maxId = *per.idPersona;
                         }
@@ -589,7 +1341,7 @@ void PITAApp::renderModalPersona() {
                         if (pRolSeleccionado == 1 && strlen(estCodigo) > 0) {
                             Estudiante est;
                             int maxEstId = 0;
-                            for (int i = 0; i < ctrl.datos.estudiantes.tamano(); i++) {
+                            for (size_t i = 0; i < ctrl.datos.estudiantes.tamano(); i++) {
                                 auto& e = ctrl.datos.estudiantes.obtener(i);
                                 if (e.idEstudiante && *e.idEstudiante > maxEstId) maxEstId = *e.idEstudiante;
                             }
@@ -606,7 +1358,7 @@ void PITAApp::renderModalPersona() {
                         } else if (pRolSeleccionado == 2 && strlen(profCodigo) > 0) {
                             Profesor prof;
                             int maxProfId = 0;
-                            for (int i = 0; i < ctrl.datos.profesores.tamano(); i++) {
+                            for (size_t i = 0; i < ctrl.datos.profesores.tamano(); i++) {
                                 auto& pr = ctrl.datos.profesores.obtener(i);
                                 if (pr.idProfesor && *pr.idProfesor > maxProfId) maxProfId = *pr.idProfesor;
                             }
@@ -622,7 +1374,7 @@ void PITAApp::renderModalPersona() {
                         } else if (pRolSeleccionado == 3 && strlen(admCodigo) > 0) {
                             Administrativo adm;
                             int maxAdmId = 0;
-                            for (int i = 0; i < ctrl.datos.administrativos.tamano(); i++) {
+                            for (size_t i = 0; i < ctrl.datos.administrativos.tamano(); i++) {
                                 auto& a = ctrl.datos.administrativos.obtener(i);
                                 if (a.idAdministrativo && *a.idAdministrativo > maxAdmId) maxAdmId = *a.idAdministrativo;
                             }
@@ -677,7 +1429,7 @@ void PITAApp::renderModalPersona() {
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Cancelar", ImVec2(120, 0))) {
+        if (ImGui::Button("Cancelar", ImVec2(120, 32))) {
             modalPersonaAbierto = false;
             ImGui::CloseCurrentPopup();
         }
@@ -687,7 +1439,7 @@ void PITAApp::renderModalPersona() {
 }
 
 // ======================================================================
-// MODAL EDITAR ADMINISTRATIVO
+// MODAL: EDITAR ADMINISTRATIVO
 // ======================================================================
 
 void PITAApp::abrirModalEditarAdministrativo(int idAdministrativo) {
@@ -771,8 +1523,10 @@ void PITAApp::renderModalEditarAdministrativo() {
                         if (a.idAdministrativo && *a.idAdministrativo == idAdminEditando) {
                             a.cargo = editAdmCargo;
                             a.dependencia = editAdmDependencia;
-                            a.categoria = catsAdm[editAdmCategoriaIdx];
-                            a.tipoContratacion = tiposContAdm[editAdmTipoContratacionIdx];
+                            const char* catsAdmArr[] = { "PROFESIONAL", "DIRECTIVO", "ASESOR", "TECNICO", "ASISTENCIAL" };
+                            a.categoria = catsAdmArr[editAdmCategoriaIdx];
+                            const char* tiposContAdmArr[] = { "PLANTA", "CARRERA_ADMINISTRATIVA", "LIBRE_NOMBRAMIENTO", "PROVISIONALIDAD", "PRESTACION_SERVICIOS" };
+                            a.tipoContratacion = tiposContAdmArr[editAdmTipoContratacionIdx];
                             a.salarioBase = editAdmSalarioBase;
                             idPers = a.idPersona.value_or(0);
                             break;

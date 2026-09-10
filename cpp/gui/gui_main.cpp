@@ -16,9 +16,9 @@ int main(int argc, char* argv[]) {
     if (argc > 1) {
         dirDatos = argv[1];
     } else {
-        std::vector<std::string> candidatos = {"datos", "../datos", "../../datos", "../../../datos"};
+        std::vector<std::string> candidatos = {"cpp/datos", "datos", "../datos", "../../datos", "../../../datos"};
         for (const auto& c : candidatos) {
-            if (fs::exists(c) && fs::exists(fs::path(c) / "cursos.txt")) {
+            if (fs::exists(c) && fs::exists(fs::path(c) / "cursos.txt") && fs::file_size(fs::path(c) / "cursos.txt") > 0) {
                 dirDatos = c;
                 break;
             }

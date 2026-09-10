@@ -14,39 +14,116 @@ namespace pita {
 
 void PITAApp::renderParametros() {
     if (fuenteTitulo) ImGui::PushFont(fuenteTitulo);
-    ImGui::TextColored(tema::TEXT_MAIN(), "Parametros Normativos");
+    ImGui::TextColored(tema::TEXT_MAIN(), "Parametros Normativos & Persistencia");
     if (fuenteTitulo) ImGui::PopFont();
 
     if (fuentePequena) ImGui::PushFont(fuentePequena);
-    ImGui::TextColored(tema::TEXT_MUTED(), "Parametros legales y normativos del sistema (SMLMV, tasas, porcentajes)");
+    ImGui::TextColored(tema::TEXT_MUTED(), "Parametros legales y normativos del sistema (SMMLV, tasas, porcentajes de ley y control de almacenamiento)");
     if (fuentePequena) ImGui::PopFont();
 
-    ImGui::Spacing(); ImGui::Spacing();
+    ImGui::Spacing();
 
-    if (ImGui::BeginTable("##TablaParametros", 6,
+    // Botones de persistencia en header
+    if (ImGui::Button("Guardar en Disco (datos/)", ImVec2(200, 32))) {
+        ctrl.guardarDatos();
+        ctrl.setMensaje("Todos los datos persistidos en disco exitosamente.");
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Recargar desde Disco", ImVec2(180, 32))) {
+        ctrl.cargarDatos();
+        ctrl.inicializarGestores();
+        ctrl.setMensaje("Datos recargados desde disco correctamente.");
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Filtro de búsqueda
+    static char busqParam[64] = "";
+    ImGui::SetNextItemWidth(350);
+    ImGui::InputTextWithHint("##BuscarParametro", "Buscar por codigo o descripcion...", busqParam, sizeof(busqParam));
+    ImGui::SameLine();
+    if (ImGui::Button("Limpiar", ImVec2(80, 0))) {
+        busqParam[0] = '\0';
+    }
+
+    ImGui::Spacing();
+
+    if (ImGui::BeginTable("##TablaParametros", 7,
         ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerH |
         ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY, ImVec2(0, 0))) {
 
-        ImGui::TableSetupColumn("ID");
-        ImGui::TableSetupColumn("Codigo");
-        ImGui::TableSetupColumn("Descripcion");
-        ImGui::TableSetupColumn("Valor");
-        ImGui::TableSetupColumn("Estado");
-        ImGui::TableSetupColumn("Accion");
+        ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed, 45);
+        ImGui::TableSetupColumn("Codigo Parametro", ImGuiTableColumnFlags_WidthFixed, 230);
+        ImGui::TableSetupColumn("Descripcion", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Valor Vigente", ImGuiTableColumnFlags_WidthFixed, 150);
+        ImGui::TableSetupColumn("Unidad", ImGuiTableColumnFlags_WidthFixed, 80);
+        ImGui::TableSetupColumn("Estado", ImGuiTableColumnFlags_WidthFixed, 80);
+        ImGui::TableSetupColumn("Accion", ImGuiTableColumnFlags_WidthFixed, 80);
         ImGui::TableHeadersRow();
+
+        std::string filtro = busqParam;
+        for (auto& c : filtro) c = (char)tolower(c);
 
         for (int i = 0; i < ctrl.datos.parametrosNormativos.tamano(); i++) {
             auto& pn = ctrl.datos.parametrosNormativos.obtener(i);
+            std::string codStr = pn.codigo ? to_string(*pn.codigo) : "";
+            std::string descStr = pn.descripcion ? *pn.descripcion : "";
+
+            std::string searchTarget = codStr + " " + descStr;
+            for (auto& c : searchTarget) c = (char)tolower(c);
+
+            if (!filtro.empty() && searchTarget.find(filtro) == std::string::npos) {
+                continue;
+            }
+
             ImGui::TableNextRow();
             ImGui::TableNextColumn(); ImGui::Text("%d", pn.idParametro ? *pn.idParametro : 0);
             ImGui::TableNextColumn();
-            if (pn.codigo) {
-                ImGui::TextColored(tema::TEXT_ACCENT(), "%s", to_string(*pn.codigo).c_str());
+            ImGui::TextColored(tema::TEXT_ACCENT(), "%s", codStr.c_str());
+
+            ImGui::TableNextColumn(); ImGui::Text("%s", descStr.c_str());
+
+            // Formateo inteligente del valor
+            ImGui::TableNextColumn();
+            std::string valStr = pn.valor ? *pn.valor : "0";
+            std::string unidadStr = "---";
+
+            if (codStr.find("SALARIO") != std::string::npos ||
+                codStr.find("PUNTO") != std::string::npos ||
+                codStr.find("TRANSPORTE") != std::string::npos ||
+                codStr.find("CATEDRA") != std::string::npos ||
+                codStr.find("TOPE") != std::string::npos ||
+                codStr.find("BASE_MINIMA") != std::string::npos) {
+                unidadStr = "COP";
+                try {
+                    double numVal = std::stod(valStr);
+                    char bufM[64];
+                    snprintf(bufM, sizeof(bufM), "$%.0f COP", numVal);
+                    ImGui::TextColored(tema::WIN_BLUE(), "%s", bufM);
+                } catch (...) {
+                    ImGui::TextColored(tema::WIN_BLUE(), "%s", valStr.c_str());
+                }
+            } else if (codStr.find("PORCENTAJE") != std::string::npos) {
+                unidadStr = "%";
+                try {
+                    double numVal = std::stod(valStr);
+                    if (numVal <= 1.0 && numVal > 0.0) {
+                        numVal *= 100.0;
+                    }
+                    char bufP[64];
+                    snprintf(bufP, sizeof(bufP), "%.2f %%", numVal);
+                    ImGui::TextColored(tema::ACCENT_WARNING(), "%s", bufP);
+                } catch (...) {
+                    ImGui::TextColored(tema::ACCENT_WARNING(), "%s", valStr.c_str());
+                }
             } else {
-                ImGui::Text("---");
+                ImGui::TextColored(tema::TEXT_MAIN(), "%s", valStr.c_str());
             }
-            ImGui::TableNextColumn(); ImGui::Text("%s", pn.descripcion ? pn.descripcion->c_str() : "---");
-            ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "%s", pn.valor ? pn.valor->c_str() : "---");
+
+            ImGui::TableNextColumn(); ImGui::Text("%s", unidadStr.c_str());
+
             ImGui::TableNextColumn();
             if (pn.estado && *pn.estado == "ACTIVO") {
                 ImGui::PushStyleColor(ImGuiCol_Button, tema::BADGE_ACTIVE_BG());
@@ -56,6 +133,7 @@ void PITAApp::renderParametros() {
             } else {
                 ImGui::Text("%s", pn.estado ? pn.estado->c_str() : "---");
             }
+
             ImGui::TableNextColumn();
             ImGui::PushID(i);
             if (ImGui::SmallButton("Editar")) {

@@ -34,6 +34,7 @@ set(PITA_BACKEND_SOURCES
     nomina/calculadora_deducciones.cpp
     nomina/calculadora_prestaciones.cpp
     nomina/gestor_nomina.cpp
+    nomina/desglose_anual.cpp
 )
 
 # Librería estática pita_lib

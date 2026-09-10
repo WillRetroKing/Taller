@@ -562,22 +562,36 @@ void PITAApp::renderDashboard() {
         else if (l.estado && *l.estado == "GENERADA") liqPendientes++;
     }
 
+    double smmlvVal = 1750905.0;
+    double ptoVal = 23924.0;
+    double auxTransVal = 249095.0;
+    if (ctrl.gestorParametros) {
+        smmlvVal = ctrl.gestorParametros->obtenerParametroVigente("SALARIO_MINIMO").value_or(smmlvVal);
+        ptoVal = ctrl.gestorParametros->obtenerParametroVigente("VALOR_PUNTO_SALARIAL").value_or(ptoVal);
+        auxTransVal = ctrl.gestorParametros->obtenerParametroVigente("VALOR_AUXILIO_TRANSPORTE_VIGENTE").value_or(auxTransVal);
+    }
+
     if (ImGui::BeginTable("##ResumenNomina", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerH, ImVec2(halfW - 30, 0))) {
         ImGui::TableSetupColumn("Parametro / Metrica", ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableSetupColumn("Valor Institucional", ImGuiTableColumnFlags_WidthFixed, 175);
         ImGui::TableHeadersRow();
 
+        char bufSM[64], bufPto[64], bufAux[64];
+        snprintf(bufSM, sizeof(bufSM), "$%.0f COP", smmlvVal);
+        snprintf(bufPto, sizeof(bufPto), "$%.0f COP", ptoVal);
+        snprintf(bufAux, sizeof(bufAux), "$%.0f COP", auxTransVal);
+
         ImGui::TableNextRow();
         ImGui::TableNextColumn(); ImGui::Text("SMMLV Vigente");
-        ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "$1.750.905 COP");
+        ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "%s", bufSM);
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn(); ImGui::Text("Punto Salarial (Dec. 1279)");
-        ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "$23.924 COP");
+        ImGui::TableNextColumn(); ImGui::TextColored(tema::ACCENT_WARNING(), "%s", bufPto);
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn(); ImGui::Text("Auxilio de Transporte");
-        ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "$249.095 COP");
+        ImGui::TableNextColumn(); ImGui::TextColored(tema::WIN_BLUE(), "%s", bufAux);
 
         ImGui::TableNextRow();
         ImGui::TableNextColumn(); ImGui::Text("Salud / Pension Trabajador");
@@ -604,6 +618,26 @@ void PITAApp::renderDashboard() {
     ImGui::EndChild();
     ImGui::PopStyleVar();
     ImGui::PopStyleColor();
+
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::TextColored(tema::TEXT_MUTED(), "Accesos Rapidos del Sistema:");
+    ImGui::Spacing();
+    if (ImGui::Button("Ir a Matriculas & Alertas EBRA", ImVec2(230, 32))) {
+        vistaActiva = VistaActiva::ACADEMICA;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Ir a Nomina & Desglose Anual", ImVec2(230, 32))) {
+        vistaActiva = VistaActiva::NOMINA;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Ir a Contratacion Docente", ImVec2(200, 32))) {
+        vistaActiva = VistaActiva::CONTRATOS;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Configurar Parametros", ImVec2(180, 32))) {
+        vistaActiva = VistaActiva::PARAMETROS;
+    }
 }
 
 // ======================================================================
@@ -612,14 +646,25 @@ void PITAApp::renderDashboard() {
 
 void PITAApp::renderModales() {
     renderModalPersona();
+    renderModalDetallePersona();
+    renderModalEditarEstudiante();
+    renderModalEditarProfesor();
     renderModalEditarAdministrativo();
     renderModalFacultad();
+    renderModalEditarFacultad();
     renderModalPrograma();
+    renderModalEditarPrograma();
+    renderModalAvisoIntegridadPrograma();
     renderModalCurso();
+    renderModalEditarCurso();
+    renderModalNuevaOferta();
     renderModalMatricula();
     renderModalNota();
+    renderModalEditarNota();
     renderModalContrato();
+    renderModalEditarContrato();
     renderModalTerminarContrato();
+    renderModalDetalleContrato();
     renderModalReconocerPuntos();
     renderModalPeriodoNomina();
     renderModalLiquidar();
@@ -627,6 +672,11 @@ void PITAApp::renderModales() {
     renderModalDesprendible();
     renderModalLiquidarIndividual();
     renderModalParametro();
+    renderModalPeriodoAcademico();
+    renderModalPlanEstudio();
+    renderModalMallaCurricular();
+    renderModalAsignarCursoPlan();
+    renderModalReporteAnual();
 }
 
 } // namespace pita
