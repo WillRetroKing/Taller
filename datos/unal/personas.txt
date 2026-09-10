@@ -1,5 +1,0 @@
-1|CC|12345678|Carlos|Alberto|Gomez|Solano|2001-04-02|Mz 16 CLL 23|3001234567|cgomez@gmail.com|cgomez@unicesar.edu.co|Valledupar|2026-09-09|ACTIVO
-2|CC|23456789|Maria|Mercedes|Perez|Cuello|1999-09-09|Cll 56 - 23|3002345678|mperez@gmail.com|mperez@unicesar.edu.co|Valledupar|2026-09-09|ACTIVO
-3|CC|1003456789|Juan|Diego|Rodriguez|Vega|2005-05-23|C23-212|3216743456|jrodriguez@gmail.com|jrodriguez@unicesar.edu.co|Valledupar|2026-09-09|ACTIVO
-4|CC|1004567890|Andres|Felipe|Morales|Mejia|2004-05-12|Mz 16 - cra 23|3215694343|amorales@gmail.com|amorales@unicesar.edu.co|Valledupar|2026-09-09|ACTIVO
-5|CC|34567890|Laura|Patricia|Sanchez|Meza|1987-03-23|Ml 23 - gf 23|320342123|lsanchez@gmail.com|lsanchez@unicesar.edu.co|Valledupar|2026-09-09|ACTIVO

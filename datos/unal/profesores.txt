@@ -1,2 +1,0 @@
-1|1|DOC-001|1|2026-09-09|PLANTA|ASISTENTE|TIEMPO_COMPLETO|MAESTRIA|Ingeniero de Sistemas|Ingenieria de Software|40|250|ACTIVO||||||||||||||||||||||||||||||||||||||||||||
-2|2|DOC-002|1|2026-09-09|CATEDRATICO|AUXILIAR|HORA_CATEDRA|ESPECIALIZACION|Ingeniero de Sistemas|Bases de Datos|16|0|ACTIVO||||||||||||||||||||||||||||||||||||||||||||
