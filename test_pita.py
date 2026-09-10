@@ -14,7 +14,7 @@ from gestores.gestor_periodos import ErrorPeriodo, GestorPeriodosAcademicos
 from persistencia.gestor_persistencia import GestorPersistencia
 from gestores.gestores_academicos import ErrorCalificacion, ErrorMatricula, GestorCalificaciones, GestorMatriculas
 from dominio.modelo_datos import (
-    Administrativo, Calificacion, Contrato, Curso, DetalleMatricula,
+    Administrativo, Calificacion, Contrato, Curso, DetalleMatricula, DetallePlanEstudio,
     Dedicacion, Estudiante, EstadoAcademico, EstadoCurso, Evaluacion, Facultad,
     Horario, LiquidacionNomina, MatriculaAcademica, OfertaCurso,
     ParametroNormativo, ParametroNormativoCodigo, PeriodoAcademico,
@@ -282,6 +282,115 @@ class TestAcademicoEstructura(unittest.TestCase):
         requisito = gestor.registrar_prerrequisito(Prerrequisito(idCurso=2, idCursoRequerido=1))
         self.assertEqual(plan.totalCreditos, 3)
         self.assertEqual(requisito.idPrerrequisito, 1)
+
+    def test_gestion_periodos_academicos_y_estados(self):
+        """Valida el ciclo de vida, fechas y estados del período académico."""
+        p = PeriodoAcademico(
+            idPeriodo=1,
+            codigo="2026-1",
+            nombre="Primer Período Académico 2026",
+            anio=2026,
+            numeroPeriodo=1,
+            fechaInicio=date(2026, 2, 1),
+            fechaFin=date(2026, 6, 30),
+            fechaInicioMatricula=date(2026, 1, 15),
+            fechaFinMatricula=date(2026, 2, 10),
+            fechaLimiteCancelacion=date(2026, 4, 15),
+            estado="ABIERTO",
+        )
+        self.assertEqual(p.codigo, "2026-1")
+        self.assertEqual(p.estado, "ABIERTO")
+
+        # Transición de estado: cerrar y reabrir
+        p.estado = "CERRADO"
+        self.assertEqual(p.estado, "CERRADO")
+        p.estado = "ABIERTO"
+        self.assertEqual(p.estado, "ABIERTO")
+
+        # Persistencia en archivo plano estructurado
+        with TemporaryDirectory() as tmpdir:
+            gp = GestorPersistencia(tmpdir)
+            gp.guardar_entidad([p], PeriodoAcademico)
+            cargados = gp.cargar_entidad(PeriodoAcademico)
+            self.assertEqual(len(cargados), 1)
+            self.assertEqual(cargados[0].codigo, "2026-1")
+            self.assertEqual(cargados[0].estado, "ABIERTO")
+            self.assertEqual(cargados[0].anio, 2026)
+
+    def test_plan_estudio_malla_curricular_completa(self):
+        """Valida creación de plan de estudio, inclusión de asignaturas en malla, créditos y versiones."""
+        c1 = Curso(1, codigoCurso="SIS-301", nombre="Estructuras de Datos", numeroCreditos=3)
+        c2 = Curso(2, codigoCurso="SIS-401", nombre="Sistemas Operativos", numeroCreditos=4)
+        prog = ProgramaAcademico(1, codigoPrograma="SIS", nombre="Ingeniería de Sistemas")
+        gestor = GestorAcademico([], [], [c1, c2], [], [prog])
+
+        # Crear Plan
+        plan = gestor.crear_plan(PlanEstudio(
+            codigo="PLAN-SIS-2026",
+            nombre="Plan de Estudios Sistemas 2026",
+            version="V1",
+            idPrograma=1,
+            fechaInicioVigencia=date(2026, 1, 1),
+            totalCreditos=0,
+            estado="ACTIVO",
+        ))
+        self.assertEqual(plan.codigo, "PLAN-SIS-2026")
+        self.assertEqual(plan.estado, "ACTIVO")
+
+        # Incluir Asignaturas a la Malla Curricular
+        det1 = gestor.incluir_curso(plan.idPlanEstudio, c1.idCurso, semestre_sugerido=3, es_obligatorio=True)
+        det2 = gestor.incluir_curso(plan.idPlanEstudio, c2.idCurso, semestre_sugerido=4, es_obligatorio=True)
+        self.assertEqual(plan.totalCreditos, 7)
+        self.assertEqual(len(gestor.detalles_planes), 2)
+        self.assertEqual(det1.semestreSugerido, 3)
+        self.assertEqual(det2.semestreSugerido, 4)
+
+        # Desactivación / Reactivación de versión del plan
+        gestor.desactivar_plan(plan.idPlanEstudio)
+        self.assertEqual(plan.estado, "INACTIVO")
+        plan.estado = "ACTIVO"
+        self.assertEqual(plan.estado, "ACTIVO")
+
+        # Persistencia y verificación de integridad referencial
+        with TemporaryDirectory() as tmpdir:
+            gp = GestorPersistencia(tmpdir)
+            gp.guardar_todos_los_datos({
+                Facultad: [Facultad(1, codigoFacultad="FIT", nombre="Ingenierias")],
+                ProgramaAcademico: [prog],
+                Curso: [c1, c2],
+                PlanEstudio: [plan],
+                DetallePlanEstudio: gestor.detalles_planes,
+            })
+            cargados = gp.cargar_todos_los_datos()
+            self.assertEqual(len(cargados[PlanEstudio]), 1)
+            self.assertEqual(len(cargados[DetallePlanEstudio]), 2)
+            self.assertEqual(cargados[PlanEstudio][0].totalCreditos, 7)
+
+    def test_integracion_controller_periodos_y_planes(self):
+        """Valida que PITAController cargue adecuadamente períodos y planes de estudio."""
+        from ui_gui.gui_controller import PITAController
+        ctrl = PITAController()
+        self.assertTrue(len(ctrl.periodos_academicos) >= 1)
+        periodo_actual = next((p for p in ctrl.periodos_academicos if p.codigo == "2026-1"), None)
+        self.assertIsNotNone(periodo_actual)
+        self.assertEqual(periodo_actual.estado, "ABIERTO")
+
+        self.assertTrue(len(ctrl.planes) >= 1)
+        plan_actual = next((pl for pl in ctrl.planes if pl.codigo == "PLAN-SIS-2026"), None)
+        self.assertIsNotNone(plan_actual)
+        self.assertEqual(plan_actual.estado, "ACTIVO")
+
+    def test_gui_pestanas_periodos_y_planes(self):
+        """Valida la presencia e inicialización de las pestañas de Períodos y Planes en AcademicaViewGUI."""
+        import customtkinter as ctk
+        from ui_gui.gui_controller import PITAController
+        from ui_gui.view_academica_gui import AcademicaViewGUI
+        app = ctk.CTk()
+        ctrl = PITAController()
+        view = AcademicaViewGUI(app, ctrl)
+        self.assertTrue(hasattr(view, "tab_periodos"))
+        self.assertTrue(hasattr(view, "tab_planes"))
+        app.destroy()
 
 
 if __name__ == "__main__":

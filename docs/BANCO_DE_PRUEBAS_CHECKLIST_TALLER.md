@@ -138,32 +138,64 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 
 ---
 
-## 📚 Fase 3: Catálogo, Ofertas y Matrícula Académica
-*Cumple Requerimientos #3, #11 y #12 del Taller.*
+## 📚 Fase 3: Planes de Estudio, Períodos Académicos, Catálogo y Matrícula
+*Cumple Requerimientos #3, #11 y #12 del Taller y Casos de Uso CU-03 (Planes de Estudio) y CU-04 (Períodos y Oferta).*
 
-### Caso 3.1: Configuración de Período y Cursos
-- **Ruta:** Menú Lateral ➔ **Gestión Académica**
-1. **Pestaña Periodos:** Verificar o aperturar el período académico `2026-1` (Estado: `ABIERTO`).
-2. **Pestaña Cursos & Ofertas ➔ Catálogo de Asignaturas ➔ Botón `+ Nueva Asignatura`:**
-   - **Curso 1:**
-     - **Código de la Asignatura *:** `SIS-301`
-     - **Nombre de la Asignatura *:** `Estructuras de Datos`
-     - **Número de Créditos *:** `3`
-     - **Horas Teóricas:** `3` | **Horas Prácticas:** `2`
-     - **Nota Mínima Aprobatoria *:** `3.0`
-     - **Cupo Sugerido de Estudiantes:** `30`
-   - **Curso 2 (Umbral Diferenciado):**
-     - **Código de la Asignatura *:** `SIS-401`
-     - **Nombre de la Asignatura *:** `Sistemas Operativos Avanzados`
-     - **Número de Créditos *:** `4`
-     - **Horas Teóricas:** `4` | **Horas Prácticas:** `1`
-     - **Nota Mínima Aprobatoria *:** `3.5` *(umbral reglamentario especial de posgrado/avanzado)*
-     - **Cupo Sugerido de Estudiantes:** `25`
+### Caso 3.1: Configuración y Verificación de Período Académico
+- **Ruta:** Menú Lateral ➔ **Gestión Académica** ➔ Pestaña **`📅 Períodos Académicos`**
+1. **Verificación del Período Activo:**
+   - [ ] Se observa el período `2026-1` en la tabla con:
+     - **Código:** `2026-1` | **Nombre:** `Primer Período Académico 2026`
+     - **Año / Semestre:** `2026-1`
+     - **Fechas de Clases:** `2026-02-01  ➔  2026-06-30`
+     - **Fechas de Matrícula:** `2026-01-15  ➔  2026-02-10`
+     - **Límite Cancelación:** `2026-04-15`
+     - **Estado:** Badge verde `ABIERTO`
+2. **Acciones Interactivas:**
+   - [ ] Probar el botón **`🔄 Cerrar`**: el estado cambia a `CERRADO`. Al pulsar **`🔄 Aperturar`**, regresa inmediatamente a `ABIERTO`.
+   - [ ] Probar el botón **`✏️ Editar`**: permite modificar fechas del calendario académico.
+   - [ ] Probar el botón superior **`📅 + Aperturar Período`**: permite aperturar nuevos períodos (ej. `2026-2`).
+
+### Caso 3.2: Gestión de Planes de Estudio y Malla Curricular (CU-03)
+- **Ruta:** Menú Lateral ➔ **Gestión Académica** ➔ Pestaña **`📋 Planes de Estudio`**
+1. **Verificación de Planes Registrados:**
+   - [ ] Aparece el plan institucional `PLAN-SIS-2026` con:
+     - **Nombre:** `Plan Ingenieria de Sistemas 2026`
+     - **Programa:** `SIS - Ingenieria de Sistemas`
+     - **Versión:** `V1` | **Créditos:** `160 cr`
+     - **Estado:** Badge verde `ACTIVO`
+2. **Exploración y Malla Curricular (`📜 Malla`):**
+   - [ ] Pulsar el botón **`📜 Malla`** en la fila del plan: se despliega el modal interactivo de la **Malla Curricular**.
+   - [ ] En el panel superior **➕ Incluir Asignatura a la Malla**:
+     - Seleccionar una asignatura del catálogo (ej. `SIS-301`).
+     - Indicar **Semestre Sugerido:** `3` | **Tipo:** `OBLIGATORIA` | **Obligatoria:** `Sí`.
+     - Pulsar **`➕ Incluir`**: la materia se suma a la tabla del semestre correspondiente y el total de créditos de la malla se actualiza automáticamente.
+   - [ ] Probar el botón **`❌ Quitar`** en una fila para remover materias de la malla.
+3. **Control de Versiones y Estados:**
+   - [ ] Pulsar el botón **`🔄 Desactivar`** en la tabla principal: el plan cambia a badge rojo `INACTIVO`. Al pulsar **`🔄 Activar`**, se restablece a `ACTIVO`.
+   - [ ] Probar el botón superior **`📋 + Nuevo Plan`** para dar de alta nuevas versiones o planes curriculares.
+
+### Caso 3.3: Catálogo de Asignaturas (Creación de Cursos con Umbrales Dinámicos)
+- **Ruta:** Pestaña **`📚 Cursos & Ofertas`** ➔ **Catálogo de Asignaturas** ➔ Botón **`➕ Crear Asignatura`** (o `+ Nueva Asignatura`):
+  - **Curso 1:**
+    - **Código de la Asignatura *:** `SIS-301`
+    - **Nombre de la Asignatura *:** `Estructuras de Datos`
+    - **Número de Créditos *:** `3`
+    - **Horas Teóricas:** `3` | **Horas Prácticas:** `2`
+    - **Nota Mínima Aprobatoria *:** `3.0`
+    - **Cupo Sugerido de Estudiantes:** `30`
+  - **Curso 2 (Umbral Diferenciado):**
+    - **Código de la Asignatura *:** `SIS-401`
+    - **Nombre de la Asignatura *:** `Sistemas Operativos Avanzados`
+    - **Número de Créditos *:** `4`
+    - **Horas Teóricas:** `4` | **Horas Prácticas:** `1`
+    - **Nota Mínima Aprobatoria *:** `3.5` *(umbral reglamentario especial de posgrado/avanzado)*
+    - **Cupo Sugerido de Estudiantes:** `25`
 - **Verificación:**
   - [ ] Ambos cursos aparecen en la tabla con sus créditos, distribución teórica/práctica y sus respectivas notas mínimas aprobatorias configurables.
 
-### Caso 3.2: Apertura de Oferta / Grupo Abierto
-- **Ruta:** Pestaña **Cursos & Ofertas** ➔ **Ofertas y Grupos Abiertos** ➔ Botón **`+ Nueva Oferta`**
+### Caso 3.4: Apertura de Oferta / Grupo Abierto
+- **Ruta:** Pestaña **Cursos & Ofertas** ➔ **Ofertas y Grupos Abiertos** ➔ Botón **`🏫 Abrir Oferta / Grupo`** (o `+ Nueva Oferta`)
 - **Oferta 1:**
   - **Asignatura a Ofertar *:** `SIS-301 | Estructuras de Datos`
   - **Periodo Académico *:** `2026-1`
@@ -179,8 +211,8 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 - **Verificación:**
   - [ ] Las ofertas quedan aperturadas y sus semáforos de cupos reflejan disponibilidad total (`30 / 30` y `25 / 25`).
 
-### Caso 3.3: Matrícula de Cursos
-- **Ruta:** Pestaña **Matrículas**
+### Caso 3.5: Matrícula de Cursos
+- **Ruta:** Pestaña **Matrículas** (o **✍️ Matrícula de Cursos**)
 - **Acción en el panel superior de inscripción:**
   1. En el combobox **Estudiante a Matricular:** seleccionar `EST-2026-001 - Juan Diego Rodriguez`.
   2. En el combobox **Oferta / Curso Disponible:** seleccionar `SIS-301`.
@@ -346,7 +378,7 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 | :---: | :--- | :--- | :---: | :---: |
 | **7.1** | Pulsar **`Guardar Cambios`** en el sidebar o barra superior | Mensaje en barra de estado: *"Datos guardados exitosamente en 'datos/'"*. Archivos `.txt` actualizados. | [ ] | [ ] |
 | **7.2** | Cerrar la aplicación por completo y volver a iniciarla | La aplicación arranca sin pérdidas: las facultades, programas, personas, contratos, asignaciones, notas y desprendibles se cargan **100% intactos**. | [ ] | [ ] |
-| **7.3** | Ejecutar suite de pruebas unitarias automatizadas: <br>`python -m pytest test_pita.py` | Salida: **18 passed in 0.44s (100% aprobado sin advertencias ni fallos)**. | [ ] | [ ] |
+| **7.3** | Ejecutar suite de pruebas unitarias automatizadas: <br>`python -m pytest test_pita.py` | Salida: **22 passed in 1.5s (100% aprobado sin advertencias ni fallos)**. | [ ] | [ ] |
 | **7.4** | Compilación C++ Release: <br>`cmake --build cpp/build --config Release` | Compilación limpia: **0 errores, binarios `pita_gui.exe` y `pita_backend.exe` generados exitosamente**. | [ ] | [ ] |
 
 ---
@@ -357,6 +389,8 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 | :-: | :--- | :--- | :--- | :---: |
 | **1** | Gestión de conjunto de Facultades | `gui_vista_facultades.cpp` (Tab Facultades) | `view_facultades_gui.py` | ✅ CUMPLIDO |
 | **2** | Gestión de conjunto de Programas Académicos | `gui_vista_facultades.cpp` (Tab Programas) | `view_facultades_gui.py` | ✅ CUMPLIDO |
+| **CU-03** | Gestión de Planes de Estudio y Malla Curricular | `gestor_academico.cpp` | `academica_tabs.py` (Tab Planes) & `dialogs_planes_periodos.py` | ✅ CUMPLIDO |
+| **CU-04** | Gestión y Apertura de Períodos Académicos | `gestor_periodos.cpp` | `academica_tabs.py` (Tab Períodos) & `dialogs_planes_periodos.py` | ✅ CUMPLIDO |
 | **3** | Cursos, Estudiantes y Profesores por programa | `gui_vista_academica.cpp`, `gui_vista_personas.cpp` | `view_academica_gui.py`, `view_personas_gui.py` | ✅ CUMPLIDO |
 | **4** | Información personal y de nómina por profesor | `gui_vista_contratos.cpp`, `gui_vista_nomina.cpp` | `view_contratos_gui.py`, `view_nomina_gui.py` | ✅ CUMPLIDO |
 | **5** | Nómina Planta, Ocasional y Cátedra (Dec. 1279 / Ac. 027) | `calculadora_deducciones.cpp`, `gestor_nomina.cpp` | `nomina_service.py`, `liquidadores.py` | ✅ CUMPLIDO |

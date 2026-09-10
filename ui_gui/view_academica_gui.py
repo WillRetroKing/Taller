@@ -13,6 +13,7 @@ import customtkinter as ctk
 from typing import TYPE_CHECKING
 
 from ui_gui.theme import Colors, create_styled_tabview
+from ui_gui.components import clean_enum
 from ui_gui.academica.academica_service import AcademicaService
 from ui_gui.academica.academica_tabs import AcademicaTabs
 from ui_gui.academica.dialogs_cursos_ofertas import (
@@ -24,14 +25,20 @@ from ui_gui.academica.dialogs_notas import (
     DialogEditarNota,
     DialogLimpiarNota,
 )
+from ui_gui.academica.dialogs_planes_periodos import (
+    DialogNuevoPeriodo,
+    DialogEditarPeriodo,
+    DialogNuevoPlanEstudio,
+    DialogMallaCurricular,
+)
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
-    from dominio.modelo_datos import Curso, DetalleMatricula
+    from dominio.modelo_datos import Curso, DetalleMatricula, PeriodoAcademico, PlanEstudio
 
 
 class AcademicaViewGUI(ctk.CTkFrame):
-    """Vista académica completa: Oferta de cursos, matrícula de estudiantes, notas y alertas EBRA."""
+    """Vista académica completa: Períodos, Planes de Estudio, Cursos, Ofertas, Matrículas, Notas y Alertas EBRA."""
 
     def __init__(self, parent: ctk.CTk, controller: PITAController) -> None:
         super().__init__(parent, fg_color="transparent")
@@ -63,7 +70,7 @@ class AcademicaViewGUI(ctk.CTkFrame):
             corner_radius=8,
             command=self._abrir_modal_nueva_oferta,
         )
-        btn_nueva_oferta.pack(side="right", padx=(8, 0))
+        btn_nueva_oferta.pack(side="right", padx=(6, 0))
 
         btn_nuevo_curso = ctk.CTkButton(
             btn_box,
@@ -74,17 +81,43 @@ class AcademicaViewGUI(ctk.CTkFrame):
             corner_radius=8,
             command=self._abrir_modal_nuevo_curso,
         )
-        btn_nuevo_curso.pack(side="right")
+        btn_nuevo_curso.pack(side="right", padx=(6, 0))
+
+        btn_nuevo_plan = ctk.CTkButton(
+            btn_box,
+            text="📋 + Nuevo Plan",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            corner_radius=8,
+            command=self._abrir_modal_nuevo_plan,
+        )
+        btn_nuevo_plan.pack(side="right", padx=(6, 0))
+
+        btn_nuevo_periodo = ctk.CTkButton(
+            btn_box,
+            text="📅 + Aperturar Período",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#7C3AED",
+            hover_color="#6D28D9",
+            corner_radius=8,
+            command=self._abrir_modal_nuevo_periodo,
+        )
+        btn_nuevo_periodo.pack(side="right")
 
         # Pestañas Principales
         self.tabview = create_styled_tabview(self)
         self.tabview.pack(fill="both", expand=True, padx=10, pady=5)
 
+        self.tab_periodos = self.tabview.add("📅 Períodos Académicos")
+        self.tab_planes = self.tabview.add("📋 Planes de Estudio")
         self.tab_oferta = self.tabview.add("📚 Cursos & Ofertas")
         self.tab_matricula = self.tabview.add("✍️ Matrícula de Cursos")
         self.tab_evaluaciones = self.tabview.add("📝 Evaluaciones y Notas")
         self.tab_ebra = self.tabview.add("⚠️ Informe Alertas EBRA")
 
+        self._llenar_tab_periodos()
+        self._llenar_tab_planes()
         self._llenar_tab_oferta()
         self._llenar_tab_matricula()
         self._llenar_tab_evaluaciones()
@@ -93,6 +126,25 @@ class AcademicaViewGUI(ctk.CTkFrame):
     # ------------------------------------------------------------------
     # LLENADO DE PESTAÑAS (DELEGACIÓN MODULAR)
     # ------------------------------------------------------------------
+    def _llenar_tab_periodos(self) -> None:
+        AcademicaTabs.render_tab_periodos(
+            self.tab_periodos,
+            self.controller,
+            on_aperturar_periodo=self._abrir_modal_nuevo_periodo,
+            on_editar_periodo=self._editar_periodo,
+            on_cambiar_estado_periodo=self._cambiar_estado_periodo,
+            on_apertura_rapida_2026_1=self._apertura_rapida_2026_1,
+        )
+
+    def _llenar_tab_planes(self) -> None:
+        AcademicaTabs.render_tab_planes(
+            self.tab_planes,
+            self.controller,
+            on_nuevo_plan=self._abrir_modal_nuevo_plan,
+            on_ver_malla=self._ver_malla_plan,
+            on_cambiar_estado_plan=self._cambiar_estado_plan,
+        )
+
     def _llenar_tab_oferta(self) -> None:
         AcademicaTabs.render_tab_oferta(
             self.tab_oferta,
@@ -131,6 +183,51 @@ class AcademicaViewGUI(ctk.CTkFrame):
     # ------------------------------------------------------------------
     # MODALES Y ACCIONES (RETROCOMPATIBILIDAD TOTAL)
     # ------------------------------------------------------------------
+    def _abrir_modal_nuevo_periodo(self) -> None:
+        DialogNuevoPeriodo(self, self.service, on_success=self.actualizar)
+
+    def _editar_periodo(self, periodo: PeriodoAcademico) -> None:
+        DialogEditarPeriodo(self, self.service, periodo, on_success=self.actualizar)
+
+    def _cambiar_estado_periodo(self, periodo: PeriodoAcademico) -> None:
+        nuevo = "CERRADO" if clean_enum(getattr(periodo, "estado", "")) == "ABIERTO" else "ABIERTO"
+        periodo.estado = nuevo
+        self.controller.guardar_datos()
+        self.actualizar()
+
+    def _apertura_rapida_2026_1(self) -> None:
+        from datetime import date
+        from dominio.modelo_datos import PeriodoAcademico
+        nuevo_id = max((p.idPeriodo or 0 for p in self.controller.periodos_academicos), default=0) + 1
+        per = PeriodoAcademico(
+            idPeriodo=nuevo_id,
+            codigo="2026-1",
+            nombre="Primer Período Académico 2026",
+            anio=2026,
+            numeroPeriodo=1,
+            fechaInicio=date(2026, 2, 1),
+            fechaFin=date(2026, 6, 30),
+            fechaInicioMatricula=date(2026, 1, 15),
+            fechaFinMatricula=date(2026, 2, 10),
+            fechaLimiteCancelacion=date(2026, 4, 15),
+            estado="ABIERTO",
+        )
+        self.controller.periodos_academicos.append(per)
+        self.controller.guardar_datos()
+        self.actualizar()
+
+    def _abrir_modal_nuevo_plan(self) -> None:
+        DialogNuevoPlanEstudio(self, self.service, on_success=self.actualizar)
+
+    def _ver_malla_plan(self, plan: PlanEstudio) -> None:
+        DialogMallaCurricular(self, self.service, plan, on_success=self.actualizar)
+
+    def _cambiar_estado_plan(self, plan: PlanEstudio) -> None:
+        nuevo = "INACTIVO" if clean_enum(getattr(plan, "estado", "")) == "ACTIVO" else "ACTIVO"
+        plan.estado = nuevo
+        self.controller.guardar_datos()
+        self.actualizar()
+
     def _abrir_modal_nuevo_curso(self) -> None:
         DialogNuevoCurso(self, self.service, on_success=self.actualizar)
 

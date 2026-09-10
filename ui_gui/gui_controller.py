@@ -103,38 +103,46 @@ class PITAController:
     def cargar_datos(self) -> None:
         """Cargar datos desde disco si existen, o inicializar con valores por defecto."""
         if self.directorio_datos.exists() and any(self.directorio_datos.iterdir()):
+            datos = {}
             try:
                 datos = self.gestor_persistencia.cargar_todos_los_datos()
-                self.facultades = datos.get(Facultad, [])
-                self.programas = datos.get(ProgramaAcademico, [])
-                self.planes = datos.get(PlanEstudio, [])
-                self.detalles_plan = datos.get(DetallePlanEstudio, [])
-                self.cursos = datos.get(Curso, [])
-                self.prerrequisitos = datos.get(Prerrequisito, [])
-                self.periodos_academicos = datos.get(PeriodoAcademico, [])
-                self.personas = datos.get(Persona, [])
-                self.estudiantes = datos.get(Estudiante, [])
-                self.profesores = datos.get(Profesor, [])
-                self.administrativos = datos.get(Administrativo, [])
-                self.ofertas = datos.get(OfertaCurso, [])
-                self.asignaciones = datos.get(AsignacionDocente, [])
-                self.horarios = datos.get(Horario, [])
-                self.matriculas = datos.get(MatriculaAcademica, [])
-                self.detalles_matricula = datos.get(DetalleMatricula, [])
-                self.evaluaciones = datos.get(Evaluacion, [])
-                self.calificaciones = datos.get(Calificacion, [])
-                self.alertas = datos.get(AlertaAcademica, [])
-                self.contratos = datos.get(Contrato, [])
-                self.categorias = datos.get(CategoriaDocente, [])
-                self.factores = datos.get(FactorSalarial, [])
-                self.producciones = datos.get(ProduccionAcademica, [])
-                self.periodos_nomina = datos.get(PeriodoNomina, [])
-                self.liquidaciones = datos.get(LiquidacionNomina, [])
-                self.conceptos = datos.get(ConceptoNomina, [])
-                self.detalles_liquidacion = datos.get(DetalleLiquidacion, [])
-                self.parametros = datos.get(ParametroNormativo, [])
             except Exception as e:
-                print(f"Advertencia al cargar persistencia: {e}")
+                print(f"Advertencia al cargar persistencia en bloque: {e}. Intentando carga por entidad...")
+                for tipo in self.gestor_persistencia.ARCHIVOS:
+                    try:
+                        datos[tipo] = self.gestor_persistencia.cargar_entidad(tipo)
+                    except Exception as err_entidad:
+                        print(f"Advertencia al cargar {tipo.__name__}: {err_entidad}")
+                        datos[tipo] = []
+
+            self.facultades = datos.get(Facultad, [])
+            self.programas = datos.get(ProgramaAcademico, [])
+            self.planes = datos.get(PlanEstudio, [])
+            self.detalles_plan = datos.get(DetallePlanEstudio, [])
+            self.cursos = datos.get(Curso, [])
+            self.prerrequisitos = datos.get(Prerrequisito, [])
+            self.periodos_academicos = datos.get(PeriodoAcademico, [])
+            self.personas = datos.get(Persona, [])
+            self.estudiantes = datos.get(Estudiante, [])
+            self.profesores = datos.get(Profesor, [])
+            self.administrativos = datos.get(Administrativo, [])
+            self.ofertas = datos.get(OfertaCurso, [])
+            self.asignaciones = datos.get(AsignacionDocente, [])
+            self.horarios = datos.get(Horario, [])
+            self.matriculas = datos.get(MatriculaAcademica, [])
+            self.detalles_matricula = datos.get(DetalleMatricula, [])
+            self.evaluaciones = datos.get(Evaluacion, [])
+            self.calificaciones = datos.get(Calificacion, [])
+            self.alertas = datos.get(AlertaAcademica, [])
+            self.contratos = datos.get(Contrato, [])
+            self.categorias = datos.get(CategoriaDocente, [])
+            self.factores = datos.get(FactorSalarial, [])
+            self.producciones = datos.get(ProduccionAcademica, [])
+            self.periodos_nomina = datos.get(PeriodoNomina, [])
+            self.liquidaciones = datos.get(LiquidacionNomina, [])
+            self.conceptos = datos.get(ConceptoNomina, [])
+            self.detalles_liquidacion = datos.get(DetalleLiquidacion, [])
+            self.parametros = datos.get(ParametroNormativo, [])
 
         # Asegurar nota mínima válida en cursos
         for cur in self.cursos:

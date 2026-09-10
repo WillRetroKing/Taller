@@ -201,6 +201,10 @@ class GestorPersistencia:
             for objeto in datos.get(tipo, []):
                 valor = getattr(objeto, campo, None)
                 if valor is not None and valor not in indices[tipo_referenciado]:
+                    # Si es un campo opcional o preliminar, sanear a None para no bloquear la carga de la universidad
+                    if campo in ("idPlanEstudio", "idPeriodo", "idPeriodoAcademico", "idProgramaPrincipal"):
+                        setattr(objeto, campo, None)
+                        continue
                     raise ValueError(
                         f"Referencia inválida: {tipo.__name__}.{campo}={valor} "
                         f"no existe en {tipo_referenciado.__name__}"
@@ -280,7 +284,7 @@ class GestorPersistencia:
             return "1" if valor else "0"
         if isinstance(valor, (date, time)):
             return valor.isoformat()
-        return str(valor)
+        return str(valor).replace("|", " - ")
 
     @staticmethod
     def _deserializar(valor: str, tipo: Any) -> Any:

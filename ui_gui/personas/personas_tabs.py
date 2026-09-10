@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
 from ui_gui.components import PITAGridTable, clean_enum
+from ui_gui.theme import Colors
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -39,9 +40,9 @@ class PersonasTabsRenderer:
         for w in container.winfo_children():
             w.destroy()
 
-        headers = ["Código", "Documento", "Nombre Completo", "Semestre", "Promedio", "Estado Académico", "Acciones"]
-        col_weights = [2, 2, 3, 1, 1, 1, 2]
-        col_mins = [70, 80, 140, 60, 50, 70, 70]
+        headers = ["Código", "Documento", "Nombre Completo", "Semestre", "Promedio", "Condición", "Estado", "Acciones"]
+        col_weights = [2, 2, 3, 1, 1, 1, 1, 2]
+        col_mins = [70, 80, 130, 60, 50, 60, 60, 80]
 
         table = PITAGridTable(container, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
@@ -62,7 +63,7 @@ class PersonasTabsRenderer:
             ]
 
         if not estud_list:
-            ctk.CTkLabel(table, text="No hay estudiantes coincidentes.", text_color="#94A3B8").pack(pady=30)
+            ctk.CTkLabel(table, text="No hay estudiantes coincidentes.", text_color=Colors.TEXT_MUTED).pack(pady=30)
             return
 
         for est in estud_list:
@@ -70,28 +71,35 @@ class PersonasTabsRenderer:
             doc = getattr(pers, "numeroDocumento", "N/A") if pers else "N/A"
             nombre = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Sin Persona"
 
+            es_activo = str(getattr(est, "estado", "ACTIVO")).upper() == "ACTIVO" and (pers is None or str(getattr(pers, "estado", "ACTIVO")).upper() == "ACTIVO")
             estado_acad = clean_enum(getattr(est, "estadoAcademico", "ACTIVO"))
             promedio = float(getattr(est, "promedioAcumulado", 0.0) or 0.0)
 
-            badge_tuple = ("badge", "⚠️ EBRA", "ebra") if (estado_acad == "EBRA" or promedio < 3.0) else ("badge", "● ACTIVO", "active")
+            badge_condicion = ("badge", "⚠️ EBRA", "ebra") if (estado_acad == "EBRA" or promedio < 3.0) else ("badge", "Regular", "neutral")
+            badge_estado = ("badge", "ACTIVO", "success") if es_activo else ("badge", "INACTIVO", "danger")
+
+            btn_act_text = "❌ Desactivar" if es_activo else "✅ Activar"
+            btn_act_color = "#EF4444" if es_activo else "#10B981"
+            btn_act_hover = "#DC2626" if es_activo else "#059669"
 
             act_spec = (
                 "actions",
                 [
                     ("👁️ Ver", lambda p=pers: self.on_ver_persona(p), "#6366F1", "#4F46E5"),
                     ("✏️ Editar", lambda e=est, p=pers: self.on_editar_estudiante(e, p), "#334155", "#475569"),
-                    ("❌ Desactivar", lambda e_id=getattr(est, "idEstudiante", 0): self.on_desactivar_estudiante(e_id), "#EF4444", "#DC2626"),
+                    (btn_act_text, lambda e_id=getattr(est, "idEstudiante", 0): self.on_desactivar_estudiante(e_id), btn_act_color, btn_act_hover),
                 ],
             )
 
-            color_prom = "#F87171" if promedio < 3.0 else "#34D399"
+            color_prom = "#EF4444" if promedio < 3.0 else "#059669"
             cells = [
-                (getattr(est, "codigoEstudiante", "N/A"), "#38BDF8"),
+                (getattr(est, "codigoEstudiante", "N/A"), Colors.WIN_BLUE),
                 doc,
-                (nombre, "#F8FAFC"),
+                (nombre, Colors.TEXT_MAIN),
                 f"Semestre {getattr(est, 'semestreActual', '1')}",
                 (f"{promedio:.2f}", color_prom),
-                badge_tuple,
+                badge_condicion,
+                badge_estado,
                 act_spec,
             ]
             table.add_row_items(cells, is_highlighted=(promedio < 3.0 or estado_acad == "EBRA"))
@@ -100,9 +108,9 @@ class PersonasTabsRenderer:
         for w in container.winfo_children():
             w.destroy()
 
-        headers = ["Código", "Documento", "Nombre Completo", "Tipo Profesor", "Categoría", "Horas/Semana", "Acciones"]
-        col_weights = [2, 2, 3, 1, 1, 1, 2]
-        col_mins = [70, 80, 140, 50, 70, 70, 70]
+        headers = ["Código", "Documento", "Nombre Completo", "Tipo Profesor", "Categoría", "Horas/Semana", "Estado", "Acciones"]
+        col_weights = [2, 2, 3, 2, 2, 1, 1, 2]
+        col_mins = [70, 80, 130, 70, 70, 60, 60, 80]
 
         table = PITAGridTable(container, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
@@ -123,7 +131,7 @@ class PersonasTabsRenderer:
             ]
 
         if not prof_list:
-            ctk.CTkLabel(table, text="No hay profesores coincidentes.", text_color="#94A3B8").pack(pady=30)
+            ctk.CTkLabel(table, text="No hay profesores coincidentes.", text_color=Colors.TEXT_MUTED).pack(pady=30)
             return
 
         for prof in prof_list:
@@ -139,27 +147,35 @@ class PersonasTabsRenderer:
                 "CATEDRATICO_AD_HONOREM": ("🤝 Ad-Honorem", "neutral"),
             }
             tipo_label, b_type = tipo_map.get(tipo_raw, (tipo_raw.replace("_", " ").title(), "neutral"))
-            badge_tuple = ("badge", tipo_label, b_type)
+            badge_tipo = ("badge", tipo_label, b_type)
 
             cat_raw = clean_enum(getattr(prof, "categoriaDocente", "TITULAR"))
             cat = cat_raw.replace("_", " ").title()
+
+            es_activo = str(getattr(prof, "estado", "ACTIVO")).upper() == "ACTIVO" and (pers is None or str(getattr(pers, "estado", "ACTIVO")).upper() == "ACTIVO")
+            badge_estado = ("badge", "ACTIVO", "success") if es_activo else ("badge", "INACTIVO", "danger")
+
+            btn_act_text = "❌ Desactivar" if es_activo else "✅ Activar"
+            btn_act_color = "#EF4444" if es_activo else "#10B981"
+            btn_act_hover = "#DC2626" if es_activo else "#059669"
 
             act_spec = (
                 "actions",
                 [
                     ("👁️ Ver", lambda p=pers: self.on_ver_persona(p), "#6366F1", "#4F46E5"),
                     ("✏️ Editar", lambda pr=prof, p=pers: self.on_editar_profesor(pr, p), "#334155", "#475569"),
-                    ("❌ Desactivar", lambda p_id=getattr(prof, "idProfesor", 0): self.on_desactivar_profesor(p_id), "#EF4444", "#DC2626"),
+                    (btn_act_text, lambda p_id=getattr(prof, "idProfesor", 0): self.on_desactivar_profesor(p_id), btn_act_color, btn_act_hover),
                 ],
             )
 
             cells = [
-                (getattr(prof, "codigoProfesor", "N/A"), "#C084FC"),
+                (getattr(prof, "codigoProfesor", "N/A"), "#7C3AED"),
                 doc,
-                (nombre, "#F8FAFC"),
-                badge_tuple,
+                (nombre, Colors.TEXT_MAIN),
+                badge_tipo,
                 cat,
                 f"{getattr(prof, 'numeroHorasSemanales', '40')} h/sem",
+                badge_estado,
                 act_spec,
             ]
             table.add_row_items(cells)
@@ -168,9 +184,9 @@ class PersonasTabsRenderer:
         for w in container.winfo_children():
             w.destroy()
 
-        headers = ["Código", "Documento", "Nombre Completo", "Cargo", "Dependencia", "Nivel", "Salario Base", "Acciones"]
-        col_weights = [2, 2, 3, 2, 2, 1, 1, 2]
-        col_mins = [70, 80, 140, 80, 80, 60, 70, 70]
+        headers = ["Código", "Documento", "Nombre Completo", "Cargo", "Dependencia", "Nivel", "Salario Base", "Estado", "Acciones"]
+        col_weights = [2, 2, 3, 2, 2, 1, 1, 1, 2]
+        col_mins = [70, 80, 130, 80, 80, 60, 70, 60, 80]
 
         table = PITAGridTable(container, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
@@ -191,7 +207,7 @@ class PersonasTabsRenderer:
             ]
 
         if not adm_list:
-            ctk.CTkLabel(table, text="No hay administrativos coincidentes.", text_color="#94A3B8").pack(pady=30)
+            ctk.CTkLabel(table, text="No hay administrativos coincidentes.", text_color=Colors.TEXT_MUTED).pack(pady=30)
             return
 
         for adm in adm_list:
@@ -202,23 +218,31 @@ class PersonasTabsRenderer:
             sal = str(getattr(adm, "salarioBase", "0"))
             sal_fmt = f"$ {int(float(sal)):,} COP" if sal.replace(".", "").isdigit() else sal
 
+            es_activo = str(getattr(adm, "estado", "ACTIVO")).upper() == "ACTIVO" and (pers is None or str(getattr(pers, "estado", "ACTIVO")).upper() == "ACTIVO")
+            badge_estado = ("badge", "ACTIVO", "success") if es_activo else ("badge", "INACTIVO", "danger")
+
+            btn_act_text = "❌ Desactivar" if es_activo else "✅ Activar"
+            btn_act_color = "#EF4444" if es_activo else "#10B981"
+            btn_act_hover = "#DC2626" if es_activo else "#059669"
+
             act_spec = (
                 "actions",
                 [
                     ("👁️ Ver", lambda p=pers: self.on_ver_persona(p), "#6366F1", "#4F46E5"),
                     ("✏️ Editar", lambda a=adm, p=pers: self.on_editar_administrativo(a, p), "#334155", "#475569"),
-                    ("❌ Desactivar", lambda a_id=getattr(adm, "idAdministrativo", 0): self.on_desactivar_administrativo(a_id), "#EF4444", "#DC2626"),
+                    (btn_act_text, lambda a_id=getattr(adm, "idAdministrativo", 0): self.on_desactivar_administrativo(a_id), btn_act_color, btn_act_hover),
                 ],
             )
 
             cells = [
-                (getattr(adm, "codigoEmpleado", "N/A"), "#F59E0B"),
+                (getattr(adm, "codigoEmpleado", "N/A"), "#D97706"),
                 doc,
-                (nombre, "#F8FAFC"),
+                (nombre, Colors.TEXT_MAIN),
                 getattr(adm, "cargo", "N/A"),
                 getattr(adm, "dependencia", "N/A"),
                 getattr(adm, "categoria", "PROFESIONAL"),
-                (sal_fmt, "#10B981"),
+                (sal_fmt, "#059669"),
+                badge_estado,
                 act_spec,
             ]
             table.add_row_items(cells)

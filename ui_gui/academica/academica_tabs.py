@@ -13,11 +13,212 @@ from ui_gui.components import PITAGridTable, clean_enum
 if TYPE_CHECKING:
     from ui_gui.academica.academica_service import AcademicaService
     from ui_gui.gui_controller import PITAController
-    from dominio.modelo_datos import Curso, DetalleMatricula
+    from dominio.modelo_datos import Curso, DetalleMatricula, PeriodoAcademico, PlanEstudio
 
 
 class AcademicaTabs:
     """Componentes modulares de interfaz para cada pestaña de gestión académica."""
+
+    @staticmethod
+    def render_tab_periodos(
+        parent_tab: ctk.CTkFrame,
+        controller: PITAController,
+        on_aperturar_periodo: Callable[[], None],
+        on_editar_periodo: Callable[[PeriodoAcademico], None],
+        on_cambiar_estado_periodo: Callable[[PeriodoAcademico], None],
+        on_apertura_rapida_2026_1: Callable[[], None] | None = None,
+    ) -> None:
+        """Renderiza la pestaña de Períodos Académicos."""
+        for w in parent_tab.winfo_children():
+            w.destroy()
+
+        top_bar = ctk.CTkFrame(parent_tab, fg_color="transparent")
+        top_bar.pack(fill="x", padx=10, pady=(5, 10))
+
+        total_pers = len(controller.periodos_academicos)
+        abiertos = sum(1 for p in controller.periodos_academicos if clean_enum(getattr(p, "estado", "")) == "ABIERTO")
+
+        kpi_box = ctk.CTkFrame(top_bar, fg_color="transparent")
+        kpi_box.pack(side="left")
+
+        card1 = ctk.CTkFrame(kpi_box, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        card1.pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(card1, text="Total Períodos", font=ctk.CTkFont(size=10, weight="bold"), text_color="#94A3B8").pack(anchor="w", padx=12, pady=(6, 0))
+        ctk.CTkLabel(card1, text=str(total_pers), font=ctk.CTkFont(size=18, weight="bold"), text_color="#38BDF8").pack(anchor="w", padx=12, pady=(0, 6))
+
+        card2 = ctk.CTkFrame(kpi_box, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        card2.pack(side="left")
+        ctk.CTkLabel(card2, text="Períodos Abiertos", font=ctk.CTkFont(size=10, weight="bold"), text_color="#94A3B8").pack(anchor="w", padx=12, pady=(6, 0))
+        ctk.CTkLabel(card2, text=str(abiertos), font=ctk.CTkFont(size=18, weight="bold"), text_color="#10B981").pack(anchor="w", padx=12, pady=(0, 6))
+
+        btn_action_box = ctk.CTkFrame(top_bar, fg_color="transparent")
+        btn_action_box.pack(side="right")
+
+        btn_aperturar = ctk.CTkButton(
+            btn_action_box,
+            text="📅 + Aperturar Período",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#059669",
+            hover_color="#047857",
+            corner_radius=8,
+            height=36,
+            command=on_aperturar_periodo,
+        )
+        btn_aperturar.pack(side="right")
+
+        headers = ["Código", "Nombre del Período", "Año / Sem.", "Fechas Clases", "Fechas Matrícula", "Límite Canc.", "Estado", "Acciones"]
+        col_w = [2, 4, 1, 3, 3, 2, 2, 3]
+        col_m = [80, 150, 70, 110, 110, 90, 90, 160]
+
+        table = PITAGridTable(parent_tab, headers=headers, col_weights=col_w, col_mins=col_m)
+        table.pack(fill="both", expand=True, padx=5, pady=5)
+
+        if not controller.periodos_academicos:
+            empty_card = ctk.CTkFrame(table, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+            empty_card.pack(fill="x", padx=20, pady=30)
+            ctk.CTkLabel(
+                empty_card,
+                text="📅 No hay períodos académicos registrados en el sistema.",
+                font=ctk.CTkFont(size=14, weight="bold"),
+                text_color="#F8FAFC",
+            ).pack(pady=(20, 5))
+            ctk.CTkLabel(
+                empty_card,
+                text="Aperture el período académico '2026-1' (Estado: ABIERTO) para iniciar la oferta académica y matrículas.",
+                font=ctk.CTkFont(size=11),
+                text_color="#94A3B8",
+            ).pack(pady=(0, 15))
+            if on_apertura_rapida_2026_1:
+                ctk.CTkButton(
+                    empty_card,
+                    text="⚡ Aperturar Período 2026-1 Inmediatamente",
+                    font=ctk.CTkFont(size=12, weight="bold"),
+                    fg_color="#059669",
+                    hover_color="#047857",
+                    corner_radius=8,
+                    height=38,
+                    command=on_apertura_rapida_2026_1,
+                ).pack(pady=(0, 20))
+            return
+
+        for p in controller.periodos_academicos:
+            est_raw = clean_enum(getattr(p, "estado", "ABIERTO"))
+            color_badge = "#10B981" if est_raw == "ABIERTO" else ("#3B82F6" if est_raw == "EN_CURSO" else ("#F59E0B" if est_raw == "PLANIFICACION" else "#EF4444"))
+            texto_toggle = "Cerrar" if est_raw == "ABIERTO" else "Aperturar"
+            color_toggle = ("#EF4444", "#DC2626") if est_raw == "ABIERTO" else ("#10B981", "#059669")
+
+            act_spec = (
+                "actions",
+                [
+                    ("✏️ Editar", lambda per=p: on_editar_periodo(per), "#334155", "#475569"),
+                    (f"🔄 {texto_toggle}", lambda per=p: on_cambiar_estado_periodo(per), color_toggle[0], color_toggle[1]),
+                ],
+            )
+
+            fechas_clases = f"{p.fechaInicio or 'N/D'}  ➔  {p.fechaFin or 'N/D'}"
+            fechas_mat = f"{p.fechaInicioMatricula or 'N/D'}  ➔  {p.fechaFinMatricula or 'N/D'}"
+
+            cells = [
+                (getattr(p, "codigo", "N/A"), "#38BDF8"),
+                (getattr(p, "nombre", "N/A"), "#F8FAFC"),
+                f"{getattr(p, 'anio', 2026)}-{getattr(p, 'numeroPeriodo', 1)}",
+                fechas_clases,
+                fechas_mat,
+                str(getattr(p, "fechaLimiteCancelacion", "N/D")),
+                (est_raw, color_badge),
+                act_spec,
+            ]
+            table.add_row_items(cells)
+
+    @staticmethod
+    def render_tab_planes(
+        parent_tab: ctk.CTkFrame,
+        controller: PITAController,
+        on_nuevo_plan: Callable[[], None],
+        on_ver_malla: Callable[[PlanEstudio], None],
+        on_cambiar_estado_plan: Callable[[PlanEstudio], None],
+    ) -> None:
+        """Renderiza la pestaña de Planes de Estudio y Malla Curricular."""
+        for w in parent_tab.winfo_children():
+            w.destroy()
+
+        top_bar = ctk.CTkFrame(parent_tab, fg_color="transparent")
+        top_bar.pack(fill="x", padx=10, pady=(5, 10))
+
+        total_planes = len(controller.planes)
+        activos = sum(1 for p in controller.planes if clean_enum(getattr(p, "estado", "")) == "ACTIVO")
+
+        kpi_box = ctk.CTkFrame(top_bar, fg_color="transparent")
+        kpi_box.pack(side="left")
+
+        card1 = ctk.CTkFrame(kpi_box, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        card1.pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(card1, text="Total Planes", font=ctk.CTkFont(size=10, weight="bold"), text_color="#94A3B8").pack(anchor="w", padx=12, pady=(6, 0))
+        ctk.CTkLabel(card1, text=str(total_planes), font=ctk.CTkFont(size=18, weight="bold"), text_color="#38BDF8").pack(anchor="w", padx=12, pady=(0, 6))
+
+        card2 = ctk.CTkFrame(kpi_box, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        card2.pack(side="left")
+        ctk.CTkLabel(card2, text="Planes Activos", font=ctk.CTkFont(size=10, weight="bold"), text_color="#94A3B8").pack(anchor="w", padx=12, pady=(6, 0))
+        ctk.CTkLabel(card2, text=str(activos), font=ctk.CTkFont(size=18, weight="bold"), text_color="#10B981").pack(anchor="w", padx=12, pady=(0, 6))
+
+        btn_action_box = ctk.CTkFrame(top_bar, fg_color="transparent")
+        btn_action_box.pack(side="right")
+
+        ctk.CTkButton(
+            btn_action_box,
+            text="📋 + Nuevo Plan de Estudio",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+            fg_color="#2563EB",
+            hover_color="#1D4ED8",
+            corner_radius=8,
+            height=36,
+            command=on_nuevo_plan,
+        ).pack(side="right")
+
+        headers = ["Código Plan", "Nombre del Plan", "Programa Académico", "Versión", "Créditos en Malla", "Vigencia Inicio", "Estado", "Acciones"]
+        col_w = [2, 4, 3, 1, 2, 2, 2, 3]
+        col_m = [90, 150, 130, 60, 90, 80, 80, 170]
+
+        table = PITAGridTable(parent_tab, headers=headers, col_weights=col_w, col_mins=col_m)
+        table.pack(fill="both", expand=True, padx=5, pady=5)
+
+        if not controller.planes:
+            ctk.CTkLabel(table, text="No hay planes de estudio registrados.", text_color="#94A3B8").pack(pady=30)
+            return
+
+        for pl in controller.planes:
+            prog = next((pr for pr in controller.programas if pr.idPrograma == pl.idPrograma), None)
+            cod_prog = getattr(prog, "codigoPrograma", getattr(prog, "codigo", "N/A")) if prog else "N/A"
+            nom_prog = f"{cod_prog} - {prog.nombre}" if prog else f"Prog #{pl.idPrograma}"
+
+            detalles_pl = [d for d in controller.detalles_plan if d.idPlanEstudio == pl.idPlanEstudio and d.estado != "INACTIVO"]
+            cred_malla = sum(d.numeroCreditos or 0 for d in detalles_pl)
+            cred_txt = f"{cred_malla} / {pl.totalCreditos or 160} cr"
+
+            est_raw = clean_enum(getattr(pl, "estado", "ACTIVO"))
+            badge_col = "#10B981" if est_raw == "ACTIVO" else "#EF4444"
+            toggle_txt = "Desactivar" if est_raw == "ACTIVO" else "Activar"
+            toggle_col = ("#EF4444", "#DC2626") if est_raw == "ACTIVO" else ("#10B981", "#059669")
+
+            act_spec = (
+                "actions",
+                [
+                    ("📜 Malla", lambda plan=pl: on_ver_malla(plan), "#0284C7", "#0369A1"),
+                    (f"🔄 {toggle_txt}", lambda plan=pl: on_cambiar_estado_plan(plan), toggle_col[0], toggle_col[1]),
+                ],
+            )
+
+            cells = [
+                (getattr(pl, "codigo", "N/A"), "#38BDF8"),
+                (getattr(pl, "nombre", "N/A"), "#F8FAFC"),
+                nom_prog,
+                getattr(pl, "version", "V1"),
+                cred_txt,
+                str(getattr(pl, "fechaInicioVigencia", "N/D")),
+                (est_raw, badge_col),
+                act_spec,
+            ]
+            table.add_row_items(cells)
 
     @staticmethod
     def render_tab_oferta(

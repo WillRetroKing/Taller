@@ -301,6 +301,8 @@ class PITATreeviewTable(ctk.CTkFrame):
                     "aprobado": "🟢 ",
                     "liquidado": "🟢 ",
                     "danger": "🔴 ",
+                    "inactivo": "🔴 ",
+                    "inactive": "🔴 ",
                     "ebra": "🔴 ",
                     "cancelado": "🔴 ",
                     "reprobado": "🔴 ",

@@ -232,37 +232,67 @@ class PersonasService:
             if c.idPersona == adm.idPersona and getattr(c, "estado", "") == "ACTIVO":
                 c.salarioBase = adm.salarioBase
                 c.aplicaAuxilioTransporte = bool(adm.salarioBase <= Decimal("3501810"))
-                c.observaciones = f"Cargo: {adm.cargo} | Dependencia: {adm.dependencia}"
+                c.observaciones = f"Cargo: {adm.cargo} - Dependencia: {adm.dependencia}"
                 break
 
         self.controller._recrear_gestores()
 
     # ------------------------------------------------------------------
-    # DESACTIVACIONES
+    # ACTIVACIÓN Y DESACTIVACIÓN DE ESTADOS
     # ------------------------------------------------------------------
-    def desactivar_estudiante(self, id_estudiante: int) -> bool:
+    def conmutar_estado_estudiante(self, id_estudiante: int) -> bool:
         est = next((e for e in self.controller.estudiantes if getattr(e, "idEstudiante", 0) == id_estudiante), None)
         if est:
-            est.estado = "INACTIVO"
+            es_activo = str(getattr(est, "estado", "ACTIVO")).upper() == "ACTIVO"
+            nuevo_estado = "INACTIVO" if es_activo else "ACTIVO"
+            est.estado = nuevo_estado
+            pers = next((p for p in self.controller.personas if getattr(p, "idPersona", None) == getattr(est, "idPersona", None)), None)
+            if pers:
+                pers.estado = nuevo_estado
             self.controller._recrear_gestores()
+            self.controller.guardar_datos()
             return True
         return False
 
-    def desactivar_profesor(self, id_profesor: int) -> bool:
+    def conmutar_estado_profesor(self, id_profesor: int) -> bool:
         prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", 0) == id_profesor), None)
         if prof:
-            prof.estado = "INACTIVO"
+            es_activo = str(getattr(prof, "estado", "ACTIVO")).upper() == "ACTIVO"
+            nuevo_estado = "INACTIVO" if es_activo else "ACTIVO"
+            prof.estado = nuevo_estado
+            pers = next((p for p in self.controller.personas if getattr(p, "idPersona", None) == getattr(prof, "idPersona", None)), None)
+            if pers:
+                pers.estado = nuevo_estado
+            for c in self.controller.contratos:
+                if getattr(c, "idPersona", None) == getattr(prof, "idPersona", None):
+                    c.estado = nuevo_estado
             self.controller._recrear_gestores()
+            self.controller.guardar_datos()
             return True
         return False
 
-    def desactivar_administrativo(self, id_administrativo: int) -> bool:
+    def conmutar_estado_administrativo(self, id_administrativo: int) -> bool:
         adm = next((a for a in self.controller.administrativos if getattr(a, "idAdministrativo", 0) == id_administrativo), None)
         if adm:
-            adm.estado = "INACTIVO"
+            es_activo = str(getattr(adm, "estado", "ACTIVO")).upper() == "ACTIVO"
+            nuevo_estado = "INACTIVO" if es_activo else "ACTIVO"
+            adm.estado = nuevo_estado
+            pers = next((p for p in self.controller.personas if getattr(p, "idPersona", None) == getattr(adm, "idPersona", None)), None)
+            if pers:
+                pers.estado = nuevo_estado
             for c in self.controller.contratos:
-                if c.idPersona == adm.idPersona and getattr(c, "estado", "") == "ACTIVO":
-                    c.estado = "INACTIVO"
+                if getattr(c, "idPersona", None) == getattr(adm, "idPersona", None):
+                    c.estado = nuevo_estado
             self.controller._recrear_gestores()
+            self.controller.guardar_datos()
             return True
         return False
+
+    def desactivar_estudiante(self, id_estudiante: int) -> bool:
+        return self.conmutar_estado_estudiante(id_estudiante)
+
+    def desactivar_profesor(self, id_profesor: int) -> bool:
+        return self.conmutar_estado_profesor(id_profesor)
+
+    def desactivar_administrativo(self, id_administrativo: int) -> bool:
+        return self.conmutar_estado_administrativo(id_administrativo)
