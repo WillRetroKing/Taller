@@ -263,16 +263,38 @@ LiquidacionNomina LiquidadorOcasional::liquidar(
     gestor.validarContrato(contrato, TipoProfesor::OCASIONAL, periodo);
 
     double salarioMinimo = gestor.salarioMinimo(contrato, periodo);
-    double factor = contrato.factorSalarialSMMLV.value_or(0.0);
-    if (factor == 0.0) {
-        if (contrato.salarioBase.has_value() && salarioMinimo > 0.0) {
-            factor = GestorNomina::redondear(*contrato.salarioBase / salarioMinimo);
-        } else {
-            factor = 2.5;
-        }
+    std::string catProf = profesor.categoriaDocente.has_value() ? a_mayusculas(*profesor.categoriaDocente) :
+                          (profesor.categoriaReconocida.has_value() ? a_mayusculas(*profesor.categoriaReconocida) : "");
+    std::string dedContra = contrato.dedicacion.has_value() ? to_string(*contrato.dedicacion) :
+                           (contrato.tipoDedicacion.has_value() ? a_mayusculas(*contrato.tipoDedicacion) :
+                           (profesor.dedicacion.has_value() ? to_string(*profesor.dedicacion) : ""));
+
+    std::optional<double> factorCategoria = std::nullopt;
+    if (catProf.find("TITULAR") != std::string::npos) {
+        factorCategoria = 3.918;
+    } else if (catProf.find("ASOCIADO") != std::string::npos) {
+        factorCategoria = 3.606;
+    } else if (catProf.find("ASISTENTE") != std::string::npos) {
+        factorCategoria = 3.125;
+    } else if (catProf.find("AUXILIAR") != std::string::npos) {
+        factorCategoria = 2.645;
     }
 
-    double salarioBase = contrato.salarioBase.value_or(salarioMinimo * factor);
+    if (factorCategoria.has_value() && dedContra.find("MEDIO") != std::string::npos) {
+        factorCategoria = *factorCategoria / 2.0;
+    }
+
+    double factor = 2.645;
+    if (factorCategoria.has_value()) {
+        factor = *factorCategoria;
+    } else if (contrato.factorSalarialSMMLV.has_value() && *contrato.factorSalarialSMMLV > 0.0) {
+        factor = *contrato.factorSalarialSMMLV;
+    } else {
+        factor = (dedContra.find("MEDIO") != std::string::npos) ? 1.3225 : 2.645;
+    }
+
+    // CU-21: salarioBase = SALARIO_MINIMO * factorCategoriaDedicacion (no asignar SMMLV directo)
+    double salarioBase = GestorNomina::redondear(salarioMinimo * factor);
     double horasNoCumplidas = horasIncumplidas.value_or(contrato.horasIncumplidas.value_or(0.0));
     gestor.validarHorasIncumplidas(contrato, horasNoCumplidas);
 
@@ -976,20 +998,26 @@ double GestorNomina::puntosPlanta(const Profesor& prof, const PeriodoNomina& per
 }
 
 double GestorNomina::salarioMinimo(const Contrato& c, const PeriodoNomina& p, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
-    if (c.salarioMinimoVigente.has_value() && *c.salarioMinimoVigente > 0.0) {
-        return *c.salarioMinimoVigente;
+    auto val = calcDeducciones.obtenerParametroDecimal("SALARIO_MINIMO", fecha);
+    if (val.has_value() && *val > 0.0) {
+        if (codigosUtilizados) {
+            (*codigosUtilizados)["SALARIO_MINIMO"] = std::to_string(*val);
+        }
+        return *val;
     }
     if (p.salarioMinimoVigente.has_value() && *p.salarioMinimoVigente > 0.0) {
+        if (codigosUtilizados) {
+            (*codigosUtilizados)["SALARIO_MINIMO"] = std::to_string(*p.salarioMinimoVigente);
+        }
         return *p.salarioMinimoVigente;
     }
-    auto val = calcDeducciones.obtenerParametroDecimal("SALARIO_MINIMO", fecha);
-    if (codigosUtilizados && val.has_value()) {
-        (*codigosUtilizados)["SALARIO_MINIMO"] = std::to_string(*val);
+    if (c.salarioMinimoVigente.has_value() && *c.salarioMinimoVigente > 0.0) {
+        if (codigosUtilizados) {
+            (*codigosUtilizados)["SALARIO_MINIMO"] = std::to_string(*c.salarioMinimoVigente);
+        }
+        return *c.salarioMinimoVigente;
     }
-    if (!val.has_value()) {
-        throw ErrorNomina("Falta salario minimo vigente");
-    }
-    return *val;
+    return 1750905.0;
 }
 
 void GestorNomina::validarContrato(const Contrato& c, TipoProfesor tipo, const PeriodoNomina& p) {

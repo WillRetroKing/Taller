@@ -73,12 +73,12 @@ double CalculadoraDeducciones::obtenerPorcentaje(
 
 double CalculadoraDeducciones::calcularDescuentoSalud(double ibc, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
     double pct = obtenerPorcentaje("PORCENTAJE_SALUD_TRABAJADOR", 0.04, fecha, codigosUtilizados);
-    return redondearPila(ibc * pct);
+    return redondear(ibc * pct);
 }
 
 double CalculadoraDeducciones::calcularDescuentoPension(double ibc, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
     double pct = obtenerPorcentaje("PORCENTAJE_PENSION_TRABAJADOR", 0.04, fecha, codigosUtilizados);
-    return redondearPila(ibc * pct);
+    return redondear(ibc * pct);
 }
 
 double CalculadoraDeducciones::calcularFondoSolidaridad(double ibc, double salarioMinimo, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
@@ -113,7 +113,7 @@ double CalculadoraDeducciones::calcularRetencionFuente(double ibc, const std::st
 double CalculadoraDeducciones::calcularDescuentoEstampilla(double salarioBase, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados) {
     double pct = obtenerPorcentaje("PORCENTAJE_ESTAMPILLA", 0.002, fecha, codigosUtilizados);
     if (pct <= 0.0) return 0.0;
-    return std::round(salarioBase * pct);
+    return redondear(salarioBase * pct);
 }
 
 double CalculadoraDeducciones::calcularAporteSaludPatronal(double ibc, double salarioMinimo, const std::string& fecha, std::map<std::string, std::string>* codigosUtilizados, bool exonerado) {

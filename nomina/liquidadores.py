@@ -232,14 +232,35 @@ class LiquidadorOcasional(MotorLiquidacionBase):
         self.gestor._validar_contrato(contrato, TipoProfesor.OCASIONAL, periodo)
 
         salario_minimo = self.gestor._salario_minimo(contrato, periodo)
-        factor = contrato.factorSalarialSMMLV
-        if factor is None or factor == self.CERO:
-            if contrato.salarioBase and salario_minimo > self.CERO:
-                factor = (self.gestor._decimal(contrato.salarioBase, "salario base") / salario_minimo).quantize(Decimal("0.01"))
-            else:
-                factor = Decimal("2.5")
+        cat_prof = str(getattr(profesor.categoriaDocente, "value", profesor.categoriaDocente or "") or getattr(profesor.categoriaReconocida, "value", profesor.categoriaReconocida or "") or "").upper()
+        ded_contra = str(getattr(contrato.dedicacion, "value", contrato.dedicacion or "") or getattr(contrato.tipoDedicacion, "value", contrato.tipoDedicacion or "") or getattr(profesor.dedicacion, "value", profesor.dedicacion or "") or "").upper()
+
+        # Determinar factor por categoría y dedicación (CU-21)
+        factor_categoria: Decimal | None = None
+        if "TITULAR" in cat_prof:
+            factor_categoria = Decimal("3.918")
+        elif "ASOCIADO" in cat_prof:
+            factor_categoria = Decimal("3.606")
+        elif "ASISTENTE" in cat_prof:
+            factor_categoria = Decimal("3.125")
+        elif "AUXILIAR" in cat_prof:
+            factor_categoria = Decimal("2.645")
+
+        if factor_categoria is not None and "MEDIO" in ded_contra:
+            factor_categoria = factor_categoria / Decimal("2")
+
+        # Si el profesor tiene categoría registrada, aplicar el factor de la tabla estatutaria (CU-21)
+        if factor_categoria is not None:
+            factor = factor_categoria
+        elif contrato.factorSalarialSMMLV is not None and contrato.factorSalarialSMMLV > self.CERO:
+            factor = contrato.factorSalarialSMMLV
+        else:
+            factor = Decimal("2.645") if "MEDIO" not in ded_contra else Decimal("1.3225")
+
         factor = self.gestor._decimal(factor, "factor salarial del contrato")
-        salario_base = contrato.salarioBase or (salario_minimo * factor)
+
+        # CU-21: salarioBase = SALARIO_MINIMO * factorCategoriaDedicacion (No asignar salario mínimo directamente)
+        salario_base = self.gestor._redondear(salario_minimo * factor)
         horas_no_cumplidas = self.gestor._decimal(
             (contrato.horasIncumplidas if horas_incumplidas is None else horas_incumplidas) or self.CERO,
             "horas incumplidas",

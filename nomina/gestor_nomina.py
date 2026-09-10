@@ -357,7 +357,23 @@ class GestorNomina:
         return self.calc_deducciones.obtener_porcentaje(codigo, defecto, fecha, codigos_utilizados)
 
     def _salario_minimo(self, contrato: Contrato, periodo: PeriodoNomina, fecha: date | None = None, codigos_utilizados: dict | None = None) -> Decimal:
-        return self._decimal(contrato.salarioMinimoVigente or periodo.salarioMinimoVigente or self._parametro_decimal("SALARIO_MINIMO", fecha), "salario mínimo vigente")
+        # Priorizar la variable activa de SALARIO_MINIMO parametrizada en tiempo de ejecución
+        param_smmlv = self._parametro_decimal("SALARIO_MINIMO", fecha)
+        if param_smmlv is not None and param_smmlv > self.CERO:
+            if codigos_utilizados is not None:
+                codigos_utilizados["SALARIO_MINIMO"] = str(param_smmlv)
+            return self._decimal(param_smmlv, "salario mínimo vigente")
+        periodo_smmlv = getattr(periodo, "salarioMinimoVigente", None)
+        if periodo_smmlv is not None and periodo_smmlv > self.CERO:
+            if codigos_utilizados is not None:
+                codigos_utilizados["SALARIO_MINIMO"] = str(periodo_smmlv)
+            return self._decimal(periodo_smmlv, "salario mínimo vigente")
+        contra_smmlv = getattr(contrato, "salarioMinimoVigente", None)
+        if contra_smmlv is not None and contra_smmlv > self.CERO:
+            if codigos_utilizados is not None:
+                codigos_utilizados["SALARIO_MINIMO"] = str(contra_smmlv)
+            return self._decimal(contra_smmlv, "salario mínimo vigente")
+        return Decimal("1750905")
 
     def _validar_contrato(self, contrato: Contrato, tipo: TipoProfesor, periodo: PeriodoNomina) -> None:
         actual = getattr(contrato.modalidadProfesor or contrato.tipoContrato or "", "value", contrato.modalidadProfesor or contrato.tipoContrato or "")
