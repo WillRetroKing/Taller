@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import fields
+from dataclasses import MISSING, fields
 from datetime import date, time
 from decimal import Decimal
 from enum import Enum
@@ -111,7 +111,20 @@ class GestorPersistencia:
                 if not linea:
                     continue
                 valores = linea.split(self.DELIMITADOR)
-                if len(valores) != len(campos):
+                if len(valores) < len(campos):
+                    faltantes = len(campos) - len(valores)
+                    if all(
+                        campos[len(valores) + i].default is not MISSING
+                        or campos[len(valores) + i].default_factory is not MISSING
+                        for i in range(faltantes)
+                    ):
+                        valores.extend([""] * faltantes)
+                    else:
+                        raise ValueError(
+                            f"{ruta}:{numero_linea}: se esperaban {len(campos)} campos; "
+                            f"se recibieron {len(valores)}"
+                        )
+                elif len(valores) > len(campos):
                     raise ValueError(
                         f"{ruta}:{numero_linea}: se esperaban {len(campos)} campos; "
                         f"se recibieron {len(valores)}"
@@ -163,6 +176,7 @@ class GestorPersistencia:
             indices[tipo] = set(valores_definidos)
 
         referencias = (
+            (Facultad, "idUniversidad", Universidad),
             (ProgramaAcademico, "idFacultad", Facultad),
             (PlanEstudio, "idPrograma", ProgramaAcademico),
             (DetallePlanEstudio, "idPlanEstudio", PlanEstudio),
@@ -196,6 +210,7 @@ class GestorPersistencia:
             (LiquidacionNomina, "idPeriodoNomina", PeriodoNomina),
             (DetalleLiquidacion, "idLiquidacion", LiquidacionNomina),
             (DetalleLiquidacion, "idConcepto", ConceptoNomina),
+            (Contrato, "idUniversidad", Universidad),
         )
         for tipo, campo, tipo_referenciado in referencias:
             for objeto in datos.get(tipo, []):

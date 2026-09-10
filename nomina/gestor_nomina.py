@@ -12,13 +12,16 @@ from dominio.modelo_datos import (
     Contrato,
     Dedicacion,
     DetalleLiquidacion,
+    Facultad,
     FactorSalarial,
     LiquidacionNomina,
     ParametroNormativo,
     PeriodoNomina,
     ProduccionAcademica,
     Profesor,
+    ProgramaAcademico,
     TipoProfesor,
+    Universidad,
 )
 from nomina.excepciones import ErrorNomina
 from nomina.calculadora_deducciones import CalculadoraDeducciones
@@ -54,6 +57,9 @@ class GestorNomina:
         factores: list[FactorSalarial] | None = None,
         producciones: list[ProduccionAcademica] | None = None,
         administrativos: list[Administrativo] | None = None,
+        universidades: list[Universidad] | None = None,
+        facultades: list[Facultad] | None = None,
+        programas: list[ProgramaAcademico] | None = None,
     ) -> None:
         self.contratos = contratos
         self.profesores = profesores
@@ -65,6 +71,9 @@ class GestorNomina:
         self.factores = factores if factores is not None else []
         self.producciones = producciones if producciones is not None else []
         self.administrativos = administrativos if administrativos is not None else []
+        self.universidades = universidades if universidades is not None else []
+        self.facultades = facultades if facultades is not None else []
+        self.programas = programas if programas is not None else []
 
         # Inicializar submódulos especializados
         self.calc_deducciones = CalculadoraDeducciones(self.parametros)
@@ -217,6 +226,22 @@ class GestorNomina:
     # ------------------------------------------------------------------
     def _contrato(self, id_contrato: int) -> Contrato:
         return self._buscar(self.contratos, "idContrato", id_contrato, "contrato")
+
+    def obtener_contratos_por_universidad(self, id_universidad: int) -> list[Contrato]:
+        """Retorna todos los contratos asociados directa o indirectamente a una universidad."""
+        resultado: list[Contrato] = []
+        for c in self.contratos:
+            if getattr(c, "idUniversidad", None) == id_universidad:
+                resultado.append(c)
+                continue
+            prof = next((p for p in self.profesores if p.idPersona == c.idPersona), None)
+            if prof and prof.idProgramaPrincipal and self.programas and self.facultades:
+                prog = next((pr for pr in self.programas if pr.idPrograma == prof.idProgramaPrincipal), None)
+                if prog and prog.idFacultad:
+                    fac = next((f for f in self.facultades if f.idFacultad == prog.idFacultad), None)
+                    if fac and fac.idUniversidad == id_universidad:
+                        resultado.append(c)
+        return resultado
 
     def _periodo(self, id_periodo: int) -> PeriodoNomina:
         return self._buscar(self.periodos_nomina, "idPeriodoNomina", id_periodo, "periodo de nómina")

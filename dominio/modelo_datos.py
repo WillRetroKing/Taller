@@ -104,6 +104,8 @@ class Universidad:
     correoInstitucional: str | None = None
     sitioWeb: str | None = None
     estado: str | None = None
+    cajaCompensacion: str | None = None
+    arl: str | None = None
 
 
 @dataclass
@@ -118,6 +120,7 @@ class Facultad:
     idDecano: int | None = None
     fechaCreacion: date | None = None
     estado: str | None = None
+    idUniversidad: int | None = None
 
 
 @dataclass
@@ -499,6 +502,7 @@ class Contrato:
     decisionJudicialOAdministrativa: str | None = None
     documentoSoporteTerminacion: str | None = None
     estadoFinalContrato: str | None = None
+    idUniversidad: int | None = None
 
 
 @dataclass

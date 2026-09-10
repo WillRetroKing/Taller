@@ -1,0 +1,2 @@
+1|UPC|Universidad Popular del Cesar|upc|ACTIVO
+2|UNAL|Universidad Nacional de Colombia|unal|ACTIVO
