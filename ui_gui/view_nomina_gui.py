@@ -702,7 +702,8 @@ class NominaViewGUI(ctk.CTkFrame):
 
         # 2. Información Salarial y Base de Cotización (IBC)
         categoria_doc = getattr(liq, "categoriaLiquidada", None) or (getattr(prof, "categoriaDocente", None) if prof else None) or "Titular"
-        pts_doc = getattr(liq, "puntosSalarialesUsados", None) or (getattr(prof, "puntosSalariales", None) if prof else None) or 450
+        es_planta_doc = bool(prof and ("PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper() or "PLANTA" in str(getattr(contrato, "modalidadProfesor", "")).upper()))
+        pts_doc = getattr(liq, "puntosSalarialesUsados", None) or (getattr(prof, "puntosSalariales", None) if es_planta_doc else None) or (450 if es_planta_doc else 0)
         valor_pto = getattr(liq, "valorPuntoUsado", None) or 23924
         ibc_val = Decimal(str(getattr(liq, "baseCotizacionSeguridadSocial", None) or getattr(liq, "salarioBase", None) or getattr(liq, "totalDevengado", 0) or 0))
 
@@ -747,7 +748,7 @@ class NominaViewGUI(ctk.CTkFrame):
         MAPA_CONCEPTOS = {
             "SALARIO_ORDINARIO": ("Asignación Básica Mensual", "DEVENGADO"),
             "AUXILIO_TRANSPORTE": ("Auxilio Legal de Transporte", "DEVENGADO"),
-            "BONIFICACION_POSGRADO": ("Bonificación por Posgrado (Dec. 1279)", "DEVENGADO"),
+            "BONIFICACION_POSGRADO": ("Bonificación por Posgrado (Acuerdo Institucional)", "DEVENGADO"),
             "BONIFICACION_INVESTIGACION": ("Bonificación por Investigación", "DEVENGADO"),
             "DESCUENTO_SALUD": ("Aporte Salud Trabajador (4%)", "DEDUCCION"),
             "DESCUENTO_PENSION": ("Aporte Pensión Trabajador (4%)", "DEDUCCION"),
@@ -995,18 +996,32 @@ class NominaViewGUI(ctk.CTkFrame):
 
         hdr_esc = ctk.CTkFrame(card_escalafon, fg_color="transparent")
         hdr_esc.pack(fill="x", padx=12, pady=(8, 4))
-        if prof:
-            ctk.CTkLabel(hdr_esc, text="INFORMACIÓN SALARIAL DOCENTE (DECRETO 1279)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="left")
+        if prof and es_planta_doc:
+            ctk.CTkLabel(hdr_esc, text="INFORMACIÓN SALARIAL DOCENTE DE CARRERA (DECRETO 1279)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="left")
             ctk.CTkFrame(card_escalafon, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
             calc_str = f"{pts_int} pts × ${val_pto_int:,} COP".replace(",", ".") if (pts_int > 0 and val_pto_int > 0) else "N/A"
 
             rows_info = [
                 ("Categoría Docente:", str(categoria_doc)),
-                ("Total Puntos Salariales:", f"{pts_int} pts" if pts_int > 0 else "N/A"),
-                ("Valor Punto Salarial:", f"$ {val_pto_int:,} COP".replace(",", ".") if val_pto_int > 0 else "N/A"),
+                ("Total Puntos Salariales (Dec. 1279):", f"{pts_int} pts" if pts_int > 0 else "N/A"),
+                ("Valor Punto Salarial Vigente:", f"$ {val_pto_int:,} COP".replace(",", ".") if val_pto_int > 0 else "N/A"),
                 ("Cálculo Asignación Básica:", calc_str),
                 ("IBC Seguridad Social:", f"$ {int(ibc_val):,} COP".replace(",", ".")),
+            ]
+        elif prof:
+            ctk.CTkLabel(hdr_esc, text=f"INFORMACIÓN SALARIAL DOCENTE ({clean_enum(tipo_prof)} - ACUERDO 027)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#10B981").pack(side="left")
+            ctk.CTkFrame(card_escalafon, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
+
+            sueldo_doc = getattr(liq, "salarioBase", None) or (getattr(contrato, "salarioBase", None) if contrato else 0) or 0
+            sueldo_doc_int = int(float(sueldo_doc)) if sueldo_doc else 0
+
+            rows_info = [
+                ("Modalidad y Vinculación:", clean_enum(tipo_prof)),
+                ("Categoría Académica:", str(categoria_doc)),
+                ("Régimen Normativo:", "Acuerdo Consejo Superior (Acuerdo 027)"),
+                ("Sueldo Básico Ordinario:", f"$ {sueldo_doc_int:,} COP".replace(",", ".")),
+                ("IBC Seguridad Social:", f"$ {int(float(ibc_val)):,} COP".replace(",", ".")),
             ]
         else:
             ctk.CTkLabel(hdr_esc, text="INFORMACIÓN LABORAL Y SALARIAL (CST / LEY 100)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#10B981").pack(side="left")

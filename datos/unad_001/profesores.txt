@@ -1,3 +1,3 @@
 1|4|DOC-UNAD-201|1|2012-04-01|OCASIONAL|ASOCIADO|TIEMPO_COMPLETO|MAESTRIA|Magíster en Educación y TIC|Ambientes Virtuales de Aprendizaje|40|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||
-2|5|DOC-UNAD-202|1|2008-03-15|PLANTA|TITULAR|TIEMPO_COMPLETO|DOCTORADO|Doctor en Ingeniería Telemática|Redes Distribuidas y Cloud Computing|40|450|ACTIVO|Decreto 1279|||||||||||||||||||||||||||||||||||||||||||
+2|5|DOC-UNAD-202|1|2008-03-15|PLANTA|TITULAR|TIEMPO_COMPLETO|DOCTORADO|Doctor en Ingeniería Telemática|Redes Distribuidas y Cloud Computing|40|632|ACTIVO|Decreto 1279|||||||||||||||||||||||||||||||||||||||||||
 3|6|DOC-UNAD-203|2|2019-02-01|CATEDRATICO|ASISTENTE|HORA_CATEDRA|ESPECIALIZACION|Especialista en Gerencia Estratégica|Gestión Empresarial y Emprendimiento|14|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||

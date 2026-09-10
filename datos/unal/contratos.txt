@@ -1,3 +1,3 @@
-1|4|CONT-UNAL-2026-001|DOCENTE_PLANTA|2026-01-01|2026-12-31|TIEMPO_COMPLETO|40||||16268320|||Cta Ahorros Bancolombia #10029384|ACTIVO|DECRETO_1279|||PLANTA||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||2
+1|4|CONT-UNAL-2026-001|DOCENTE_PLANTA|2026-01-01|2026-12-31|TIEMPO_COMPLETO|40||||14832880|||Cta Ahorros Bancolombia #10029384|ACTIVO|DECRETO_1279|||PLANTA||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||2
 2|5|CONT-UNAL-2026-002|DOCENTE_OCASIONAL|2026-01-15|2026-12-15|TIEMPO_COMPLETO|40||||7200000|||Cta Ahorros Banco de Bogotá #98723412|ACTIVO|ACUERDO_027|||OCASIONAL||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||2
 3|6|CONT-UNAL-2026-003|DOCENTE_CATEDRATICO|2026-02-01|2026-11-30|HORA_CATEDRA|16||||2464000|||Cta Ahorros Davivienda #456123789|ACTIVO|ACUERDO_027|||CATEDRATICO||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||2

@@ -18,7 +18,7 @@ class CalculadoraPrestaciones:
     DOS = Decimal("2")
     DIAS_ANIO = Decimal("360")
 
-    def __init__(self, calculadora_deducciones: CalculadoraDeducciones) -> None:
+    def __init__(self, calculadora_deducciones: CalculadoraDeducciones | None = None) -> None:
         self.calc_ded = calculadora_deducciones
 
     @staticmethod
@@ -49,15 +49,25 @@ class CalculadoraPrestaciones:
         incluir_bonificaciones: bool,
         codigos_utilizados: dict[str, str] | None = None,
     ) -> Decimal:
+        tipo_prof = str(getattr(profesor.tipoProfesor, "value", profesor.tipoProfesor or "")).upper()
+        mod_contra = str(getattr(contrato.modalidadProfesor or contrato.tipoContrato, "value", contrato.modalidadProfesor or contrato.tipoContrato or "")).upper()
+        if "PLANTA" in tipo_prof or "PLANTA" in mod_contra:
+            return self.CERO
+
         if contrato.permiteBonificacionPosgrado is False or not incluir_bonificaciones:
             return self.CERO
         factores = {
-            "ESPECIALIZACION": Decimal("0.10"),
-            "MAESTRIA": Decimal("0.45"),
             "DOCTORADO": Decimal("0.90"),
+            "MAESTRIA": Decimal("0.45"),
+            "ESPECIALIZACION": Decimal("0.10"),
             "POSTDOCTORADO": self.CERO,
         }
-        factor = factores.get(str(profesor.nivelPosgradoReconocido or "").upper(), self.CERO)
+        nivel = str(profesor.nivelPosgradoReconocido or profesor.maximoNivelEstudio or "").upper()
+        factor = self.CERO
+        for k, v in factores.items():
+            if k in nivel:
+                factor = v
+                break
         if codigos_utilizados is not None:
             codigos_utilizados["BONIFICACION_POSGRADO"] = str(factor)
         return self._bonificacion_proporcional(smmlv * factor, contrato, horas)
