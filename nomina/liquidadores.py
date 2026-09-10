@@ -70,7 +70,7 @@ class MotorLiquidacionBase:
         fondo_solidaridad = calc_ded.calcular_fondo_solidaridad(ibc, salario_minimo, fecha_param, codigos_utilizados)
         retencion = calc_ded.calcular_retencion_fuente(ibc, fecha_param, codigos_utilizados=codigos_utilizados)
         aplica_estampilla = getattr(contrato, "aplicaDescuentoEstampilla", None)
-        if aplica_estampilla is False or "sin estampilla" in str(getattr(contrato, "observaciones", "") or "").lower():
+        if aplica_estampilla is False:
             descuento_estampilla = self.CERO
         else:
             descuento_estampilla = (

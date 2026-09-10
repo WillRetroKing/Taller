@@ -765,7 +765,7 @@ class NominaViewGUI(ctk.CTkFrame):
             "DESCUENTO_PENSION": ("Aporte Pensión Trabajador (4%)", "DEDUCCION"),
             "FONDO_SOLIDARIDAD": ("Fondo de Solidaridad Pensional (1%)", "DEDUCCION"),
             "RETENCION_FUENTE": ("Retención en la Fuente", "DEDUCCION"),
-            "DESCUENTO_ESTAMPILLA": ("Descuento Estampilla", "DEDUCCION"),
+            "DESCUENTO_ESTAMPILLA": ("Estampilla Pro-Universidad (0.2%)", "DEDUCCION"),
             "DESCUENTO_INCUMPLIMIENTO": ("Descuento por Horas Incumplidas", "DEDUCCION"),
             "APORTE_SALUD_PATRONAL": ("Salud Patronal (8.5%)", "PATRONAL"),
             "APORTE_PENSION_PATRONAL": ("Pensión Patronal (12%)", "PATRONAL"),
@@ -870,11 +870,11 @@ class NominaViewGUI(ctk.CTkFrame):
 
             est = getattr(liq, "otrosDescuentos", None)
             if est and Decimal(str(est)) > 0:
-                deducciones.append(("Descuento Estampilla", "DESCUENTO_ESTAMPILLA", Decimal(str(est))))
+                deducciones.append(("Estampilla Pro-Universidad (0.2%)", "DESCUENTO_ESTAMPILLA", Decimal(str(est))))
             else:
                 resto_desc = desc - (salud + pension + (Decimal(str(fsp)) if fsp else Decimal("0")) + (Decimal(str(ret)) if ret else Decimal("0")))
                 if resto_desc > 0:
-                    deducciones.append(("Descuento Estampilla", "DESCUENTO_ESTAMPILLA", resto_desc))
+                    deducciones.append(("Estampilla Pro-Universidad (0.2%)", "DESCUENTO_ESTAMPILLA", resto_desc))
 
             # Aportes patronales
             ap_salud = getattr(liq, "aportePatronalSalud", None)
@@ -975,10 +975,10 @@ class NominaViewGUI(ctk.CTkFrame):
 
         ctk.CTkFrame(card_costo, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
-        # Fila Asignación Básica / Devengados
+        # Fila Total Devengado
         row_ab = ctk.CTkFrame(card_costo, fg_color="transparent")
         row_ab.pack(fill="x", padx=12, pady=3)
-        lbl_costo_dev = "Asignación Básica Devengada" if prof else "Sueldo y Devengados del Empleado"
+        lbl_costo_dev = "Total Devengado"
         ctk.CTkLabel(row_ab, text=lbl_costo_dev, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left")
         ctk.CTkLabel(row_ab, text=f"$ {int(asig_basica_val):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="right")
 

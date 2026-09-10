@@ -93,6 +93,9 @@ class TestRubricCorrections(unittest.TestCase):
         self.assertEqual(liq.descuentoPension, Decimal("218863.13"))
         self.assertEqual(liq.aporteCajaCompensacion, Decimal("218863.13"))
 
+        # Estampilla Pro-Universidad (0.2% de $5.471.578,13 = $10.943 COP)
+        self.assertEqual(liq.otrosDescuentos, Decimal("10943.00"))
+
     def test_deducciones_4_porciento_alineadas_sin_truncamiento(self):
         """Verifica que sobre 1 SMMLV ($1.750.905), Salud, Pensión y Caja den $70.036,20 exactamente."""
         calc_ded = CalculadoraDeducciones(self.parametros)
