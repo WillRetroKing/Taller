@@ -497,6 +497,16 @@ class NominaViewGUI(ctk.CTkFrame):
         ).pack(side="right")
 
     def _abrir_modal_liquidar_individual(self) -> None:
+        periodos_abiertos = [p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO" and not getattr(p, "estaCerrado", False)]
+        if not periodos_abiertos:
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "Restricción de Nómina",
+                "⚠️ No hay períodos de nómina abiertos en el sistema.\n\n"
+                "Para poder liquidar empleados, primero debe crear y aperturar un período desde el botón '📅 Periodos de Nómina'."
+            )
+            return
+
         dialog = ctk.CTkToplevel(self)
         dialog.title("👤 Liquidación Individual de Nómina")
         dialog.geometry("520x480")
@@ -644,7 +654,8 @@ class NominaViewGUI(ctk.CTkFrame):
             return
 
         prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) is not None and getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None) if getattr(liq, "idProfesor", None) is not None else None
-        con = next((c for c in self.controller.contratos if c.idContrato == getattr(liq, "idContrato", None)), None)
+        contrato = next((c for c in self.controller.contratos if c.idContrato == getattr(liq, "idContrato", None)), None)
+        con = contrato
         adm = None
         pers = None
 
@@ -753,7 +764,7 @@ class NominaViewGUI(ctk.CTkFrame):
             "DESCUENTO_PENSION": ("Aporte Pensión Trabajador (4%)", "DEDUCCION"),
             "FONDO_SOLIDARIDAD": ("Fondo de Solidaridad Pensional (1%)", "DEDUCCION"),
             "RETENCION_FUENTE": ("Retención en la Fuente", "DEDUCCION"),
-            "DESCUENTO_ESTAMPILLA": ("Descuento Estampilla", "DEDUCCION"),
+            "DESCUENTO_ESTAMPILLA": ("Estampilla Pro-Universidad (0.2%)", "DEDUCCION"),
             "DESCUENTO_INCUMPLIMIENTO": ("Descuento por Horas Incumplidas", "DEDUCCION"),
             "APORTE_SALUD_PATRONAL": ("Salud Patronal (8.5%)", "PATRONAL"),
             "APORTE_PENSION_PATRONAL": ("Pensión Patronal (12%)", "PATRONAL"),
@@ -858,18 +869,16 @@ class NominaViewGUI(ctk.CTkFrame):
 
             est = getattr(liq, "otrosDescuentos", None)
             if est and Decimal(str(est)) > 0:
-                deducciones.append(("Descuento Estampilla", "DESCUENTO_ESTAMPILLA", Decimal(str(est))))
+                deducciones.append(("Estampilla Pro-Universidad (0.2%)", "DESCUENTO_ESTAMPILLA", Decimal(str(est))))
             else:
                 resto_desc = desc - (salud + pension + (Decimal(str(fsp)) if fsp else Decimal("0")) + (Decimal(str(ret)) if ret else Decimal("0")))
                 if resto_desc > 0:
-                    deducciones.append(("Descuento Estampilla", "DESCUENTO_ESTAMPILLA", resto_desc))
+                    deducciones.append(("Estampilla Pro-Universidad (0.2%)", "DESCUENTO_ESTAMPILLA", resto_desc))
 
             # Aportes patronales
             ap_salud = getattr(liq, "aportePatronalSalud", None)
             if ap_salud is not None and Decimal(str(ap_salud)) > 0:
                 patronales.append(("Salud Patronal (8.5%)", "APORTE_SALUD_PATRONAL", Decimal(str(ap_salud))))
-            elif prof:
-                patronales.append(("Salud Patronal (8.5%)", "APORTE_SALUD_PATRONAL", (dev * Decimal("0.085")).quantize(Decimal("1"))))
 
             ap_pension = getattr(liq, "aportePatronalPension", None) or (ibc_val * Decimal("0.12")).quantize(Decimal("1"))
             patronales.append(("Pensión Patronal (12%)", "APORTE_PENSION_PATRONAL", Decimal(str(ap_pension))))
@@ -963,10 +972,10 @@ class NominaViewGUI(ctk.CTkFrame):
 
         ctk.CTkFrame(card_costo, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
-        # Fila Asignación Básica / Devengados
+        # Fila Total Devengado
         row_ab = ctk.CTkFrame(card_costo, fg_color="transparent")
         row_ab.pack(fill="x", padx=12, pady=3)
-        lbl_costo_dev = "Asignación Básica Devengada" if prof else "Sueldo y Devengados del Empleado"
+        lbl_costo_dev = "Total Devengado"
         ctk.CTkLabel(row_ab, text=lbl_costo_dev, font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(side="left")
         ctk.CTkLabel(row_ab, text=f"$ {int(asig_basica_val):,} COP".replace(",", "."), font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="right")
 
@@ -995,18 +1004,33 @@ class NominaViewGUI(ctk.CTkFrame):
 
         hdr_esc = ctk.CTkFrame(card_escalafon, fg_color="transparent")
         hdr_esc.pack(fill="x", padx=12, pady=(8, 4))
-        if prof:
-            ctk.CTkLabel(hdr_esc, text="INFORMACIÓN SALARIAL DOCENTE (DECRETO 1279)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="left")
+        es_planta_doc = "PLANTA" in tipo_prof or (contrato and "PLANTA" in str(getattr(contrato, "modalidadProfesor", "")).upper())
+        if prof and es_planta_doc:
+            ctk.CTkLabel(hdr_esc, text="INFORMACIÓN SALARIAL DOCENTE DE CARRERA (DECRETO 1279)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color=Colors.WIN_BLUE).pack(side="left")
             ctk.CTkFrame(card_escalafon, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
 
             calc_str = f"{pts_int} pts × ${val_pto_int:,} COP".replace(",", ".") if (pts_int > 0 and val_pto_int > 0) else "N/A"
 
             rows_info = [
                 ("Categoría Docente:", str(categoria_doc)),
-                ("Total Puntos Salariales:", f"{pts_int} pts" if pts_int > 0 else "N/A"),
-                ("Valor Punto Salarial:", f"$ {val_pto_int:,} COP".replace(",", ".") if val_pto_int > 0 else "N/A"),
+                ("Total Puntos Salariales (Dec. 1279):", f"{pts_int} pts" if pts_int > 0 else "N/A"),
+                ("Valor Punto Salarial Vigente:", f"$ {val_pto_int:,} COP".replace(",", ".") if val_pto_int > 0 else "N/A"),
                 ("Cálculo Asignación Básica:", calc_str),
                 ("IBC Seguridad Social:", f"$ {int(ibc_val):,} COP".replace(",", ".")),
+            ]
+        elif prof:
+            ctk.CTkLabel(hdr_esc, text=f"INFORMACIÓN SALARIAL DOCENTE ({clean_enum(tipo_prof)} - ACUERDO 027)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#10B981").pack(side="left")
+            ctk.CTkFrame(card_escalafon, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=10, pady=3)
+
+            sueldo_doc = getattr(liq, "salarioBase", None) or (getattr(contrato, "salarioBase", None) if contrato else 0) or 0
+            sueldo_doc_int = int(float(sueldo_doc)) if sueldo_doc else 0
+
+            rows_info = [
+                ("Modalidad y Vinculación:", clean_enum(tipo_prof)),
+                ("Categoría Académica:", str(categoria_doc)),
+                ("Régimen Normativo:", "Acuerdo Consejo Superior (Acuerdo 027)"),
+                ("Sueldo Básico Ordinario:", f"$ {sueldo_doc_int:,} COP".replace(",", ".")),
+                ("IBC Seguridad Social:", f"$ {int(float(ibc_val)):,} COP".replace(",", ".")),
             ]
         else:
             ctk.CTkLabel(hdr_esc, text="INFORMACIÓN LABORAL Y SALARIAL (CST / LEY 100)", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#10B981").pack(side="left")
@@ -1108,14 +1132,12 @@ class NominaViewGUI(ctk.CTkFrame):
         if id_periodo:
             periodo = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == id_periodo), None)
         if not periodo:
-            periodo = next((p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"), None)
+            periodo = next((p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO" and not getattr(p, "estaCerrado", False)), None)
         if not periodo and self.controller.periodos_nomina:
-            periodo = self.controller.periodos_nomina[0]
+            periodo = next((p for p in self.controller.periodos_nomina if not getattr(p, "estaCerrado", False)), None)
 
         if not periodo:
-            periodo = PeriodoNomina(idPeriodoNomina=1, anio=2026, mes=3, fechaInicio=date(2026, 3, 1), fechaFin=date(2026, 3, 31), estado="ABIERTO")
-            self.controller.periodos_nomina.append(periodo)
-            self.controller._recrear_gestores()
+            return False, "No existe ningún período de nómina abierto para liquidar."
 
         # Limpiar liquidación previa de este profesor para evitar colisiones
         ids_previos = [l.idLiquidacion for l in self.controller.liquidaciones if l.idProfesor == prof.idProfesor and l.idPeriodoNomina == periodo.idPeriodoNomina]
@@ -1134,25 +1156,47 @@ class NominaViewGUI(ctk.CTkFrame):
                 liq = self.controller.gestor_nomina.liquidarProfesorOcasional(contrato.idContrato, periodo.idPeriodoNomina)
             elif "CATEDRATICO" in tipo_prof:
                 liq = self.controller.gestor_nomina.liquidarProfesorCatedratico(contrato.idContrato, periodo.idPeriodoNomina)
-        except Exception:
+        except Exception as err_liq:
+            print(f"[NOMINA] Advertencia al liquidar con motor formal: {err_liq}")
             liq = None
 
         if liq is None:
-            # Fallback respetando estrictamente el contrato activo existente
-            val_punto = Decimal("19850")
-            smmlv = Decimal("1300000")
+            # Fallback respetando estrictamente el régimen legal aplicable
+            val_punto = Decimal("23924")
+            try:
+                v_pto = self.controller.gestor_parametros.obtener_parametro_vigente("VALOR_PUNTO_SALARIAL", getattr(periodo, "fechaFin", None))
+                if v_pto:
+                    val_punto = Decimal(str(v_pto))
+            except Exception:
+                pass
+
+            smmlv = Decimal("1750905")
+            try:
+                v_smm = self.controller.gestor_parametros.obtener_parametro_vigente("SALARIO_MINIMO", getattr(periodo, "fechaFin", None))
+                if v_smm:
+                    smmlv = Decimal(str(v_smm))
+            except Exception:
+                pass
+
             val_cat = Decimal("38500")
 
-            if getattr(contrato, "salarioBase", None):
-                sueldo_base = Decimal(str(contrato.salarioBase))
-            elif "PLANTA" in tipo_prof:
+            if "PLANTA" in tipo_prof:
                 pts = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0))
-                sueldo_base = (pts * val_punto) if pts > 0 else Decimal("3500000")
+                if pts == 0:
+                    cat = str(getattr(prof, "categoriaDocente", "") or "").upper()
+                    pts = {"AUXILIAR": Decimal("180"), "ASISTENTE": Decimal("250"), "ASOCIADO": Decimal("350"), "TITULAR": Decimal("450")}.get(cat, Decimal("450"))
+                    if "DOCTOR" in str(getattr(prof, "maximoNivelEstudio", "")).upper():
+                        pts += Decimal("120")
+                    prof.puntosSalariales = pts
+                f_ded = Decimal("0.5") if "MEDIO" in str(getattr(contrato, "dedicacion", "")).upper() else Decimal("1")
+                sueldo_base = (pts * val_punto * f_ded).quantize(Decimal("1"))
+            elif getattr(contrato, "salarioBase", None):
+                sueldo_base = Decimal(str(contrato.salarioBase))
             elif "CATEDRATICO" in tipo_prof:
                 hrs = Decimal(str(getattr(contrato, "horasSemanales", 12) or 12))
                 sueldo_base = hrs * Decimal("4") * val_cat
             elif "OCASIONAL" in tipo_prof:
-                factor = Decimal(str(getattr(contrato, "factorSalarialSMMLV", "2.92") or "2.92"))
+                factor = Decimal(str(getattr(contrato, "factorSalarialSMMLV", "3.125") or "3.125"))
                 sueldo_base = (smmlv * factor).quantize(Decimal("1"))
             else:
                 sueldo_base = Decimal("0")
@@ -1194,14 +1238,12 @@ class NominaViewGUI(ctk.CTkFrame):
         if id_periodo:
             periodo = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == id_periodo), None)
         if not periodo:
-            periodo = next((p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"), None)
+            periodo = next((p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO" and not getattr(p, "estaCerrado", False)), None)
         if not periodo and self.controller.periodos_nomina:
-            periodo = self.controller.periodos_nomina[0]
+            periodo = next((p for p in self.controller.periodos_nomina if not getattr(p, "estaCerrado", False)), None)
 
         if not periodo:
-            periodo = PeriodoNomina(idPeriodoNomina=1, anio=2026, mes=3, fechaInicio=date(2026, 3, 1), fechaFin=date(2026, 3, 31), estado="ABIERTO")
-            self.controller.periodos_nomina.append(periodo)
-            self.controller._recrear_gestores()
+            return False, "No existe ningún período de nómina abierto para liquidar."
 
         # Limpiar liquidación previa de este contrato
         ids_previos = [l.idLiquidacion for l in self.controller.liquidaciones if l.idContrato == contrato.idContrato and l.idPeriodoNomina == periodo.idPeriodoNomina]
@@ -1252,17 +1294,24 @@ class NominaViewGUI(ctk.CTkFrame):
         return True, "Administrativo liquidado exitosamente."
 
     def _eliminar_liquidacion(self, id_liquidacion: int) -> None:
+        from tkinter import messagebox
         liq = next((l for l in self.controller.liquidaciones if l.idLiquidacion == id_liquidacion), None)
-        if liq:
-            per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == liq.idPeriodoNomina), None)
-            if per and (getattr(per, "estaCerrado", False) or str(getattr(per, "estado", "")).upper() == "CERRADO"):
-                # No se puede anular una liquidación de un período cerrado contablemente
-                return
+        if not liq:
+            return
+        per = next((p for p in self.controller.periodos_nomina if p.idPeriodoNomina == liq.idPeriodoNomina), None)
+        if per and (getattr(per, "estaCerrado", False) or str(getattr(per, "estado", "")).upper() == "CERRADO"):
+            messagebox.showerror("Operación Denegada", "No se puede anular una liquidación de un período cerrado contablemente.")
+            return
+
+        if not messagebox.askyesno("Confirmar Anulación", f"¿Está seguro de que desea anular y eliminar la liquidación N° {id_liquidacion}?"):
+            return
+
         self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idLiquidacion != id_liquidacion]
         self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) != id_liquidacion]
         self.controller._recrear_gestores()
         self.controller.guardar_datos()
         self.actualizar()
+        messagebox.showinfo("Liquidación Anulada", f"La liquidación N° {id_liquidacion} ha sido anulada exitosamente.")
 
     def _reliquidar_accion(self, id_liquidacion: int) -> None:
         try:
@@ -1325,6 +1374,16 @@ class NominaViewGUI(ctk.CTkFrame):
         ).pack(pady=(0, 10))
 
     def _ejecutar_liquidacion_general(self) -> None:
+        periodos_abiertos = [p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO" and not getattr(p, "estaCerrado", False)]
+        if not periodos_abiertos:
+            from tkinter import messagebox
+            messagebox.showwarning(
+                "Restricción de Nómina",
+                "⚠️ No hay períodos de nómina abiertos en el sistema.\n\n"
+                "Para realizar una liquidación general, primero debe crear y aperturar un período desde el botón '📅 Periodos de Nómina'."
+            )
+            return
+
         if not self.controller.profesores and not self.controller.administrativos:
             return
 

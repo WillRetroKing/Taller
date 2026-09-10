@@ -1,5 +1,7 @@
 # 📋 BANCO DE PRUEBAS Y CHECKLIST DE CONFORMIDAD
+
 ## Sistema PITA v2.0 (Programa Integrado de Transacciones Académicas y Nómina Docente)
+
 **Universidad Popular del Cesar (UPC) — Facultad de Ingenierías y Tecnológicas**  
 **Asignatura:** Estructura de Datos — Taller 1 (Listas Enlazadas & TADs)  
 **Normatividad:** Decreto 1279 de 2002 | Ley 30 de 1992 | Acuerdo 027 del 31 de octubre de 2024 | Reglamento Estudiantil UPC  
@@ -7,6 +9,7 @@
 ---
 
 ## 🎯 Objetivo del Documento
+
 Este banco de pruebas suministra una **guía secuencial paso a paso** diseñada para que docentes, evaluadores y estudiantes puedan validar el cumplimiento del **100% de los requisitos funcionales, normativos y técnicos del Taller 1**, ejecutando el sistema tanto en **Modo 0 Datos (Limpieza Total / Arranque en Blanco)** como con **Datos Precargados** de acuerdo con el **Requerimiento #59**:
 > *"El usuario puede decidir si cargar los datos del archivo o ejecutar sin datos."*
 
@@ -25,9 +28,11 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 ---
 
 ## 🏛️ Fase 1: Estructura Institucional (Facultades y Programas)
+
 *Cumple Requerimientos #1 y #2 del Taller.*
 
 ### Caso 1.1: Registro de Facultad
+
 - **Ruta:** Menú Lateral ➔ **Facultades & Programas** ➔ Pestaña **Facultades** ➔ Botón **`+ Nueva Facultad`**
 - **Datos en el Modal `➕ Registrar Nueva Facultad`:**
   - **Código:** `FIT`
@@ -41,6 +46,7 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
   - [ ] En la pestaña **Universidad**, se confirma la visualización jerárquica de la facultad.
 
 ### Caso 1.2: Registro de Programa Académico
+
 - **Ruta:** Pestaña **Programas Académicos** ➔ Botón **`+ Nuevo Programa`**
 - **Datos en el Modal `➕ Registrar Nuevo Programa Académico`:**
   - **Nombre del Programa Académico *:** `Ingenieria de Sistemas`
@@ -57,13 +63,15 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 
 ---
 
-## 👥 Fase 2: Gestión de Personas y Roles
+## 👥 Fase 2: Gestión de Personas y Role  s
+
 *Cumple Requerimientos #3, #4, #8 y #10 del Taller (TAD con Creación, Inclusión, Consulta, Modificación, Desactivación).*
 
 ### Caso 2.1: Registro de Profesor de Planta (Dec. 1279)
+
 - **Ruta:** Menú Lateral ➔ **Personas** ➔ Botón **`+ Registrar Persona / Rol`** (Python) o **`+ Nueva Persona`** (C++)
 - **1. Información Personal y de Contacto:**
-  - **Tipo Documento *:** `CC` | **Número de Documento *:** `12345678`
+  - **Tipo Documento *:** `CC` |**Número de Documento *:** `12345678`
   - **Primer Nombre *:** `Carlos` | **Segundo Nombre:** `Alberto`
   - **Primer Apellido *:** `Gomez` | **Segundo Apellido:** `Solano`
   - **Correo Institucional / Personal:** `cgomez@unicesar.edu.co`
@@ -84,9 +92,10 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
   - [ ] Se visualiza en la pestaña **Personas** y en la pestaña **Profesores** con 250 pts y badge `ACTIVO`.
 
 ### Caso 2.2: Registro de Profesor de Cátedra (Acuerdo 027/2024)
+
 - **Ruta:** Botón **`+ Registrar Persona / Rol`**
 - **1. Información Personal y de Contacto:**
-  - **Tipo Documento *:** `CC` | **Número de Documento *:** `23456789`
+  - **Tipo Documento *:** `CC` |**Número de Documento *:** `23456789`
   - **Primer Nombre *:** `Maria` | **Segundo Nombre:** `Mercedes`
   - **Primer Apellido *:** `Perez` | **Segundo Apellido:** `Cuello`
   - **Correo Institucional / Personal:** `mperez@unicesar.edu.co`
@@ -107,6 +116,7 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
   - [ ] Aparece correctamente clasificado en la tabla de **Profesores** como `CATEDRATICO` (16h semanales) con categoría `AUXILIAR`.
 
 ### Caso 2.3: Registro de Estudiantes (Regular y Caso EBRA)
+
 1. **Estudiante 1 (Rendimiento Óptimo):**
    - **Información Personal:** `CC` | `1003456789` | `Juan Diego` `Rodriguez Vega` | `jrodriguez@unicesar.edu.co`
    - **Rol:** `ESTUDIANTE` | **Código Estudiante *:** `EST-2026-001`
@@ -115,10 +125,12 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
    - **Información Personal:** `CC` | `1004567890` | `Andres Felipe` `Morales Mejia` | `amorales@unicesar.edu.co`
    - **Rol:** `ESTUDIANTE` | **Código Estudiante *:** `EST-2026-002`
    - **Semestre Actual:** `2` | **Programa:** `Ingenieria de Sistemas` | **Estado Académico:** `ACTIVO`
+
 - **Verificación:**
   - [ ] Ambos estudiantes figuran en la pestaña **Estudiantes** con estado inicial `ACTIVO`.
 
 ### Caso 2.4: Registro de Personal Administrativo
+
 - **Ruta:** Botón **`+ Registrar Persona / Rol`**
 - **Información Personal:** `CC` | `34567890` | `Laura Patricia` `Sanchez Meza` | `lsanchez@unicesar.edu.co`
 - **Rol:** Seleccionar `ADMINISTRATIVO`
@@ -132,6 +144,7 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
   - [ ] Aparece en la pestaña **Administrativos** con cargo, dependencia, salario base y badge `ACTIVO`.
 
 ### Caso 2.5: Validación del Buscador en Tiempo Real y Desactivación
+
 - [ ] En la pestaña **Personas**, escribir `Morales` en el campo de búsqueda: la tabla filtra instantáneamente mostrando únicamente a Andrés Felipe.
 - [ ] Pulsar **`Limpiar`**: la tabla restaura todas las personas registradas.
 - [ ] Probar el botón **`Desactivar`** en una fila: su badge cambia de `ACTIVO` a `INACTIVO`. Al pulsar **`Activar`**, regresa inmediatamente a `ACTIVO`.
@@ -139,10 +152,13 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 ---
 
 ## 📚 Fase 3: Planes de Estudio, Períodos Académicos, Catálogo y Matrícula
+
 *Cumple Requerimientos #3, #11 y #12 del Taller y Casos de Uso CU-03 (Planes de Estudio) y CU-04 (Períodos y Oferta).*
 
 ### Caso 3.1: Configuración y Verificación de Período Académico
+
 - **Ruta:** Menú Lateral ➔ **Gestión Académica** ➔ Pestaña **`📅 Períodos Académicos`**
+
 1. **Verificación del Período Activo:**
    - [ ] Se observa el período `2026-1` en la tabla con:
      - **Código:** `2026-1` | **Nombre:** `Primer Período Académico 2026`
@@ -157,7 +173,9 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
    - [ ] Probar el botón superior **`📅 + Aperturar Período`**: permite aperturar nuevos períodos (ej. `2026-2`).
 
 ### Caso 3.2: Gestión de Planes de Estudio y Malla Curricular (CU-03)
+
 - **Ruta:** Menú Lateral ➔ **Gestión Académica** ➔ Pestaña **`📋 Planes de Estudio`**
+
 1. **Verificación de Planes Registrados:**
    - [ ] Aparece el plan institucional `PLAN-SIS-2026` con:
      - **Nombre:** `Plan Ingenieria de Sistemas 2026`
@@ -176,6 +194,7 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
    - [ ] Probar el botón superior **`📋 + Nuevo Plan`** para dar de alta nuevas versiones o planes curriculares.
 
 ### Caso 3.3: Catálogo de Asignaturas (Creación de Cursos con Umbrales Dinámicos)
+
 - **Ruta:** Pestaña **`📚 Cursos & Ofertas`** ➔ **Catálogo de Asignaturas** ➔ Botón **`➕ Crear Asignatura`** (o `+ Nueva Asignatura`):
   - **Curso 1:**
     - **Código de la Asignatura *:** `SIS-301`
@@ -195,23 +214,25 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
   - [ ] Ambos cursos aparecen en la tabla con sus créditos, distribución teórica/práctica y sus respectivas notas mínimas aprobatorias configurables.
 
 ### Caso 3.4: Apertura de Oferta / Grupo Abierto
+
 - **Ruta:** Pestaña **Cursos & Ofertas** ➔ **Ofertas y Grupos Abiertos** ➔ Botón **`🏫 Abrir Oferta / Grupo`** (o `+ Nueva Oferta`)
 - **Oferta 1:**
   - **Asignatura a Ofertar *:** `SIS-301 | Estructuras de Datos`
   - **Periodo Académico *:** `2026-1`
-  - **Grupo *:** `01` | **Cupo Máximo *:** `30`
+  - **Grupo *:** `01` |**Cupo Máximo *:** `30`
   - **Aula:** `204 Sabanas` | **Sede:** `Sede Sabanas` | **Modalidad:** `PRESENCIAL`
   - **Profesor Asignado:** Seleccionar `DOC-001 | Carlos Gomez`
 - **Oferta 2:**
   - **Asignatura a Ofertar *:** `SIS-401 | Sistemas Operativos Avanzados`
   - **Periodo Académico *:** `2026-1`
-  - **Grupo *:** `01` | **Cupo Máximo *:** `25`
+  - **Grupo *:** `01` |**Cupo Máximo *:** `25`
   - **Aula:** `301 Sabanas` | **Sede:** `Sede Sabanas` | **Modalidad:** `PRESENCIAL`
   - **Profesor Asignado:** Seleccionar `DOC-002 | Maria Mercedes Perez`
 - **Verificación:**
   - [ ] Las ofertas quedan aperturadas y sus semáforos de cupos reflejan disponibilidad total (`30 / 30` y `25 / 25`).
 
 ### Caso 3.5: Matrícula de Cursos
+
 - **Ruta:** Pestaña **Matrículas** (o **✍️ Matrícula de Cursos**)
 - **Acción en el panel superior de inscripción:**
   1. En el combobox **Estudiante a Matricular:** seleccionar `EST-2026-001 - Juan Diego Rodriguez`.
@@ -226,9 +247,11 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 ---
 
 ## 🚨 Fase 4: Evaluaciones, Calificaciones y Alertas EBRA
+
 *Cumple Requerimientos #11, #12 y Cierre de Brechas #4 y #6 (Umbral dinámico `notaMinimaAprobatoria` y detección EBRA en lote en UI).*
 
 ### Caso 4.1: Calificaciones con Umbrales Dinámicos
+
 - **Ruta:** Pestaña **Calificaciones** (o **Evaluaciones**)
 - **Acción en el formulario superior `📝 Asignación de Calificaciones y Evaluaciones`:**
   1. **Juan Diego (`EST-2026-001`) en `SIS-301` (Umbral 3.0):**
@@ -248,10 +271,11 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
      - [ ] **Comportamiento Dinámico Verificado:** Se clasifica como badge `Reprobado` porque este curso exige `3.5` como nota mínima aprobatoria.
 
 ### Caso 4.2: Detección y Panel de Alertas EBRA en Tiempo Real
+
 - **Ruta:** Pestaña **Alertas EBRA**
 - **Acción:** En la barra superior, pulsar el botón interactivo **`⚡ Ejecutar Detección EBRA Masiva`**
 - **Verificación:**
-  - [ ] El sistema ejecuta la evaluación masiva y muestra mensaje de confirmación: *"Evaluación finalizada. Se detectaron/actualizaron alertas EBRA."*
+  - [ ] El sistema ejecuta la evaluación masiva y muestra mensajede confirmación: *"Evaluación finalizada. Se detectaron/actualizaron alertas EBRA."*
   - [ ] **Tarjetas KPI EBRA:**
     - `Total Estudiantes Registrados`: Refleja el censo activo (2).
     - `En Riesgo EBRA (Promedio < 3.0)`: Refleja a los estudiantes con promedio crítico (Andrés Morales: promedio 2.65).
@@ -263,10 +287,13 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 ---
 
 ## 📝 Fase 5: Contratación Docente y Factores Salariales (Dec. 1279)
+
 *Cumple Requerimientos #4, #5, #6, #7, #9, #13 y Cierre de Brecha #2 (Pisos de escalafón 37/58/74/96).*
 
 ### Caso 5.1: Vinculación Contractual Obligatoria
+
 - **Ruta:** Menú Lateral ➔ **Contratos & Factores** ➔ Botón **`➕ Registrar Contrato`**
+
 1. **Contrato Docente Planta:**
    - **Selector de Personal:** `👨‍🏫 Personal Docente`
    - **Docente *:** `DOC-001 - Carlos Alberto Gomez Solano [ASISTENTE, 250 pts]`
@@ -287,12 +314,15 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
    - **Funcionario *:** `ADM-2026-01 - Laura Patricia Sanchez (Secretaria Academica FIT)`
    - **Modalidad Contractual:** `TERMINO_INDEFINIDO (CST)`
    - **Asistente:** Pulsar **`⚡ Asignar Salario del Cargo`** (`$3.200.000 COP`) y formalizar.
+
 - **Verificación:**
   - [ ] Los contratos quedan formalizados y listados en la pestaña **📜 Contratos Docentes Vigentes**.
   - [ ] Las tarjetas KPI consolidan el conteo de contratos y la nómina proyectada.
 
 ### Caso 5.2: Reconocimiento de Puntos y Pisos Salariales de Escalafón
+
 - **Ruta:** Botón superior **`⭐ Reconocer Puntos / Productividad`** (Modal `⭐ Comité de Puntaje Salarial (Decreto 1279)`)
+
 1. **Sub-pestaña `📜 Títulos y Escalafón`:**
    - **Docente Beneficiario:** `DOC-001 - Carlos Alberto Gomez Solano`
    - **Tipo de Factor Salarial:** `TITULO_ACADEMICO` *(opciones: TITULO_ACADEMICO, CATEGORIA_DOCENTE, EXPERIENCIA_CALIFICADA, CARGO_DIRECCION_ACADEMICA)*
@@ -319,16 +349,20 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 ---
 
 ## 💰 Fase 6: Liquidación de Nómina, Prestaciones Especiales y Reliquidación
+
 *Cumple Requerimientos #5, #9, #13 y Cierre de Brechas #1, #3 y #5.*
 
 ### Caso 6.1: Regla de Negocio: Bloqueo de Liquidación sin Contrato
+
 - **Prueba de Control:**
   - Menú Lateral ➔ **Nómina Docente** ➔ Botón **`👤 Liquidar Empleado`**
   - Seleccionar un docente o administrativo que no cuente con contrato activo en el período seleccionado.
   - [ ] El sistema bloquea la acción con mensaje explícito: *"⚠️ Este empleado NO cuenta con un contrato activo registrado. Debe formalizar su vinculación en el módulo de Contratos antes de liquidar."*
 
 ### Caso 6.2: Liquidación de Nómina Multi-Régimen y Validación con Desprendible Real UPC
+
 - **Ruta:** Menú Lateral ➔ **Nómina Docente**
+
 1. **Pestaña Periodos de Nómina:** Seleccionar el período `2026-08` (Agosto 2026, Estado: `ABIERTO` o `EN_CURSO`).
 2. **Acción:** Pulsar el botón **`⚙️ Liquidar Periodo Completo`** (o **`👤 Liquidar Empleado`** para liquidación individual).
 3. **Validación Cruce 100% con Desprendible Oficial UPC (Prof. Adith Bismarck Pérez Orozco - Ocasional Tiempo Completo):**
@@ -350,7 +384,9 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
    - [ ] **Cesantías (8.33%), Intereses (1%), Prima de Servicios (8.33%), Vacaciones (4.17%)**.
 
 ### Caso 6.3: Flujo Completo de Reliquidación (CU-25 en UI - Brecha 5)
+
 - **Ruta:** Pestaña **Liquidaciones del Periodo** o Modal de Desprendible
+
 1. Con la liquidación en estado `GENERADA` (no pagada):
    - [ ] Se visualiza el botón interactivo **`🔄 Reliquidar`** en la fila de la tabla y **`🔄 Reliquidar Nómina`** en el pie del modal de desprendible.
 2. Actualizar los puntos del docente o corregir parámetros normativos.
@@ -363,7 +399,9 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
    - [ ] Una liquidación pagada ya no puede ser alterada ni reliquidada.
 
 ### Caso 6.4: Inmutabilidad de Parámetros Usados en Liquidación (Brecha 3)
+
 - **Ruta:** Menú Lateral ➔ **Parámetros Normativos**
+
 1. Buscar el parámetro `VALOR_PUNTO_SALARIAL` o `SALARIO_MINIMO` cuya vigencia cubre el periodo liquidado.
 2. Intentar editar su valor o eliminarlo:
    - [ ] El sistema lanza excepción / diálogo bloqueante: *"No se puede modificar el parámetro porque está siendo utilizado en liquidaciones de nómina aprobadas o pagadas."*
@@ -372,6 +410,7 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 ---
 
 ## 💾 Fase 7: Persistencia, Reinicio y Validación Automática
+
 *Cumple Requerimientos #20, #57, #58 y #59 del Taller.*
 
 | Paso | Acción de Prueba | Resultado Esperado | C++ | Python |
@@ -398,13 +437,12 @@ El protocolo es idéntico y aplicable tanto para la aplicación de alto rendimie
 | **7** | Estructura adaptada al Dec. 1279 y Ac. 006 de 2018 | Tablas de Factores, Categorías, Puntos y Producción | Sub-tabs de Factores y Producción Intelectual | ✅ CUMPLIDO |
 | **8** | CRUD y Desactivación de Profesor, Estudiante y Admin | Modales en `gui_vista_personas.cpp` | Modales en `personas/` | ✅ CUMPLIDO |
 | **9** | Simulación del cálculo del salario con normatividad | Motor de nómina multi-régimen | Motor de nómina multi-régimen | ✅ CUMPLIDO |
-| **10**| Aspecto estético profesional e institucional UPC | ImGui estilizado con paleta moderna y contrastes | CustomTkinter con diseño Windows 11 Dark/Light | ✅ CUMPLIDO |
-| **11**| Gerencia académica de estudiantes (matrícula y notas) | `gui_vista_academica.cpp` (Matrículas y Cancelación) | `academica_tabs.py` | ✅ CUMPLIDO |
-| **12**| Cálculo de promedio y alertas de estudiantes en EBRA | Detección masiva EBRA, botón en UI y tutorías UPC | Detección masiva EBRA, botón en UI y tutorías UPC | ✅ CUMPLIDO |
-| **13**| Descuentos de ley y prestaciones especiales MinTrabajo | Salud 4%, Pensión 4%, FSP, Prima Vac. 5.56%, Bonific. | Salud 4%, Pensión 4%, FSP, Prima Vac. 5.56%, Bonific. | ✅ CUMPLIDO |
-| **20**| Validación de inmutabilidad de parámetros liquidados | `gestor_parametros.cpp` (`estaUsadoEnLiquidacion`) | `gestor_parametros.py` (`_esta_usado_en_liquidacion`) | ✅ CUMPLIDO |
-| **25**| Ciclo de vida y reliquidación de nómina (CU-25) | Botón interactivo `Reliquidar` en tabla y modal | Botón interactivo `🔄 Reliquidar` en tabla y modal | ✅ CUMPLIDO |
-| **57**| Persistencia de datos en archivos planos estructurados | `gestor_persistencia.cpp` (`datos/*.txt`) | `gestor_persistencia.py` (`datos/*.txt`) | ✅ CUMPLIDO |
-| **58**| Cargar y guardar datos en archivo | Métodos `cargarDatos()` y `guardarDatos()` | Métodos `cargar_datos()` y `guardar_datos()` | ✅ CUMPLIDO |
-| **59**| **Decidir si cargar datos o ejecutar con 0 datos** | **Botón `Iniciar Sin Datos` en sidebar** | **Botón `Iniciar Sin Datos` en bienvenida y sidebar** | ✅ CUMPLIDO |
-
+| **10** | Aspecto estético profesional e institucional UPC | ImGui estilizado con paleta moderna y contrastes | CustomTkinter con diseño Windows 11 Dark/Light | ✅ CUMPLIDO |
+| **11** | Gerencia académica de estudiantes (matrícula y notas) | `gui_vista_academica.cpp` (Matrículas y Cancelación) | `academica_tabs.py` | ✅ CUMPLIDO |
+| **12** | Cálculo de promedio y alertas de estudiantes en EBRA | Detección masiva EBRA, botón en UI y tutorías UPC | Detección masiva EBRA, botón en UI y tutorías UPC | ✅ CUMPLIDO |
+| **13** | Descuentos de ley y prestaciones especiales MinTrabajo | Salud 4%, Pensión 4%, FSP, Prima Vac. 5.56%, Bonific. | Salud 4%, Pensión 4%, FSP, Prima Vac. 5.56%, Bonific. | ✅ CUMPLIDO |
+| **20** | Validación de inmutabilidad de parámetros liquidados | `gestor_parametros.cpp` (`estaUsadoEnLiquidacion`) | `gestor_parametros.py` (`_esta_usado_en_liquidacion`) | ✅ CUMPLIDO |
+| **25** | Ciclo de vida y reliquidación de nómina (CU-25) | Botón interactivo `Reliquidar` en tabla y modal | Botón interactivo `🔄 Reliquidar` en tabla y modal | ✅ CUMPLIDO |
+| **57** | Persistencia de datos en archivos planos estructurados | `gestor_persistencia.cpp` (`datos/*.txt`) | `gestor_persistencia.py` (`datos/*.txt`) | ✅ CUMPLIDO |
+| **58** | Cargar y guardar datos en archivo | Métodos `cargarDatos()` y `guardarDatos()` | Métodos `cargar_datos()` y `guardar_datos()` | ✅ CUMPLIDO |
+| **59** | **Decidir si cargar datos o ejecutar con 0 datos** | **Botón `Iniciar Sin Datos` en sidebar** | **Botón `Iniciar Sin Datos` en bienvenida y sidebar** | ✅ CUMPLIDO |

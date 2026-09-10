@@ -12,13 +12,16 @@ from dominio.modelo_datos import (
     Contrato,
     Dedicacion,
     DetalleLiquidacion,
+    Facultad,
     FactorSalarial,
     LiquidacionNomina,
     ParametroNormativo,
     PeriodoNomina,
     ProduccionAcademica,
     Profesor,
+    ProgramaAcademico,
     TipoProfesor,
+    Universidad,
 )
 from nomina.excepciones import ErrorNomina
 from nomina.calculadora_deducciones import CalculadoraDeducciones
@@ -54,6 +57,9 @@ class GestorNomina:
         factores: list[FactorSalarial] | None = None,
         producciones: list[ProduccionAcademica] | None = None,
         administrativos: list[Administrativo] | None = None,
+        universidades: list[Universidad] | None = None,
+        facultades: list[Facultad] | None = None,
+        programas: list[ProgramaAcademico] | None = None,
     ) -> None:
         self.contratos = contratos
         self.profesores = profesores
@@ -65,6 +71,9 @@ class GestorNomina:
         self.factores = factores if factores is not None else []
         self.producciones = producciones if producciones is not None else []
         self.administrativos = administrativos if administrativos is not None else []
+        self.universidades = universidades if universidades is not None else []
+        self.facultades = facultades if facultades is not None else []
+        self.programas = programas if programas is not None else []
 
         # Inicializar submódulos especializados
         self.calc_deducciones = CalculadoraDeducciones(self.parametros)
@@ -218,6 +227,22 @@ class GestorNomina:
     def _contrato(self, id_contrato: int) -> Contrato:
         return self._buscar(self.contratos, "idContrato", id_contrato, "contrato")
 
+    def obtener_contratos_por_universidad(self, id_universidad: int) -> list[Contrato]:
+        """Retorna todos los contratos asociados directa o indirectamente a una universidad."""
+        resultado: list[Contrato] = []
+        for c in self.contratos:
+            if getattr(c, "idUniversidad", None) == id_universidad:
+                resultado.append(c)
+                continue
+            prof = next((p for p in self.profesores if p.idPersona == c.idPersona), None)
+            if prof and prof.idProgramaPrincipal and self.programas and self.facultades:
+                prog = next((pr for pr in self.programas if pr.idPrograma == prof.idProgramaPrincipal), None)
+                if prog and prog.idFacultad:
+                    fac = next((f for f in self.facultades if f.idFacultad == prog.idFacultad), None)
+                    if fac and fac.idUniversidad == id_universidad:
+                        resultado.append(c)
+        return resultado
+
     def _periodo(self, id_periodo: int) -> PeriodoNomina:
         return self._buscar(self.periodos_nomina, "idPeriodoNomina", id_periodo, "periodo de nómina")
 
@@ -302,19 +327,31 @@ class GestorNomina:
         return "1279" in r or "PLANTA" in r
 
     def _puntos_planta(self, profesor: Profesor, periodo: PeriodoNomina) -> Decimal:
+        tipo_str = str(getattr(profesor.tipoProfesor, "value", profesor.tipoProfesor or "")).upper()
+        if tipo_str in ("OCASIONAL", "CATEDRATICO", "CATEDRATICO_AD_HONOREM", "AD_HONOREM"):
+            return self.CERO
+
+        pts_guardados = Decimal(str(profesor.puntosSalariales or self.CERO))
+        if pts_guardados > self.CERO:
+            return pts_guardados
+
         cat_str = str(profesor.categoriaDocente or profesor.categoriaReconocida or "").upper()
-        pts_escalafon = {"AUXILIAR": Decimal("37"), "ASISTENTE": Decimal("58"), "ASOCIADO": Decimal("74"), "TITULAR": Decimal("96")}.get(cat_str, Decimal("0"))
+        pts_escalafon = {"AUXILIAR": Decimal("180"), "ASISTENTE": Decimal("250"), "ASOCIADO": Decimal("350"), "TITULAR": Decimal("450")}.get(
+            cat_str,
+            {"AUXILIAR": Decimal("37"), "ASISTENTE": Decimal("58"), "ASOCIADO": Decimal("74"), "TITULAR": Decimal("96")}.get(cat_str, Decimal("0")),
+        )
 
         codigos_categoria = {str(profesor.categoriaDocente or "").upper(), str(profesor.categoriaReconocida or "").upper()}
         tiene_categoria = any(categoria.idCategoria == profesor.idCategoriaDocente or str(getattr(categoria.codigo, "value", categoria.codigo or "")).upper() in codigos_categoria for categoria in self.categorias)
-        tiene_fuentes = tiene_categoria or any(factor.idProfesor == profesor.idProfesor for factor in self.factores) or any(produccion.idProfesor == profesor.idProfesor for produccion in self.producciones)
+        tiene_posgrado = bool(profesor.nivelPosgradoReconocido or profesor.maximoNivelEstudio)
+        tiene_fuentes = tiene_categoria or tiene_posgrado or any(factor.idProfesor == profesor.idProfesor for factor in self.factores) or any(produccion.idProfesor == profesor.idProfesor for produccion in self.producciones)
+        pts_calculados = self.CERO
         if tiene_fuentes:
             from gestores.gestor_factores import GestorFactores
             fecha = periodo.fechaFin or periodo.fechaInicio or date.today()
             pts_calculados = GestorFactores(self.categorias, self.factores, self.producciones, self.profesores).calcular_puntos_profesor(profesor.idProfesor, fecha)
-            return max(pts_escalafon, pts_calculados)
-        pts_actuales = Decimal(str(profesor.puntosSalariales or self.CERO))
-        return max(pts_escalafon, pts_actuales) if pts_actuales > self.CERO else pts_escalafon
+
+        return max(pts_escalafon, pts_calculados)
 
     def _parametro_decimal(self, codigo: str, fecha: date | None = None) -> Decimal | None:
         return self.calc_deducciones.obtener_parametro_decimal(codigo, fecha)
@@ -323,7 +360,23 @@ class GestorNomina:
         return self.calc_deducciones.obtener_porcentaje(codigo, defecto, fecha, codigos_utilizados)
 
     def _salario_minimo(self, contrato: Contrato, periodo: PeriodoNomina, fecha: date | None = None, codigos_utilizados: dict | None = None) -> Decimal:
-        return self._decimal(contrato.salarioMinimoVigente or periodo.salarioMinimoVigente or self._parametro_decimal("SALARIO_MINIMO", fecha), "salario mínimo vigente")
+        # Priorizar la variable activa de SALARIO_MINIMO parametrizada en tiempo de ejecución
+        param_smmlv = self._parametro_decimal("SALARIO_MINIMO", fecha)
+        if param_smmlv is not None and param_smmlv > self.CERO:
+            if codigos_utilizados is not None:
+                codigos_utilizados["SALARIO_MINIMO"] = str(param_smmlv)
+            return self._decimal(param_smmlv, "salario mínimo vigente")
+        periodo_smmlv = getattr(periodo, "salarioMinimoVigente", None)
+        if periodo_smmlv is not None and periodo_smmlv > self.CERO:
+            if codigos_utilizados is not None:
+                codigos_utilizados["SALARIO_MINIMO"] = str(periodo_smmlv)
+            return self._decimal(periodo_smmlv, "salario mínimo vigente")
+        contra_smmlv = getattr(contrato, "salarioMinimoVigente", None)
+        if contra_smmlv is not None and contra_smmlv > self.CERO:
+            if codigos_utilizados is not None:
+                codigos_utilizados["SALARIO_MINIMO"] = str(contra_smmlv)
+            return self._decimal(contra_smmlv, "salario mínimo vigente")
+        return Decimal("1750905")
 
     def _validar_contrato(self, contrato: Contrato, tipo: TipoProfesor, periodo: PeriodoNomina) -> None:
         actual = getattr(contrato.modalidadProfesor or contrato.tipoContrato or "", "value", contrato.modalidadProfesor or contrato.tipoContrato or "")

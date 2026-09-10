@@ -1,5 +1,2 @@
-1|INF-101|Estructura de Datos|Listas, Árboles, Grafos|4|4|2|6|35|3.0|ACTIVO
-2|INF-102|Bases de Datos I|Modelado relacional y SQL|3|3|2|4|30|3.0|ACTIVO
-3|INF-103|Programación Orientada a Objetos|Paradigma POO en Java/Python|4|4|2|6|35|3.0|ACTIVO
-4|ENF-101|Anatomía Humana|Morfología general|4|3|3|4|25|3.0|ACTIVO
-5|ADM-101|Fundamentos de Administración|Teoría administrativa|3|3|0|6|40|3.0|ACTIVO
+1|SIS-301|Estructuras de Datos|Estructuras de Datos|3|3|2|6|30|3.0|ACTIVO
+2|SIS-401|Sistemas Operativos Avanzados|Sistemas Operativos Avanzados|4|4|1|8|25|3.5|ACTIVO

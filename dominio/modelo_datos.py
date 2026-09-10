@@ -89,6 +89,7 @@ class ParametroNormativoCodigo(str, Enum):
     NOTA_MINIMA_APROBATORIA = "NOTA_MINIMA_APROBATORIA"
     PROMEDIO_MINIMO_EBRA = "PROMEDIO_MINIMO_EBRA"
     MAXIMO_CREDITOS_PERIODO = "MAXIMO_CREDITOS_PERIODO"
+    APLICA_EXONERACION_LEY_1819 = "APLICA_EXONERACION_LEY_1819"
 
 
 @dataclass
@@ -106,6 +107,7 @@ class Universidad:
     estado: str | None = None
     cajaCompensacion: str | None = None
     arl: str | None = None
+    aplicaExoneracionLey1819: bool | None = True
 
 
 @dataclass

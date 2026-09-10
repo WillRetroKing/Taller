@@ -162,6 +162,13 @@ class DialogReconocerPuntos(ctk.CTkToplevel):
         combo_prof_p.pack(fill="x", padx=4, pady=(0, 8))
 
         ctk.CTkLabel(scroll_p, text="Tipo de Obra Intelectual (MinCiencias):", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold")).pack(anchor="w", padx=4, pady=(4, 1))
+        def _on_cambiar_tipo_prod(val: str) -> None:
+            import re
+            m = re.search(r"\((\d+)\s*pts\)", val)
+            if m:
+                entry_pts_prod.delete(0, "end")
+                entry_pts_prod.insert(0, m.group(1))
+
         combo_tipo_prod = ctk.CTkComboBox(
             scroll_p,
             values=[
@@ -173,6 +180,7 @@ class DialogReconocerPuntos(ctk.CTkToplevel):
                 "SOFTWARE_REGISTRADO (15 pts)",
             ],
             width=400,
+            command=_on_cambiar_tipo_prod,
         )
         combo_tipo_prod.pack(fill="x", padx=4, pady=(0, 8))
 
@@ -206,11 +214,13 @@ class DialogReconocerPuntos(ctk.CTkToplevel):
 
         def _guardar_prod():
             sel_p = combo_prof_p.get()
-            if not sel_p or sel_p == "Sin docentes registrados":
+            if not sel_p or "Sin docentes" in sel_p:
                 lbl_err_p.configure(text="⚠️ Seleccione un docente válido.")
                 return
-            cod = sel_p.split(" - ")[0].strip()
-            prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
+            cod = sel_p.split(" - ")[0].strip() if " - " in sel_p else sel_p.strip()
+            prof = next((p for p in self.controller.profesores if str(getattr(p, "codigoProfesor", "")).strip() == cod), None)
+            if not prof:
+                prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
             if not prof:
                 lbl_err_p.configure(text="⚠️ Docente no encontrado.")
                 return
@@ -226,8 +236,8 @@ class DialogReconocerPuntos(ctk.CTkToplevel):
                 lbl_err_p.configure(text="⚠️ Ingrese un puntaje válido.")
                 return
 
-            aut_str = combo_autores.get()
-            n_aut = int(aut_str.split(" ")[0]) if aut_str[0].isdigit() else 1
+            aut_str = (combo_autores.get() or "").strip()
+            n_aut = int(aut_str.split(" ")[0]) if aut_str and aut_str[0].isdigit() else 1
             coaut = Decimal("1.0") / Decimal(str(max(n_aut, 1)))
             pts_prof = round(pts_base * coaut, 2)
 
@@ -247,10 +257,10 @@ class DialogReconocerPuntos(ctk.CTkToplevel):
 
         ctk.CTkButton(
             scroll_p,
-            text="🔬 Validar Obra y Bonificar Puntos de Productividad",
+            text="💾 Registrar y Reconocer Producción Intelectual",
             font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            fg_color=Colors.WIN_BLUE,
-            hover_color=Colors.WIN_BLUE_HOVER,
+            fg_color="#006837",
+            hover_color="#004D28",
             height=38,
             command=_guardar_prod,
         ).pack(fill="x", padx=4, pady=(8, 16))

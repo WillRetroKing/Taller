@@ -7,6 +7,7 @@ y tarjetas de métricas KPI estilizadas.
 from __future__ import annotations
 
 import customtkinter as ctk
+import re
 from decimal import Decimal
 from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
@@ -17,28 +18,25 @@ def clean_enum(val: Any, default: str = "") -> str:
     """Extrae el nombre o valor limpio de una instancia de Enum o string de Enum.
     
     Evita que cadenas como 'TipoProfesor.PLANTA' o 'EstadoAcademico.EBRA'
-    se muestren directamente en la interfaz, sin afectar números flotantes como '3.0'.
+    se muestren directamente en la interfaz, sin afectar números flotantes como '3.0',
+    correos electrónicos, cadenas con puntos descriptivos ('3 cr.') o texto libre.
     """
     if val is None:
         return default
     if isinstance(val, (int, float, Decimal)):
         return str(val)
     if hasattr(val, "value"):
-        s = str(val.value)
-    elif hasattr(val, "name"):
-        s = str(val.name)
-    else:
-        s = str(val)
+        return str(val.value)
+    if hasattr(val, "name"):
+        return str(val.name)
 
-    # Si es un número decimal numérico (ej: "3.0"), no partir por el punto
-    try:
-        float(s)
-        return s
-    except (ValueError, TypeError):
-        pass
+    s = str(val)
 
-    if "." in s:
-        s = s.split(".")[-1]
+    # Si es exactamente la representación string de un Enum (ej: "EstadoAcademico.EBRA" o "TipoProfesor.PLANTA")
+    # sólo debe dividirse si coincide con Identificador.IDENTIFICADOR (sin espacios, sin arrobas, sin paréntesis)
+    if re.match(r"^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z0-9_]+$", s):
+        return s.split(".")[-1]
+
     return s
 
 
@@ -314,7 +312,10 @@ class PITATreeviewTable(ctk.CTkFrame):
                     "catedra": "🟣 ",
                     "catedratico": "🟣 ",
                 }.get(b_type, "")
-                row_values.append(f"{prefix}{b_text}")
+                if any(b_text.startswith(icon) for icon in ["🟢", "🔴", "🟡", "🔵", "🟣", "⚠️", "●", "⚪"]):
+                    row_values.append(b_text)
+                else:
+                    row_values.append(f"{prefix}{b_text}")
             elif isinstance(item, tuple) and item[0] == "actions":
                 action_strs = []
                 for spec in item[1]:
@@ -370,13 +371,23 @@ class PITATreeviewTable(ctk.CTkFrame):
                             if callable(actions[0][1]):
                                 actions[0][1]()
                         elif len(actions) > 1:
-                            menu = tk.Menu(self, tearoff=0)
-                            for label, cmd in actions:
-                                menu.add_command(label=label, command=cmd)
-                            try:
+                            # Intentar detectar cuál botón se cliqueó según la posición x dentro de la celda
+                            bbox = self.tree.bbox(item_id, column=col)
+                            ejecutado = False
+                            if bbox and bbox[2] > 0:
+                                rel_x = event.x - bbox[0]
+                                ancho_btn = bbox[2] / len(actions)
+                                idx_btn = int(rel_x // ancho_btn)
+                                if 0 <= idx_btn < len(actions):
+                                    cmd = actions[idx_btn][1]
+                                    if callable(cmd):
+                                        cmd()
+                                        ejecutado = True
+                            if not ejecutado:
+                                menu = tk.Menu(self, tearoff=0)
+                                for label, cmd in actions:
+                                    menu.add_command(label=label, command=cmd)
                                 menu.tk_popup(event.x_root, event.y_root)
-                            finally:
-                                menu.grab_release()
 
     def clear_rows(self) -> None:
         """Limpia todas las filas de la tabla."""

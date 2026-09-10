@@ -409,6 +409,54 @@ class TestAcademicoEstructura(unittest.TestCase):
         self.assertTrue(hasattr(view, "tab_planes"))
         app.destroy()
 
+    def test_crear_oferta_con_docente_y_deteccion_ebra(self):
+        """Valida que crear_oferta instancie AsignacionDocente correctamente y la detección EBRA use idPeriodo."""
+        from ui_gui.gui_controller import PITAController
+        from ui_gui.academica.academica_service import AcademicaService
+        with TemporaryDirectory() as tmpdir:
+            ctrl = PITAController(directorio_datos=tmpdir)
+            ctrl.cursos = [Curso(1, codigoCurso="SIS-301", nombre="Estructuras de Datos", numeroCreditos=3)]
+            ctrl.periodos_academicos = [PeriodoAcademico(1, codigo="2026-1", estado="ABIERTO")]
+            ctrl.personas = [Persona(1, primerNombre="Carlos", primerApellido="Gomez")]
+            ctrl.profesores = [Profesor(1, idPersona=1, codigoProfesor="DOC-001")]
+            ctrl._recrear_gestores()
+
+            service = AcademicaService(ctrl)
+
+            oferta = service.crear_oferta(
+                id_curso=1,
+                id_periodo=1,
+                grupo="01",
+                cupo=30,
+                aula="204 Sabanas",
+                sede="Sede Sabanas",
+                modalidad="PRESENCIAL",
+                id_profesor=1,
+            )
+            self.assertIsNotNone(oferta.idOfertaCurso)
+            self.assertEqual(oferta.cupoMaximo, 30)
+
+            # Comprobar que se creó la AsignacionDocente con idAsignacion y numeroHoras
+            asig = next((a for a in ctrl.asignaciones if a.idOfertaCurso == oferta.idOfertaCurso), None)
+            self.assertIsNotNone(asig)
+            self.assertIsNotNone(asig.idAsignacion)
+            self.assertEqual(asig.idProfesor, 1)
+
+            # Comprobar detección EBRA masiva sin fallar por idPeriodo
+            alertas = ctrl.gestor_matriculas.evaluar_alertas_periodo(1)
+            self.assertIsInstance(alertas, list)
+
+    def test_desglose_anual_no_contamina_liquidaciones(self):
+        """Valida que CalculadorDesgloseAnual no agregue liquidaciones permanentes a la lista."""
+        from ui_gui.gui_controller import PITAController
+        from nomina.desglose_anual import CalculadorDesgloseAnual
+        with TemporaryDirectory() as tmpdir:
+            ctrl = PITAController(directorio_datos=tmpdir)
+            self.assertEqual(len(ctrl.liquidaciones), 0)
+            calc = CalculadorDesgloseAnual(ctrl.gestor_nomina)
+            calc.generar_desglose_institucional(2026)
+            self.assertEqual(len(ctrl.liquidaciones), 0)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -305,6 +305,22 @@ class DialogEditarProfesor(ctk.CTkToplevel):
         self.entry_area.insert(0, str(getattr(self.profesor, "areaConocimiento", "") or ""))
         self.entry_area.grid(row=9, column=0, columnspan=2, sticky="ew", padx=5, pady=(2, 4))
 
+        # Grupo de Investigación (MinCiencias)
+        ctk.CTkLabel(grid_d, text="Grupo de Investigación (MinCiencias)", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=10, column=0, sticky="w", padx=5, pady=(2, 0))
+        ctk.CTkLabel(grid_d, text="Nombre del Grupo / Semillero", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=10, column=1, sticky="w", padx=5, pady=(2, 0))
+
+        grupo_actual = getattr(self.profesor, "categoriaGrupoInvestigacion", "NINGUNO") or "NINGUNO"
+        combo_vals = ["NINGUNO", "GRUPO_A1 (0.56 SMMLV)", "GRUPO_A (0.47 SMMLV)", "GRUPO_B (0.42 SMMLV)", "GRUPO_C (0.38 SMMLV)", "SEMILLERO (0.20 SMMLV)"]
+        sel_g = next((v for v in combo_vals if v.startswith(str(grupo_actual))), "NINGUNO")
+
+        self.combo_grupo = ctk.CTkComboBox(grid_d, values=combo_vals)
+        self.combo_grupo.set(sel_g)
+        self.combo_grupo.grid(row=11, column=0, sticky="ew", padx=5, pady=(2, 8))
+
+        self.entry_ngrupo = ctk.CTkEntry(grid_d, placeholder_text="ej: GIDSE / Semillero de IA")
+        self.entry_ngrupo.insert(0, str(getattr(self.profesor, "grupoInvestigacion", "") or ""))
+        self.entry_ngrupo.grid(row=11, column=1, sticky="ew", padx=5, pady=(2, 8))
+
         self.lbl_error = ctk.CTkLabel(scroll, text="", text_color="#EF4444", font=ctk.CTkFont(size=12, weight="bold"))
         self.lbl_error.pack(pady=(4, 2))
 
@@ -343,6 +359,12 @@ class DialogEditarProfesor(ctk.CTkToplevel):
         puntos_str = self.entry_puntos.get().strip()
         puntos = Decimal(puntos_str) if puntos_str.replace(".", "", 1).isdigit() else self.profesor.puntosSalariales
 
+        grupo_raw = self.combo_grupo.get()
+        grupo_clean = grupo_raw.split(" ")[0].strip()
+
+        nivel_est = self.combo_nivel.get()
+        nivel_posg = nivel_est if nivel_est in ("ESPECIALIZACION", "MAESTRIA", "DOCTORADO") else None
+
         datos_pr = {
             "idProgramaPrincipal": id_prog,
             "tipoProfesor": tipo_prof,
@@ -350,9 +372,14 @@ class DialogEditarProfesor(ctk.CTkToplevel):
             "dedicacion": dedicacion,
             "numeroHorasSemanales": horas,
             "puntosSalariales": puntos,
-            "maximoNivelEstudio": self.combo_nivel.get(),
+            "maximoNivelEstudio": nivel_est,
+            "nivelPosgradoReconocido": nivel_posg,
             "tituloProfesional": self.entry_tit.get().strip() or None,
             "areaConocimiento": self.entry_area.get().strip() or None,
+            "categoriaGrupoInvestigacion": grupo_clean if grupo_clean != "NINGUNO" else None,
+            "grupoInvestigacion": self.entry_ngrupo.get().strip() if grupo_clean != "NINGUNO" else None,
+            "productividadInvestigativaVigente": True if grupo_clean != "NINGUNO" else False,
+            "certificacionVicerrectoriaInvestigacion": f"CERT-INV-{self.profesor.idProfesor}" if grupo_clean != "NINGUNO" else None,
         }
 
         self.service.actualizar_profesor(self.profesor, self.persona, datos_p, datos_pr)

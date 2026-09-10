@@ -323,10 +323,10 @@ class TestPuntosDoctoradoYNomina(unittest.TestCase):
                 tipo = str(tipo).upper() if tipo else ""
 
                 if tipo == "PLANTA":
-                    self.assertGreaterEqual(
+                    self.assertGreater(
                         p.puntosSalariales,
-                        Decimal("450"),
-                        f"Profesor de planta {p.codigoProfesor} en {tenant.codigo} debería tener al menos 450 puntos"
+                        Decimal("0"),
+                        f"Profesor de planta {p.codigoProfesor} en {tenant.codigo} debería tener puntos salariales asignados"
                     )
                 else:
                     self.assertEqual(

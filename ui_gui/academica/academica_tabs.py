@@ -357,14 +357,17 @@ class AcademicaTabs:
         # Opciones de ofertas disponibles
         oferta_options = []
         for of in controller.ofertas:
-            c = next((cur for cur in controller.cursos if cur.idCurso == of.idCurso), None)
-            nom_c = c.nombre if c else f"Curso #{of.idCurso}"
-            oferta_options.append(f"OFER-{of.idOfertaCurso} | {nom_c} (Gr. {of.grupo}) - Cupo: {of.cupoDisponible}/{of.cupoMaximo}")
+            c = next((cur for cur in controller.cursos if str(getattr(cur, "idCurso", "")) == str(getattr(of, "idCurso", ""))), None)
+            nom_c = getattr(c, "nombre", f"Curso #{of.idCurso}") if c else f"Curso #{of.idCurso}"
+            cod_c = getattr(c, "codigoCurso", "") if c else ""
+            cred_c = getattr(c, "numeroCreditos", 3) if c else 3
+            prefix = f"{cod_c} - " if cod_c else ""
+            oferta_options.append(f"OFER-{of.idOfertaCurso} | {prefix}{nom_c} (Grupo {of.grupo}) - {cred_c} Créditos - Cupo: {of.cupoDisponible}/{of.cupoMaximo}")
         if not oferta_options:
             oferta_options = ["Sin ofertas de curso abiertas"]
 
         ctk.CTkLabel(f_row, text="Oferta / Asignatura:", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").pack(side="left", padx=(12, 5))
-        combo_oferta = ctk.CTkComboBox(f_row, values=oferta_options, width=320)
+        combo_oferta = ctk.CTkComboBox(f_row, values=oferta_options, width=360)
         combo_oferta.pack(side="left", padx=5)
 
         lbl_msg = ctk.CTkLabel(form, text="", font=ctk.CTkFont(size=11, weight="bold"))
@@ -392,8 +395,8 @@ class AcademicaTabs:
 
         # Tabla de Inscripciones
         headers = ["ID Inscripción", "Estudiante", "Asignatura & Grupo", "Créditos", "Estado Curso", "Nota Definitiva", "Acciones"]
-        col_weights = [2, 3, 3, 1, 2, 2, 2]
-        col_mins = [90, 150, 150, 70, 90, 90, 100]
+        col_weights = [2, 3, 4, 2, 2, 2, 2]
+        col_mins = [90, 150, 180, 85, 90, 90, 100]
 
         table = PITAGridTable(container, headers=headers, col_weights=col_weights, col_mins=col_mins)
         table.pack(fill="both", expand=True, padx=5, pady=5)
@@ -403,23 +406,30 @@ class AcademicaTabs:
             return
 
         for det in controller.detalles_matricula:
-            mat = next((m for m in controller.matriculas if m.idMatricula == det.idMatricula), None)
-            est = next((e for e in controller.estudiantes if mat and e.idEstudiante == mat.idEstudiante), None)
-            pers = next((p for p in controller.personas if est and p.idPersona == est.idPersona), None)
+            mat = next((m for m in controller.matriculas if str(getattr(m, "idMatricula", "")) == str(getattr(det, "idMatricula", ""))), None)
+            est = next((e for e in controller.estudiantes if mat and str(getattr(e, "idEstudiante", "")) == str(getattr(mat, "idEstudiante", ""))), None)
+            pers = next((p for p in controller.personas if est and str(getattr(p, "idPersona", "")) == str(getattr(est, "idPersona", ""))), None)
 
-            oferta = next((o for o in controller.ofertas if o.idOfertaCurso == det.idOfertaCurso), None)
-            curso = next((c for c in controller.cursos if oferta and c.idCurso == oferta.idCurso), None)
+            oferta = next((o for o in controller.ofertas if str(getattr(o, "idOfertaCurso", "")) == str(getattr(det, "idOfertaCurso", ""))), None)
+            curso = next((c for c in controller.cursos if oferta and str(getattr(c, "idCurso", "")) == str(getattr(oferta, "idCurso", ""))), None)
             if not curso:
-                curso = next((c for c in controller.cursos if c.idCurso == det.idOfertaCurso), None)
+                curso = next((c for c in controller.cursos if str(getattr(c, "idCurso", "")) == str(getattr(det, "idOfertaCurso", ""))), None)
 
             nom_e = f"{pers.primerNombre} {pers.primerApellido} ({est.codigoEstudiante})" if pers and est else "Estudiante"
-            nom_c = f"{curso.nombre} (Gr. {oferta.grupo if oferta else '01'})" if curso else "Curso"
-            cred_c = f"{curso.numeroCreditos or 3} cr." if curso else "3 cr."
+            cod_c = getattr(curso, "codigoCurso", "") if curso else ""
+            nom_c_base = getattr(curso, "nombre", "Curso") if curso else "Curso"
+            gr = getattr(oferta, "grupo", "01") if oferta else "01"
+            nom_c = f"{cod_c} - {nom_c_base} (Grupo {gr})" if cod_c else f"{nom_c_base} (Grupo {gr})"
+            cred_c = f"{curso.numeroCreditos or 3} Créditos" if curso else "3 Créditos"
 
-            est_c = clean_enum(getattr(det, "estadoCurso", "EN_CURSO"))
+            umbral_curso = float(curso.notaMinimaAprobatoria) if (curso and getattr(curso, "notaMinimaAprobatoria", None) is not None) else 3.0
             nota_f = getattr(det, "notaFinal", None)
             nota_str = f"{float(nota_f):.2f}" if nota_f is not None else "Sin nota"
-            color_nota = "#F87171" if (nota_f is not None and float(nota_f) < 3.0) else ("#34D399" if nota_f is not None else "#94A3B8")
+            color_nota = "#F87171" if (nota_f is not None and float(nota_f) < umbral_curso) else ("#34D399" if nota_f is not None else "#94A3B8")
+
+            est_c = clean_enum(getattr(det, "estadoCurso", "EN_CURSO"))
+            if nota_f is not None and est_c in ("APROBADO", "REPROBADO"):
+                est_c = "APROBADO" if float(nota_f) >= umbral_curso else "REPROBADO"
 
             badge_type = "cancelado" if est_c == "CANCELADO" else ("active" if est_c == "APROBADO" else ("danger" if est_c == "REPROBADO" else "info"))
             badge_tuple = ("badge", est_c.replace("_", " ").title(), badge_type)
@@ -469,22 +479,24 @@ class AcademicaTabs:
         for d in controller.detalles_matricula:
             if clean_enum(getattr(d, "estadoCurso", "")) == "CANCELADO":
                 continue
-            mat = next((m for m in controller.matriculas if m.idMatricula == d.idMatricula), None)
-            est = next((e for e in controller.estudiantes if mat and e.idEstudiante == mat.idEstudiante), None)
-            pers = next((p for p in controller.personas if est and p.idPersona == est.idPersona), None)
+            mat = next((m for m in controller.matriculas if str(getattr(m, "idMatricula", "")) == str(getattr(d, "idMatricula", ""))), None)
+            est = next((e for e in controller.estudiantes if mat and str(getattr(e, "idEstudiante", "")) == str(getattr(mat, "idEstudiante", ""))), None)
+            pers = next((p for p in controller.personas if est and str(getattr(p, "idPersona", "")) == str(getattr(est, "idPersona", ""))), None)
 
-            of = next((o for o in controller.ofertas if o.idOfertaCurso == d.idOfertaCurso), None)
-            c = next((cur for cur in controller.cursos if of and cur.idCurso == of.idCurso), None)
+            of = next((o for o in controller.ofertas if str(getattr(o, "idOfertaCurso", "")) == str(getattr(d, "idOfertaCurso", ""))), None)
+            c = next((cur for cur in controller.cursos if of and str(getattr(cur, "idCurso", "")) == str(getattr(of, "idCurso", ""))), None)
             if not c:
-                c = next((cur for cur in controller.cursos if cur.idCurso == d.idOfertaCurso), None)
+                c = next((cur for cur in controller.cursos if str(getattr(cur, "idCurso", "")) == str(getattr(d, "idOfertaCurso", ""))), None)
 
-            est_cod = est.codigoEstudiante if est else "EST"
-            nom_p = f"{pers.primerNombre} {pers.primerApellido}" if pers else "Estudiante"
-            nom_c = c.nombre if c else "Asignatura"
-            gr = of.grupo if of else "01"
+            est_cod = getattr(est, "codigoEstudiante", "EST") if est else "EST"
+            nom_p = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}".strip() if pers else "Estudiante"
+            cod_c = getattr(c, "codigoCurso", "") if c else ""
+            nom_c = getattr(c, "nombre", "Asignatura") if c else "Asignatura"
+            nom_c_full = f"{cod_c} - {nom_c}" if cod_c else nom_c
+            gr = getattr(of, "grupo", "01") if of else "01"
             nota_actual = f"Nota: {d.notaFinal}" if d.notaFinal is not None else "Sin nota"
 
-            det_options.append(f"INS-{d.idDetalleMatricula} | {est_cod} - {nom_p} — {nom_c} (Gr. {gr}) [{nota_actual}]")
+            det_options.append(f"INS-{d.idDetalleMatricula} | {est_cod} - {nom_p} — {nom_c_full} (Gr. {gr}) [{nota_actual}]")
 
         if not det_options:
             det_options = ["Sin inscripciones activas"]
@@ -525,8 +537,8 @@ class AcademicaTabs:
 
         # Tabla de Calificaciones
         headers_n = ["ID Inscripción", "Estudiante", "Asignatura", "Nota Definitiva", "Estado Calificación", "Impacto EBRA", "Acciones"]
-        col_w_n = [2, 3, 3, 2, 2, 2, 2]
-        col_m_n = [80, 140, 140, 80, 90, 90, 130]
+        col_w_n = [2, 3, 4, 2, 2, 2, 2]
+        col_m_n = [80, 140, 160, 80, 90, 90, 130]
 
         table_n = PITAGridTable(container, headers=headers_n, col_weights=col_w_n, col_mins=col_m_n)
         table_n.pack(fill="both", expand=True, padx=5, pady=5)
@@ -538,31 +550,40 @@ class AcademicaTabs:
         for det in controller.detalles_matricula:
             if clean_enum(getattr(det, "estadoCurso", "")) == "CANCELADO":
                 continue
-            mat = next((m for m in controller.matriculas if m.idMatricula == det.idMatricula), None)
-            est = next((e for e in controller.estudiantes if mat and e.idEstudiante == mat.idEstudiante), None)
-            pers = next((p for p in controller.personas if est and p.idPersona == est.idPersona), None)
+            mat = next((m for m in controller.matriculas if str(getattr(m, "idMatricula", "")) == str(getattr(det, "idMatricula", ""))), None)
+            est = next((e for e in controller.estudiantes if mat and str(getattr(e, "idEstudiante", "")) == str(getattr(mat, "idEstudiante", ""))), None)
+            pers = next((p for p in controller.personas if est and str(getattr(p, "idPersona", "")) == str(getattr(est, "idPersona", ""))), None)
 
-            oferta = next((o for o in controller.ofertas if o.idOfertaCurso == det.idOfertaCurso), None)
-            curso = next((c for c in controller.cursos if oferta and c.idCurso == oferta.idCurso), None)
+            oferta = next((o for o in controller.ofertas if str(getattr(o, "idOfertaCurso", "")) == str(getattr(det, "idOfertaCurso", ""))), None)
+            curso = next((c for c in controller.cursos if oferta and str(getattr(c, "idCurso", "")) == str(getattr(oferta, "idCurso", ""))), None)
             if not curso:
-                curso = next((c for c in controller.cursos if c.idCurso == det.idOfertaCurso), None)
+                curso = next((c for c in controller.cursos if str(getattr(c, "idCurso", "")) == str(getattr(det, "idOfertaCurso", ""))), None)
 
             nom_e = f"{pers.primerNombre} {pers.primerApellido}" if pers else "Estudiante"
-            nom_c = curso.nombre if curso else "Curso"
+            cod_c = getattr(curso, "codigoCurso", "") if curso else ""
+            nom_c_base = getattr(curso, "nombre", "Curso") if curso else "Curso"
+            gr = getattr(oferta, "grupo", "01") if oferta else "01"
+            nom_c = f"{cod_c} - {nom_c_base} (Grupo {gr})" if cod_c else f"{nom_c_base} (Grupo {gr})"
 
+            umbral_curso = float(curso.notaMinimaAprobatoria) if (curso and getattr(curso, "notaMinimaAprobatoria", None) is not None) else 3.0
             nota_f = getattr(det, "notaFinal", None)
             nota_str = f"{float(nota_f):.2f}" if nota_f is not None else "Sin calificar"
-            color_nota = "#F87171" if (nota_f is not None and float(nota_f) < 3.0) else ("#34D399" if nota_f is not None else "#94A3B8")
+            color_nota = "#F87171" if (nota_f is not None and float(nota_f) < umbral_curso) else ("#34D399" if nota_f is not None else "#94A3B8")
 
             est_c = clean_enum(getattr(det, "estadoCurso", "EN_CURSO"))
+            if nota_f is not None and est_c in ("APROBADO", "REPROBADO"):
+                est_c = "APROBADO" if float(nota_f) >= umbral_curso else "REPROBADO"
+
             badge_type = "active" if est_c == "APROBADO" else ("danger" if est_c == "REPROBADO" else "info")
             badge_tuple = ("badge", est_c.replace("_", " ").title(), badge_type)
 
             prom_est = float(getattr(est, "promedioAcumulado", 0.0) or 0.0) if est else 0.0
-            if prom_est < 3.0 and prom_est > 0:
-                ebra_badge = ("badge", f"⚠️ EBRA ({prom_est:.2f})", "ebra")
+            if prom_est > 0.0 and prom_est < 3.0:
+                ebra_badge = ("badge", f"⚠️ Riesgo EBRA ({prom_est:.2f})", "ebra")
+            elif prom_est >= 3.0:
+                ebra_badge = ("badge", f"Normal ({prom_est:.2f})", "active")
             else:
-                ebra_badge = ("badge", f"● Normal ({prom_est:.2f})", "active")
+                ebra_badge = ("badge", "Pendiente", "info")
 
             actions_list = [
                 ("✏️ Editar Nota", lambda d=det: on_editar_nota(d)),
@@ -581,7 +602,7 @@ class AcademicaTabs:
                 ebra_badge,
                 act_spec,
             ]
-            table_n.add_row_items(cells, is_highlighted=(nota_f is not None and float(nota_f) < 3.0))
+            table_n.add_row_items(cells, is_highlighted=(nota_f is not None and float(nota_f) < umbral_curso))
 
     @staticmethod
     def render_tab_ebra(
@@ -618,7 +639,7 @@ class AcademicaTabs:
 
         def _ejecutar_deteccion():
             periodo = controller.periodos_academicos[0] if controller.periodos_academicos else None
-            id_per = periodo.idPeriodoAcademico if periodo else 1
+            id_per = getattr(periodo, "idPeriodo", 1) if periodo else 1
             alertas = controller.gestor_matriculas.evaluar_alertas_periodo(id_per)
             controller.guardar_datos()
             messagebox.showinfo(

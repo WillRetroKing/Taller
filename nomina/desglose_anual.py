@@ -12,7 +12,15 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from dominio.modelo_datos import Contrato, LiquidacionNomina, Persona, Profesor
+    from dominio.modelo_datos import (
+        Contrato,
+        Facultad,
+        LiquidacionNomina,
+        Persona,
+        Profesor,
+        ProgramaAcademico,
+        Universidad,
+    )
     from nomina.gestor_nomina import GestorNomina
 
 
@@ -40,6 +48,9 @@ class DesgloseNominaAnual:
     """Consolidado completo de nómina anual para un empleado o contrato."""
     id_contrato: int
     id_persona: int | None = None
+    id_universidad: int | None = None
+    nombre_universidad: str = ""
+    nit_universidad: str = ""
     nombre_completo: str = ""
     identificacion: str = ""
     tipo_personal: str = ""  # PLANTA, OCASIONAL, CATEDRATICO, ADMINISTRATIVO
@@ -97,8 +108,29 @@ class DesgloseNominaAnual:
 class CalculadorDesgloseAnual:
     """Servicio de cálculo y consolidación de nómina anual."""
 
-    def __init__(self, gestor: GestorNomina) -> None:
+    def __init__(
+        self,
+        gestor: GestorNomina,
+        universidades: list[Universidad] | None = None,
+        facultades: list[Facultad] | None = None,
+        programas: list[ProgramaAcademico] | None = None,
+    ) -> None:
         self.gestor = gestor
+        self.universidades: list[Universidad] = (
+            universidades
+            if universidades is not None
+            else getattr(gestor, "universidades", [])
+        )
+        self.facultades: list[Facultad] = (
+            facultades
+            if facultades is not None
+            else getattr(gestor, "facultades", [])
+        )
+        self.programas: list[ProgramaAcademico] = (
+            programas
+            if programas is not None
+            else getattr(gestor, "programas", [])
+        )
 
     def generar_desglose_por_contrato(
         self,
@@ -157,11 +189,12 @@ class CalculadorDesgloseAnual:
         dias_anio = meses_vigencia * 30
 
         # Buscar liquidaciones existentes para este contrato
-        liqs_existentes = [l for l in self.gestor.liquidaciones if l.idContrato == id_contrato]
+        # Buscar liquidaciones existentes para este contrato (ignorar simuladas)
+        liqs_existentes = [l for l in self.gestor.liquidaciones if l.idContrato == id_contrato and getattr(l, "idPeriodoNomina", None) != 9999]
 
         # Si no hay liquidaciones, realizamos una liquidación mensual simulada
         if not liqs_existentes:
-            periodo_ref = next((p for p in self.gestor.periodos_nomina if not contrato.fechaInicio or not p.fechaFin or contrato.fechaInicio <= p.fechaFin), None)
+            periodo_ref = next((p for p in self.gestor.periodos_nomina if (not contrato.fechaInicio or not p.fechaFin or contrato.fechaInicio <= p.fechaFin) and getattr(p, "idPeriodoNomina", None) != 9999), None)
             temp_agregado = False
             if periodo_ref is None:
                 from calendar import monthrange
@@ -187,6 +220,7 @@ class CalculadorDesgloseAnual:
                 temp_agregado = True
 
             id_per = periodo_ref.idPeriodoNomina
+            liq_base = None
             try:
                 if es_adm or "ADMINISTRATIVO" in tipo_personal:
                     liq_base = self.gestor.liquidarAdministrativo(id_contrato, id_per)
@@ -199,15 +233,33 @@ class CalculadorDesgloseAnual:
             finally:
                 if temp_agregado and periodo_ref in self.gestor.periodos_nomina:
                     self.gestor.periodos_nomina.remove(periodo_ref)
+                # Limpiar cualquier liquidación simulada para no contaminar el sistema ni la persistencia
+                if liq_base is not None:
+                    if liq_base in self.gestor.liquidaciones:
+                        self.gestor.liquidaciones.remove(liq_base)
+                    l_id = getattr(liq_base, "idLiquidacion", None)
+                    if l_id is not None:
+                        self.gestor.detalles_liquidacion = [
+                            d for d in self.gestor.detalles_liquidacion
+                            if getattr(d, "idLiquidacion", None) != l_id
+                        ]
         else:
             liq_base = liqs_existentes[0]
 
         # Factores multiplicadores
         meses_mult = Decimal(str(meses_vigencia))
 
+        univ = self._resolver_universidad_contrato(contrato)
+        id_u = univ.idUniversidad if univ else getattr(contrato, "idUniversidad", None)
+        nom_u = univ.nombre if univ else "Universidad No Especificada"
+        nit_u = univ.nit if univ else ""
+
         desglose = DesgloseNominaAnual(
             id_contrato=id_contrato,
             id_persona=contrato.idPersona,
+            id_universidad=id_u,
+            nombre_universidad=nom_u,
+            nit_universidad=nit_u,
             nombre_completo=nombre,
             identificacion=identificacion,
             tipo_personal=tipo_personal,
@@ -495,13 +547,17 @@ class CalculadorDesgloseAnual:
             valor_anual_consolidado=d.pension_patronal_anual,
             observaciones="Aporte UPC fondo pensional",
         ))
+        univ = self._obtener_universidad(d.id_universidad)
+        arl_nombre = univ.arl if univ and univ.arl else "ARL Positiva"
+        caja_nombre = univ.cajaCompensacion if univ and univ.cajaCompensacion else "Caja de Compensación Familiar"
+
         items.append(ItemDesgloseAnual(
             concepto="Riesgos Laborales (ARL)",
             categoria="APORTE_PATRONAL",
             porcentaje_o_factor="0.522% (Clase I)",
             valor_mensual_promedio=redondear(liq.aporteRiesgosLaborales),
             valor_anual_consolidado=d.arl_patronal_anual,
-            observaciones="Cobertura ARL Positiva",
+            observaciones=f"Cobertura {arl_nombre}",
         ))
         items.append(ItemDesgloseAnual(
             concepto="Caja de Compensación Familiar",
@@ -509,16 +565,21 @@ class CalculadorDesgloseAnual:
             porcentaje_o_factor="4.00%",
             valor_mensual_promedio=redondear(liq.aporteCajaCompensacion),
             valor_anual_consolidado=d.caja_compensacion_anual,
-            observaciones="Comfacesar / Caja de compensación",
+            observaciones=f"{caja_nombre}",
         ))
 
         return items
 
-    def generar_desglose_institucional(self, anio: int = 2026) -> dict[str, Any]:
+    def generar_desglose_institucional(self, anio: int = 2026, id_universidad: int | None = None) -> dict[str, Any]:
         """Calcula el consolidado anual de toda la universidad para todos los contratos vigentes."""
         desgloses: list[DesgloseNominaAnual] = []
         for contrato in self.gestor.contratos:
             if getattr(contrato, "estado", "ACTIVO") == "ACTIVO":
+                if id_universidad is not None:
+                    u_c = self._resolver_universidad_contrato(contrato)
+                    id_c_univ = u_c.idUniversidad if u_c else getattr(contrato, "idUniversidad", None)
+                    if id_c_univ != id_universidad:
+                        continue
                 d = self.generar_desglose_por_contrato(contrato.idContrato, anio=anio)
                 desgloses.append(d)
 
@@ -530,10 +591,39 @@ class CalculadorDesgloseAnual:
         tot_aport = sum((d.total_aportes_patronales_anual for d in desgloses), Decimal("0"))
         tot_costo = sum((d.costo_total_empleador_anual for d in desgloses), Decimal("0"))
 
+        univ = self._obtener_universidad(id_universidad) if id_universidad else None
+        nombre_inst = univ.nombre if univ else "TODAS LAS UNIVERSIDADES (SISTEMA INTEGRADO)"
+        nit_inst = univ.nit if univ else ""
+
+        # Agrupación por universidad si es consolidado general
+        por_universidad: dict[int | None, dict[str, Any]] = {}
+        if id_universidad is None:
+            for d in desgloses:
+                key = d.id_universidad
+                if key not in por_universidad:
+                    por_universidad[key] = {
+                        "id_universidad": key,
+                        "nombre": d.nombre_universidad,
+                        "total_contratos": 0,
+                        "costo_total": Decimal("0.00"),
+                        "devengado": Decimal("0.00"),
+                        "prestaciones": Decimal("0.00"),
+                        "aportes": Decimal("0.00"),
+                    }
+                por_universidad[key]["total_contratos"] += 1
+                por_universidad[key]["costo_total"] += d.costo_total_empleador_anual
+                por_universidad[key]["devengado"] += d.total_devengado_anual
+                por_universidad[key]["prestaciones"] += d.total_prestaciones_anuales
+                por_universidad[key]["aportes"] += d.total_aportes_patronales_anual
+
         return {
             "anio": anio,
+            "id_universidad": id_universidad,
+            "nombre_institucion": nombre_inst,
+            "nit_institucion": nit_inst,
             "total_contratos": len(desgloses),
             "desgloses_individuales": desgloses,
+            "por_universidad": por_universidad,
             "total_devengado_anual": redondear(tot_dev),
             "total_descuentos_anual": redondear(tot_desc),
             "total_neto_anual": redondear(tot_neto),
@@ -542,14 +632,16 @@ class CalculadorDesgloseAnual:
             "costo_total_institucional_anual": redondear(tot_costo),
         }
 
-    def generar_reporte_texto(self, anio: int = 2026) -> str:
+    def generar_reporte_texto(self, anio: int = 2026, id_universidad: int | None = None) -> str:
         """Construye un reporte en formato texto / Markdown presentable."""
-        institucional = self.generar_desglose_institucional(anio=anio)
+        institucional = self.generar_desglose_institucional(anio=anio, id_universidad=id_universidad)
         lineas: list[str] = []
 
+        titulo_inst = institucional["nombre_institucion"].upper()
         lineas.append("=" * 88)
-        lineas.append(f" UNIVERSIDAD POPULAR DEL CESAR (UPC) — CONSOLIDADO DE NÓMINA ANUAL {anio}")
-        lineas.append(" Subsistema PITA de Gestión Académica y Nómina Docente (Decreto 1279 / CST)")
+        lineas.append(f" {titulo_inst} — CONSOLIDADO DE NÓMINA ANUAL {anio}")
+        subt = f"NIT: {institucional['nit_institucion']} • " if institucional["nit_institucion"] else ""
+        lineas.append(f" {subt}Subsistema PITA de Gestión Académica y Nómina Docente (Dec. 1279 / CST)")
         lineas.append("=" * 88)
         lineas.append("")
         lineas.append(f"Total Contratos Analizados: {institucional['total_contratos']}")
@@ -561,10 +653,21 @@ class CalculadorDesgloseAnual:
         lineas.append(f"  -> Total Aportes Patronales/Paraf: $ {institucional['total_aportes_patronales_anual']:,.2f} COP")
         lineas.append("")
 
+        if institucional.get("por_universidad") and len(institucional["por_universidad"]) > 1:
+            lineas.append("RESUMEN COMPARATIVO POR UNIVERSIDAD:")
+            lineas.append("-" * 88)
+            lineas.append(f"{'INSTITUCIÓN':<45} | {'CONTRATOS':<10} | {'PRESUPUESTO TOTAL':>25}")
+            lineas.append("-" * 88)
+            for _, u_info in institucional["por_universidad"].items():
+                lineas.append(f"{u_info['nombre'][:44]:<45} | {u_info['total_contratos']:<10} | ${u_info['costo_total']:>24,.2f}")
+            lineas.append("-" * 88)
+            lineas.append("")
+
         for d in institucional["desgloses_individuales"]:
             lineas.append("-" * 88)
-            lineas.append(f"DOCENTE: {d.nombre_completo} (ID Contrato: #{d.id_contrato} | CC: {d.identificacion})")
-            lineas.append(f"Régimen: {d.regimen} | Categoría: {d.tipo_personal} | Meses: {d.meses_considerados} ({d.dias_trabajados_anio} días)")
+            lineas.append(f"EMPLEADO: {d.nombre_completo} (ID Contrato: #{d.id_contrato} | CC: {d.identificacion})")
+            lineas.append(f"Institución: {d.nombre_universidad} | Régimen: {d.regimen} | Categoría: {d.tipo_personal}")
+            lineas.append(f"Meses laborados: {d.meses_considerados} ({d.dias_trabajados_anio} días)")
             lineas.append("-" * 88)
             lineas.append(f"{'CONCEPTO':<36} | {'FACTOR / %':<16} | {'VALOR MENSUAL':>14} | {'TOTAL ANUAL':>14}")
             lineas.append("-" * 88)
@@ -581,6 +684,34 @@ class CalculadorDesgloseAnual:
 
         return "\n".join(lineas)
 
+    def _obtener_universidad(self, id_universidad: int | None) -> Universidad | None:
+        if id_universidad is None:
+            return None
+        return next((u for u in self.universidades if u.idUniversidad == id_universidad), None)
+
+    def _resolver_universidad_contrato(self, contrato: Contrato) -> Universidad | None:
+        """Determina la universidad asociada al contrato por enlace directo o jerarquía académica."""
+        # 1. Enlace directo si está asignado
+        id_u = getattr(contrato, "idUniversidad", None)
+        if id_u is not None:
+            u = self._obtener_universidad(id_u)
+            if u:
+                return u
+        # 2. Enlace vía Profesor -> Programa -> Facultad -> Universidad
+        prof = self._obtener_profesor(contrato.idPersona)
+        if prof and prof.idProgramaPrincipal and self.programas and self.facultades:
+            prog = next((pr for pr in self.programas if pr.idPrograma == prof.idProgramaPrincipal), None)
+            if prog and prog.idFacultad:
+                fac = next((f for f in self.facultades if f.idFacultad == prog.idFacultad), None)
+                if fac and fac.idUniversidad:
+                    u = self._obtener_universidad(fac.idUniversidad)
+                    if u:
+                        return u
+        # 3. Fallback: primera universidad disponible
+        if self.universidades:
+            return self.universidades[0]
+        return None
+
     def _obtener_profesor(self, id_persona: int | None) -> Profesor | None:
         if id_persona is None:
             return None
@@ -589,7 +720,6 @@ class CalculadorDesgloseAnual:
     def _obtener_persona(self, id_persona: int | None) -> Persona | None:
         if id_persona is None:
             return None
-        # Buscar en gestor_personas o atributos si están disponibles
         if hasattr(self.gestor, "personas") and self.gestor.personas:
             return next((p for p in self.gestor.personas if p.idPersona == id_persona), None)
         return None

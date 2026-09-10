@@ -196,7 +196,15 @@ class AcademicaService:
             return False
 
         det.notaFinal = nota
-        det.estadoCurso = EstadoCurso.APROBADO if nota >= Decimal("3.0") else EstadoCurso.REPROBADO
+
+        # Umbral dinámico de aprobación según configuración del curso (o 3.0 por defecto)
+        oferta = next((o for o in self.controller.ofertas if str(getattr(o, "idOfertaCurso", "")) == str(getattr(det, "idOfertaCurso", ""))), None)
+        curso = next((c for c in self.controller.cursos if oferta and str(getattr(c, "idCurso", "")) == str(getattr(oferta, "idCurso", ""))), None)
+        if not curso:
+            curso = next((c for c in self.controller.cursos if str(getattr(c, "idCurso", "")) == str(getattr(det, "idOfertaCurso", ""))), None)
+
+        umbral_min = Decimal(str(curso.notaMinimaAprobatoria)) if (curso and getattr(curso, "notaMinimaAprobatoria", None) is not None) else Decimal("3.0")
+        det.estadoCurso = EstadoCurso.APROBADO if nota >= umbral_min else EstadoCurso.REPROBADO
 
         mat = next((m for m in self.controller.matriculas if m.idMatricula == det.idMatricula), None)
         if mat and mat.idEstudiante:
@@ -290,12 +298,14 @@ class AcademicaService:
         self.controller.ofertas.append(oferta)
 
         if id_profesor:
-            new_id_asig = max((a.idAsignacionDocente or 0 for a in self.controller.asignaciones), default=0) + 1
+            new_id_asig = max((getattr(a, "idAsignacion", 0) or 0 for a in self.controller.asignaciones), default=0) + 1
             asig = AsignacionDocente(
-                idAsignacionDocente=new_id_asig,
+                idAsignacion=new_id_asig,
                 idProfesor=id_profesor,
                 idOfertaCurso=new_id_of,
-                horasSemanales=4,
+                rolDocente="TITULAR",
+                numeroHoras=Decimal("4"),
+                porcentajeResponsabilidad=Decimal("100"),
                 fechaAsignacion=date.today(),
                 estado="ACTIVO",
             )

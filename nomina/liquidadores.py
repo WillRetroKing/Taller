@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import TYPE_CHECKING, Any
 
 from dominio.modelo_datos import (
@@ -69,22 +69,46 @@ class MotorLiquidacionBase:
         descuento_pension = calc_ded.calcular_descuento_pension(ibc, fecha_param, codigos_utilizados)
         fondo_solidaridad = calc_ded.calcular_fondo_solidaridad(ibc, salario_minimo, fecha_param, codigos_utilizados)
         retencion = calc_ded.calcular_retencion_fuente(ibc, fecha_param, codigos_utilizados=codigos_utilizados)
-        descuento_estampilla = (
-            calc_ded.calcular_descuento_estampilla(salario_base, fecha_param, codigos_utilizados)
-            if calc_ded.obtener_parametro_decimal("PORCENTAJE_ESTAMPILLA", fecha_param) is not None
-            else self.CERO
-        )
+        aplica_estampilla = getattr(contrato, "aplicaDescuentoEstampilla", None)
+        if aplica_estampilla is False:
+            descuento_estampilla = self.CERO
+        else:
+            descuento_estampilla = (
+                calc_ded.calcular_descuento_estampilla(salario_base, fecha_param, codigos_utilizados)
+                if calc_ded.obtener_parametro_decimal("PORCENTAJE_ESTAMPILLA", fecha_param) is not None
+                else self.CERO
+            )
 
-        # En universidades públicas (UPC), los docentes de planta (servidores públicos bajo Dec. 1279)
-        # no están exonerados de salud patronal (Art. 114-1 Par. 2 E.T.), aportando el 8.5%.
-        # Para otras modalidades aplica la exoneración tributaria de la Ley 1819 si IBC < 10 SMMLV.
-        es_exonerado_salud = (tipo != TipoProfesor.PLANTA)
-        aporte_salud = calc_ded.calcular_aporte_salud_patronal(ibc, salario_minimo, fecha_param, codigos_utilizados, exonerado=es_exonerado_salud)
+        # Regla de Exoneración Ley 1819 de 2016 configurable por parámetro o entidad Universidad
+        aplica_exoneracion = True
+        param_exon = None
+        try:
+            param_exon = calc_ded.obtener_parametro_texto("APLICA_EXONERACION_LEY_1819", fecha_param)
+        except Exception:
+            pass
+        if param_exon is None:
+            try:
+                param_exon = calc_ded.obtener_parametro_vigente("APLICA_EXONERACION_LEY_1819", fecha_param)
+            except Exception:
+                pass
+
+        if param_exon is not None:
+            aplica_exoneracion = str(param_exon).strip().upper() in ("SI", "TRUE", "1", "S")
+        elif hasattr(self.gestor, "universidad") and self.gestor.universidad:
+            aplica_exoneracion = bool(getattr(self.gestor.universidad, "aplicaExoneracionLey1819", True))
+
+        if aplica_exoneracion and ibc < self.DIEZ * salario_minimo:
+            aporte_salud = self.CERO
+            aporte_sena = self.CERO
+            aporte_icbf = self.CERO
+        else:
+            aporte_salud = calc_ded.calcular_aporte_salud_patronal(ibc, salario_minimo, fecha_param, codigos_utilizados, exonerado=False)
+            aporte_sena = calc_ded.calcular_aporte_sena(ibc, salario_minimo, fecha_param, codigos_utilizados)
+            aporte_icbf = calc_ded.calcular_aporte_icbf(ibc, salario_minimo, fecha_param, codigos_utilizados)
+
         aporte_pension = calc_ded.calcular_aporte_pension_patronal(ibc, fecha_param, codigos_utilizados)
         aporte_arl = calc_ded.calcular_aporte_arl(ibc, contrato.claseARL, fecha_param, codigos_utilizados)
         aporte_caja = calc_ded.calcular_aporte_caja(ibc, fecha_param, codigos_utilizados)
-        aporte_sena = calc_ded.calcular_aporte_sena(ibc, salario_minimo, fecha_param, codigos_utilizados)
-        aporte_icbf = calc_ded.calcular_aporte_icbf(ibc, salario_minimo, fecha_param, codigos_utilizados)
 
         dias = self.gestor._decimal(periodo.diasBaseLiquidacion or 30, "días base de liquidación")
         regimen_especial = (tipo == TipoProfesor.PLANTA) and (
@@ -98,6 +122,10 @@ class MotorLiquidacionBase:
         total_prestaciones = sum(provisiones.values(), self.CERO)
         neto = total_devengado - total_descuentos
 
+        dev_red = self.gestor._redondear(total_devengado)
+        neto_red = self.gestor._redondear(neto)
+        desc_red = dev_red - neto_red
+
         liquidacion = LiquidacionNomina(
             idLiquidacion=self.gestor._siguiente_id(),
             idProfesor=profesor.idProfesor,
@@ -105,15 +133,15 @@ class MotorLiquidacionBase:
             idPeriodoNomina=periodo.idPeriodoNomina,
             fechaLiquidacion=fecha_liquidacion or date.today(),
             salarioBase=salario_base,
-            totalDevengado=self.gestor._redondear(total_devengado),
-            totalDescuentos=self.gestor._redondear(total_descuentos),
+            totalDevengado=dev_red,
+            totalDescuentos=desc_red,
             totalPrestaciones=self.gestor._redondear(total_prestaciones),
             baseLiquidacionPrestaciones=self.gestor._redondear(base_prestacional),
             baseCotizacionSeguridadSocial=self.gestor._redondear(ibc),
             valorAuxilioTransporteCotizado=self.gestor._redondear(auxilio),
             aportePatronalSENA=self.gestor._redondear(aporte_sena),
             aportePatronalICBF=self.gestor._redondear(aporte_icbf),
-            netoPagar=self.gestor._redondear(neto),
+            netoPagar=neto_red,
             estado="PROCESADA",
             tipoProfesorLiquidado=tipo,
             regimenLiquidado=contrato.regimenAplicable,
@@ -228,14 +256,38 @@ class LiquidadorOcasional(MotorLiquidacionBase):
         self.gestor._validar_contrato(contrato, TipoProfesor.OCASIONAL, periodo)
 
         salario_minimo = self.gestor._salario_minimo(contrato, periodo)
-        factor = contrato.factorSalarialSMMLV
-        if factor is None or factor == self.CERO:
-            if contrato.salarioBase and salario_minimo > self.CERO:
-                factor = (self.gestor._decimal(contrato.salarioBase, "salario base") / salario_minimo).quantize(Decimal("0.01"))
-            else:
-                factor = Decimal("2.5")
+        cat_prof = str(getattr(profesor.categoriaDocente, "value", profesor.categoriaDocente or "") or getattr(profesor.categoriaReconocida, "value", profesor.categoriaReconocida or "") or "").upper()
+        ded_contra = str(getattr(contrato.dedicacion, "value", contrato.dedicacion or "") or getattr(contrato.tipoDedicacion, "value", contrato.tipoDedicacion or "") or getattr(profesor.dedicacion, "value", profesor.dedicacion or "") or "").upper()
+
+        # Determinar factor por categoría y dedicación (CU-21)
+        factor_categoria: Decimal | None = None
+        if "TITULAR" in cat_prof:
+            factor_categoria = Decimal("3.918")
+        elif "ASOCIADO" in cat_prof:
+            factor_categoria = Decimal("3.606")
+        elif "ASISTENTE" in cat_prof:
+            factor_categoria = Decimal("3.125")
+        elif "AUXILIAR" in cat_prof:
+            factor_categoria = Decimal("2.645")
+
+        if factor_categoria is not None and "MEDIO" in ded_contra:
+            factor_categoria = factor_categoria / Decimal("2")
+
+        # Si el profesor tiene categoría registrada, aplicar el factor de la tabla estatutaria (CU-21)
+        if factor_categoria is not None:
+            factor = factor_categoria
+        elif contrato.factorSalarialSMMLV is not None and contrato.factorSalarialSMMLV > self.CERO:
+            factor = contrato.factorSalarialSMMLV
+        else:
+            factor = Decimal("2.645") if "MEDIO" not in ded_contra else Decimal("1.3225")
+
         factor = self.gestor._decimal(factor, "factor salarial del contrato")
-        salario_base = contrato.salarioBase or (salario_minimo * factor)
+
+        # CU-21: Si el contrato tiene salario base explícito pactado, respetarlo; si no, calcular SALARIO_MINIMO * factor
+        if contrato.salarioBase is not None and contrato.salarioBase > self.CERO:
+            salario_base = self.gestor._decimal(contrato.salarioBase, "salario base")
+        else:
+            salario_base = self.gestor._redondear(salario_minimo * factor)
         horas_no_cumplidas = self.gestor._decimal(
             (contrato.horasIncumplidas if horas_incumplidas is None else horas_incumplidas) or self.CERO,
             "horas incumplidas",
@@ -420,13 +472,36 @@ class LiquidadorAdministrativo(MotorLiquidacionBase):
         fondo_solidaridad = calc_ded.calcular_fondo_solidaridad(ibc, salario_minimo, fecha_param, codigos_utilizados)
         retencion = calc_ded.calcular_retencion_fuente(ibc, fecha_param, codigos_utilizados=codigos_utilizados)
 
-        # Aportes patronales CST / Ley 100
-        aporte_salud = calc_ded.calcular_aporte_salud_patronal(ibc, salario_minimo, fecha_param, codigos_utilizados, exonerado=True)
+        # Aportes patronales CST / Ley 100 con bandera de exoneración
+        aplica_exoneracion = True
+        param_exon = None
+        try:
+            param_exon = calc_ded.obtener_parametro_texto("APLICA_EXONERACION_LEY_1819", fecha_param)
+        except Exception:
+            pass
+        if param_exon is None:
+            try:
+                param_exon = calc_ded.obtener_parametro_vigente("APLICA_EXONERACION_LEY_1819", fecha_param)
+            except Exception:
+                pass
+
+        if param_exon is not None:
+            aplica_exoneracion = str(param_exon).strip().upper() in ("SI", "TRUE", "1", "S")
+        elif hasattr(self.gestor, "universidad") and self.gestor.universidad:
+            aplica_exoneracion = bool(getattr(self.gestor.universidad, "aplicaExoneracionLey1819", True))
+
+        if aplica_exoneracion and ibc < self.DIEZ * salario_minimo:
+            aporte_salud = self.CERO
+            aporte_sena = self.CERO
+            aporte_icbf = self.CERO
+        else:
+            aporte_salud = calc_ded.calcular_aporte_salud_patronal(ibc, salario_minimo, fecha_param, codigos_utilizados, exonerado=False)
+            aporte_sena = calc_ded.calcular_aporte_sena(ibc, salario_minimo, fecha_param, codigos_utilizados)
+            aporte_icbf = calc_ded.calcular_aporte_icbf(ibc, salario_minimo, fecha_param, codigos_utilizados)
+
         aporte_pension = calc_ded.calcular_aporte_pension_patronal(ibc, fecha_param, codigos_utilizados)
         aporte_arl = calc_ded.calcular_aporte_arl(ibc, contrato.claseARL or "RIESGO_I", fecha_param, codigos_utilizados)
         aporte_caja = calc_ded.calcular_aporte_caja(ibc, fecha_param, codigos_utilizados)
-        aporte_sena = calc_ded.calcular_aporte_sena(ibc, salario_minimo, fecha_param, codigos_utilizados)
-        aporte_icbf = calc_ded.calcular_aporte_icbf(ibc, salario_minimo, fecha_param, codigos_utilizados)
 
         dias = self.gestor._decimal(periodo.diasBaseLiquidacion or 30, "días base de liquidación")
         provisiones = self.gestor.calc_prestaciones.calcular_provisiones(base_prestacional, ibc, dias, regimen_especial=False)
@@ -435,6 +510,10 @@ class LiquidadorAdministrativo(MotorLiquidacionBase):
         total_devengado = salario_ordinario + auxilio
         total_prestaciones = sum(provisiones.values(), self.CERO)
         neto = total_devengado - total_descuentos
+
+        dev_red = self.gestor._redondear(total_devengado)
+        neto_red = self.gestor._redondear(neto)
+        desc_red = dev_red - neto_red
 
         cargo = (administrativo.cargo if administrativo and administrativo.cargo else "ADMINISTRATIVO")
 
@@ -445,15 +524,15 @@ class LiquidadorAdministrativo(MotorLiquidacionBase):
             idPeriodoNomina=periodo.idPeriodoNomina,
             fechaLiquidacion=fecha_liquidacion or date.today(),
             salarioBase=salario_base,
-            totalDevengado=self.gestor._redondear(total_devengado),
-            totalDescuentos=self.gestor._redondear(total_descuentos),
+            totalDevengado=dev_red,
+            totalDescuentos=desc_red,
             totalPrestaciones=self.gestor._redondear(total_prestaciones),
             baseLiquidacionPrestaciones=self.gestor._redondear(base_prestacional),
             baseCotizacionSeguridadSocial=self.gestor._redondear(ibc),
             valorAuxilioTransporteCotizado=self.gestor._redondear(auxilio),
             aportePatronalSENA=self.gestor._redondear(aporte_sena),
             aportePatronalICBF=self.gestor._redondear(aporte_icbf),
-            netoPagar=self.gestor._redondear(neto),
+            netoPagar=neto_red,
             estado="PROCESADA",
             tipoProfesorLiquidado=None,
             regimenLiquidado=contrato.regimenAplicable or "LEY_100_CST",

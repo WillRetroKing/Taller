@@ -1,1 +1,1 @@
-1|1|1|EBRA|Promedio acumulado menor a 3.0|2.7|3.0|2026-02-01|0|Notificado a Bienestar|ACTIVO
+1|2|1|EBRA|El promedio acumulado está por debajo del mínimo institucional|2.65|3.0|2026-09-09|0||ACTIVO

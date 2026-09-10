@@ -1,1 +1,1 @@
-1|7|ADM-001|Director Admisiones|Vicerrectoría Académica|PROFESIONAL|LIBRE_NOMBRAMIENTO|2012-05-01|3800000|ACTIVO
+1|5|ADM-2026-01|Secretaria Academica FIT|Facultad de Ingenierias y Tecnologicas|PROFESIONAL|PLANTA|2026-09-09|3200000|ACTIVO

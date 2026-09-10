@@ -18,7 +18,7 @@ class CalculadoraPrestaciones:
     DOS = Decimal("2")
     DIAS_ANIO = Decimal("360")
 
-    def __init__(self, calculadora_deducciones: CalculadoraDeducciones) -> None:
+    def __init__(self, calculadora_deducciones: CalculadoraDeducciones | None = None) -> None:
         self.calc_ded = calculadora_deducciones
 
     @staticmethod
@@ -33,8 +33,14 @@ class CalculadoraPrestaciones:
         fecha: date | None = None,
         codigos_utilizados: dict[str, str] | None = None,
     ) -> Decimal:
-        if contrato.aplicaAuxilioTransporte and salario <= self.DOS * smmlv:
-            valor = self.calc_ded.obtener_parametro_decimal("VALOR_AUXILIO_TRANSPORTE_VIGENTE", fecha)
+        dedicacion = str(getattr(contrato, "dedicacion", "") or "").upper()
+        # Docentes de hora cátedra no devengan auxilio legal mensual salvo pacto
+        if "CATEDRA" in dedicacion and not getattr(contrato, "aplicaAuxilioTransporte", False):
+            return self.CERO
+
+        # Por mandato legal (Ley 15/1959), si devenga hasta 2 SMMLV aplica auxilio de transporte
+        if salario <= self.DOS * smmlv:
+            valor = self.calc_ded.obtener_parametro_decimal("VALOR_AUXILIO_TRANSPORTE_VIGENTE", fecha) if self.calc_ded else None
             if codigos_utilizados is not None:
                 codigos_utilizados["VALOR_AUXILIO_TRANSPORTE_VIGENTE"] = str(valor) if valor is not None else str(self.CERO)
             return valor or self.CERO
@@ -49,15 +55,25 @@ class CalculadoraPrestaciones:
         incluir_bonificaciones: bool,
         codigos_utilizados: dict[str, str] | None = None,
     ) -> Decimal:
+        tipo_prof = str(getattr(profesor.tipoProfesor, "value", profesor.tipoProfesor or "")).upper()
+        mod_contra = str(getattr(contrato.modalidadProfesor or contrato.tipoContrato, "value", contrato.modalidadProfesor or contrato.tipoContrato or "")).upper()
+        if "PLANTA" in tipo_prof or "PLANTA" in mod_contra:
+            return self.CERO
+
         if contrato.permiteBonificacionPosgrado is False or not incluir_bonificaciones:
             return self.CERO
         factores = {
-            "ESPECIALIZACION": Decimal("0.10"),
-            "MAESTRIA": Decimal("0.45"),
             "DOCTORADO": Decimal("0.90"),
+            "MAESTRIA": Decimal("0.45"),
+            "ESPECIALIZACION": Decimal("0.10"),
             "POSTDOCTORADO": self.CERO,
         }
-        factor = factores.get(str(profesor.nivelPosgradoReconocido or "").upper(), self.CERO)
+        nivel = str(profesor.nivelPosgradoReconocido or profesor.maximoNivelEstudio or getattr(contrato, "nivelPosgradoAlVincular", None) or "").upper()
+        factor = self.CERO
+        for k, v in factores.items():
+            if k in nivel:
+                factor = v
+                break
         if codigos_utilizados is not None:
             codigos_utilizados["BONIFICACION_POSGRADO"] = str(factor)
         return self._bonificacion_proporcional(smmlv * factor, contrato, horas)
@@ -105,11 +121,13 @@ class CalculadoraPrestaciones:
         *,
         regimen_especial: bool = False,
     ) -> dict[str, Decimal]:
+        cesantias = self.redondear(base_prestacional * dias / self.DIAS_ANIO)
+        intereses = self.redondear(cesantias * dias * Decimal("0.12") / self.DIAS_ANIO)
         provisiones = {
-            "cesantias": self.redondear(base_prestacional * dias / self.DIAS_ANIO),
-            "intereses": self.redondear(base_prestacional * dias * Decimal("0.12") / self.DIAS_ANIO),
+            "cesantias": cesantias,
+            "intereses": intereses,
             "prima_servicios": self.redondear(base_prestacional * dias / self.DIAS_ANIO),
-            "prima_navidad": self.redondear(base_prestacional * dias / self.DIAS_ANIO),
+            "prima_navidad": self.redondear(base_prestacional * dias / self.DIAS_ANIO) if regimen_especial else self.CERO,
             "vacaciones": self.redondear(ibc * dias / Decimal("720")),
             "prima_vacaciones": self.CERO,
             "bonificacion_servicios": self.CERO,

@@ -65,33 +65,48 @@ class ContratosService:
         profesor: Profesor | None,
         dedicacion: str,
         horas: Decimal,
-    ) -> Decimal:
-        val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("19850"))
-        val_cat = self.obtener_parametro_decimal("VALOR_HORA_CATEDRA", Decimal("45000"))
-        smmlv = self.obtener_parametro_decimal("SALARIO_MINIMO", Decimal("1300000"))
+    ) -> tuple[Decimal, str]:
+        val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("23924"))
+        val_cat = self.obtener_parametro_decimal("VALOR_HORA_CATEDRA", Decimal("38500"))
+        smmlv = self.obtener_parametro_decimal("SALARIO_MINIMO", Decimal("1750905"))
 
-        if "PLANTA" in tipo_contrato:
+        t_upper = str(tipo_contrato or "").upper()
+        ded_upper = str(dedicacion or "").upper()
+
+        if "CATEDRATICO" in t_upper or "CATEDRA" in t_upper or "CATEDRA" in ded_upper:
+            hrs_val = horas if horas > Decimal("0") else (getattr(profesor, "numeroHorasSemanales", Decimal("16")) or Decimal("16"))
+            total = hrs_val * Decimal("4") * val_cat
+            formula = f"Acuerdo 027/2024: {int(hrs_val)}h/sem × 4 sem × ${int(val_cat):,} = ${int(total):,} COP"
+            return total, formula
+
+        elif "PLANTA" in t_upper:
             pts = getattr(profesor, "puntosSalariales", 0) or 0
-            return Decimal(str(pts)) * val_pto
+            if not pts or pts == 0:
+                cat = str(getattr(profesor, "categoriaDocente", "") or "").upper()
+                pts_cat = {"AUXILIAR": Decimal("180"), "ASISTENTE": Decimal("250"), "ASOCIADO": Decimal("350"), "TITULAR": Decimal("450")}.get(cat, Decimal("250"))
+                pts_doc = Decimal("120") if "DOCTOR" in str(getattr(profesor, "maximoNivelEstudio", "")).upper() else Decimal("0")
+                pts = pts_cat + pts_doc
+            total = Decimal(str(pts)) * val_pto
+            if "MEDIO" in ded_upper:
+                total = total / Decimal("2")
+            formula = f"Decreto 1279/2002: {pts} pts × ${int(val_pto):,} = ${int(total):,} COP"
+            return total, formula
 
-        elif "OCASIONAL" in tipo_contrato:
+        elif "OCASIONAL" in t_upper:
             cat = getattr(profesor, "categoriaDocente", "AUXILIAR") or "AUXILIAR"
+            is_mt = "MEDIO" in ded_upper
             factores_cat = {
-                "AUXILIAR": Decimal("2.6"),
-                "ASISTENTE": Decimal("3.0"),
-                "ASOCIADO": Decimal("3.5"),
-                "TITULAR": Decimal("4.0"),
+                "AUXILIAR": Decimal("1.3225") if is_mt else Decimal("2.645"),
+                "ASISTENTE": Decimal("1.5625") if is_mt else Decimal("3.125"),
+                "ASOCIADO": Decimal("1.803") if is_mt else Decimal("3.606"),
+                "TITULAR": Decimal("1.959") if is_mt else Decimal("3.918"),
             }
-            mult = factores_cat.get(cat, Decimal("2.6"))
-            sug = smmlv * mult
-            if "MEDIO" in dedicacion:
-                sug = sug / Decimal("2")
-            return sug
+            mult = factores_cat.get(cat, Decimal("3.125"))
+            sug = round(smmlv * mult)
+            mod_txt = "MT" if is_mt else "TC"
+            return Decimal(str(sug)), f"Acuerdo 027/2024: {mult} SMMLV ({mod_txt}) = ${int(sug):,} COP"
 
-        elif "CATEDRATICO" in tipo_contrato:
-            return horas * Decimal("4") * val_cat
-
-        return Decimal("0")
+        return Decimal("0"), "Asignación estándar: $0 COP"
 
     # ------------------------------------------------------------------
     # VALIDACIONES Y REGLAS LEGALES
@@ -150,6 +165,9 @@ class ContratosService:
             fechaFin=datos.get("fechaFin"),
             dedicacion=ded_val,
             horasSemanales=Decimal(str(datos.get("horasSemanales", 40))),
+            horasSemanalesAsignadas=Decimal(str(datos.get("horasSemanales", 40))),
+            horasMensualesAsignadas=Decimal(str(datos.get("horasSemanales", 40))) * Decimal("4"),
+            horasMensualesCumplidas=Decimal(str(datos.get("horasSemanales", 40))) * Decimal("4"),
             salarioBase=sal_base_dec,
             salarioMensualPactado=Decimal(str(datos.get("salarioMensualPactado", datos.get("salarioBase", "0")))),
             aplicaAuxilioTransporte=datos.get("aplicaAuxilioTransporte", aplica_aux),
@@ -232,8 +250,15 @@ class ContratosService:
         prof = self.buscar_profesor_por_id(id_profesor)
         if prof:
             prof.puntosSalariales = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0)) + puntos
+            if str(getattr(prof, "tipoProfesor", "")).upper() == "PLANTA":
+                val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("23924"))
+                for c in self.controller.contratos:
+                    if c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO":
+                        f_ded = Decimal("0.5") if "MEDIO" in str(getattr(c, "dedicacion", "")).upper() else Decimal("1")
+                        c.salarioBase = (prof.puntosSalariales * val_pto * f_ded).quantize(Decimal("1"))
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return factor
 
     def reconocer_produccion_academica(
@@ -260,7 +285,8 @@ class ContratosService:
             puntosReconocidos=puntos_docente,
             puntosReconocidosProfesor=puntos_docente,
             fechaPublicacion=date.today(),
-            estado="VALIDADO",
+            fechaReconocimiento=date.today(),
+            estadoValidacion="VALIDADO",
         )
         self.controller.producciones.append(produccion)
 
@@ -268,6 +294,13 @@ class ContratosService:
         prof = self.buscar_profesor_por_id(id_profesor)
         if prof:
             prof.puntosSalariales = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0)) + puntos_docente
+            if str(getattr(prof, "tipoProfesor", "")).upper() == "PLANTA":
+                val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("23924"))
+                for c in self.controller.contratos:
+                    if c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO":
+                        f_ded = Decimal("0.5") if "MEDIO" in str(getattr(c, "dedicacion", "")).upper() else Decimal("1")
+                        c.salarioBase = (prof.puntosSalariales * val_pto * f_ded).quantize(Decimal("1"))
 
         self.controller._recrear_gestores()
+        self.controller.guardar_datos()
         return produccion

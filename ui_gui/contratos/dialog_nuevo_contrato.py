@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Callable
 import customtkinter as ctk
 
 from ui_gui.theme import Colors
+from ui_gui.components import clean_enum
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -88,13 +89,13 @@ class DialogNuevoContrato(ctk.CTkToplevel):
         prof_options = []
         for p in self.controller.profesores:
             pers = self.service.buscar_persona_por_id(p.idPersona)
-            nom = f"{getattr(pers, 'primerNombre', '')} {getattr(pers, 'primerApellido', '')}" if pers else "Profesor"
+            nombres = " ".join(part for part in [getattr(pers, 'primerNombre', ''), getattr(pers, 'segundoNombre', ''), getattr(pers, 'primerApellido', ''), getattr(pers, 'segundoApellido', '')] if part) if pers else "Profesor"
             cat = getattr(p, "categoriaDocente", "AUXILIAR") or "DOCENTE"
             pts = getattr(p, "puntosSalariales", 0) or 0
-            prof_options.append(f"{p.codigoProfesor} - {nom} [{cat}, {pts} pts]")
+            prof_options.append(f"{p.codigoProfesor} - {nombres} [{cat}, {pts} pts]")
         if not prof_options:
             prof_options = ["Sin docentes registrados"]
-        self.combo_prof = ctk.CTkComboBox(self.f_selector_persona, values=prof_options, width=420)
+        self.combo_prof = ctk.CTkComboBox(self.f_selector_persona, values=prof_options, width=420, command=self._on_seleccionar_prof)
         self.combo_prof.pack(fill="x", pady=(0, 4))
 
         # Combo Administrativos (inicialmente oculto o se intercambia)
@@ -120,6 +121,7 @@ class DialogNuevoContrato(ctk.CTkToplevel):
                 "DOCENTE_AD_HONOREM",
             ],
             width=420,
+            command=lambda _=None: self._on_cambiar_modalidad_docente(),
         )
         self.combo_tipo.pack(fill="x", padx=14, pady=(0, 8))
 
@@ -131,7 +133,7 @@ class DialogNuevoContrato(ctk.CTkToplevel):
         f_ded.grid(row=0, column=0, sticky="ew", padx=(0, 6))
         self.lbl_ded = ctk.CTkLabel(f_ded, text="Dedicación:", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"))
         self.lbl_ded.pack(anchor="w")
-        self.combo_ded = ctk.CTkComboBox(f_ded, values=["TIEMPO_COMPLETO", "MEDIO_TIEMPO", "HORA_CATEDRA"])
+        self.combo_ded = ctk.CTkComboBox(f_ded, values=["TIEMPO_COMPLETO", "MEDIO_TIEMPO", "HORA_CATEDRA"], command=lambda _=None: self._calcular_sugerido())
         self.combo_ded.pack(fill="x", pady=2)
 
         f_hrs = ctk.CTkFrame(row_ded, fg_color="transparent")
@@ -141,6 +143,7 @@ class DialogNuevoContrato(ctk.CTkToplevel):
         self.entry_horas = ctk.CTkEntry(f_hrs, placeholder_text="40")
         self.entry_horas.insert(0, "40")
         self.entry_horas.pack(fill="x", pady=2)
+        self.entry_horas.bind("<KeyRelease>", lambda _=None: self._calcular_sugerido())
 
         row_arl = ctk.CTkFrame(self.card_vinculacion, fg_color="transparent")
         row_arl.pack(fill="x", padx=14, pady=(4, 12))
@@ -228,11 +231,14 @@ class DialogNuevoContrato(ctk.CTkToplevel):
         self.btn_calc = ctk.CTkButton(
             f_calc,
             text="⚡ Calcular Según Régimen",
-            fg_color="#475569",
-            hover_color="#334155",
+            fg_color="#0284C7",
+            hover_color="#0369A1",
             command=self._calcular_sugerido,
         )
         self.btn_calc.pack(fill="x", pady=2)
+
+        self.lbl_calc_info = ctk.CTkLabel(f_calc, text="", font=ctk.CTkFont(family="Segoe UI", size=10), text_color="#10B981")
+        self.lbl_calc_info.pack(anchor="w", pady=(1, 0))
 
         self.lbl_error = ctk.CTkLabel(scroll, text="", text_color="#EF4444", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"))
         self.lbl_error.pack(pady=4)
@@ -309,6 +315,52 @@ class DialogNuevoContrato(ctk.CTkToplevel):
             else:
                 self.lbl_aux_status.configure(text="No Aplica (> 2 SMMLV)", text_color=Colors.TEXT_MUTED)
 
+    def _on_seleccionar_prof(self, *args) -> None:
+        sel_p = self.combo_prof.get()
+        if not sel_p or "Sin docentes" in sel_p:
+            return
+        cod = sel_p.split(" - ")[0].strip() if " - " in sel_p else sel_p.strip()
+        prof = next((p for p in self.controller.profesores if str(getattr(p, "codigoProfesor", "")).strip() == cod), None)
+        if not prof:
+            prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
+        if not prof:
+            return
+
+        tipo_p = clean_enum(getattr(prof, "tipoProfesor", "")).upper()
+        if "CATEDRATICO" in tipo_p:
+            self.combo_tipo.set("DOCENTE_CATEDRATICO (Ac. 027/2024)")
+            self.combo_ded.set("HORA_CATEDRA")
+            hrs_val = str(int(getattr(prof, "numeroHorasSemanales", 16) or 16))
+            self.entry_horas.delete(0, "end")
+            self.entry_horas.insert(0, hrs_val)
+        elif "OCASIONAL" in tipo_p:
+            self.combo_tipo.set("DOCENTE_OCASIONAL (Ac. 027/2024)")
+            ded = clean_enum(getattr(prof, "dedicacion", "TIEMPO_COMPLETO"))
+            self.combo_ded.set(ded if ded in ["TIEMPO_COMPLETO", "MEDIO_TIEMPO"] else "TIEMPO_COMPLETO")
+            self.entry_horas.delete(0, "end")
+            self.entry_horas.insert(0, "20" if "MEDIO" in ded else "40")
+        else:
+            self.combo_tipo.set("DOCENTE_PLANTA (Dec. 1279)")
+            self.combo_ded.set("TIEMPO_COMPLETO")
+            self.entry_horas.delete(0, "end")
+            self.entry_horas.insert(0, "40")
+
+        self._calcular_sugerido()
+
+    def _on_cambiar_modalidad_docente(self, *args) -> None:
+        m = self.combo_tipo.get().upper()
+        if "CATEDRATICO" in m:
+            self.combo_ded.set("HORA_CATEDRA")
+            if self.entry_horas.get().strip() in ("40", ""):
+                self.entry_horas.delete(0, "end")
+                self.entry_horas.insert(0, "16")
+        elif "PLANTA" in m:
+            self.combo_ded.set("TIEMPO_COMPLETO")
+            if self.entry_horas.get().strip() in ("16", ""):
+                self.entry_horas.delete(0, "end")
+                self.entry_horas.insert(0, "40")
+        self._calcular_sugerido()
+
     def _calcular_sugerido(self) -> None:
         if "Administrativo" in self.seg_tipo.get():
             self._on_seleccionar_adm()
@@ -316,21 +368,33 @@ class DialogNuevoContrato(ctk.CTkToplevel):
 
         sel_p = self.combo_prof.get()
         t_sel = self.combo_tipo.get()
-        if not sel_p or sel_p == "Sin docentes registrados":
+        if not sel_p or "Sin docentes" in sel_p:
+            if hasattr(self, "lbl_calc_info"):
+                self.lbl_calc_info.configure(text="⚠️ Seleccione un docente válido", text_color="#EF4444")
             return
-        cod = sel_p.split(" - ")[0].strip()
-        prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
+
+        cod = sel_p.split(" - ")[0].strip() if " - " in sel_p else sel_p.strip()
+        prof = next((p for p in self.controller.profesores if str(getattr(p, "codigoProfesor", "")).strip() == cod), None)
         if not prof:
+            prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
+        if not prof:
+            prof = next((p for p in self.controller.profesores if cod in str(getattr(p, "codigoProfesor", ""))), None)
+        if not prof:
+            if hasattr(self, "lbl_calc_info"):
+                self.lbl_calc_info.configure(text=f"⚠️ No se encontró al docente {cod}", text_color="#EF4444")
             return
 
         try:
-            hrs = Decimal(self.entry_horas.get().strip() or "40")
+            hrs = Decimal(self.entry_horas.get().strip() or "0")
         except Exception:
-            hrs = Decimal("40")
+            hrs = Decimal("16") if ("CATEDRATICO" in t_sel.upper() or "CATEDRA" in self.combo_ded.get().upper()) else Decimal("40")
 
-        sug = self.service.calcular_asignacion_sugerida(t_sel, prof, self.combo_ded.get(), hrs)
+        sug, formula = self.service.calcular_asignacion_sugerida(t_sel, prof, self.combo_ded.get(), hrs)
         self.entry_monto.delete(0, "end")
         self.entry_monto.insert(0, str(int(sug)))
+
+        if hasattr(self, "lbl_calc_info"):
+            self.lbl_calc_info.configure(text=f"✅ {formula}", text_color="#10B981")
 
     def _guardar(self) -> None:
         num = self.entry_num.get().strip()
@@ -400,8 +464,10 @@ class DialogNuevoContrato(ctk.CTkToplevel):
                 self.lbl_error.configure(text="⚠️ Debe seleccionar un docente válido.")
                 return
 
-            cod = sel_p.split(" - ")[0].strip()
-            prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
+            cod = sel_p.split(" - ")[0].strip() if " - " in sel_p else sel_p.strip()
+            prof = next((p for p in self.controller.profesores if str(getattr(p, "codigoProfesor", "")).strip() == cod), None)
+            if not prof:
+                prof = self.controller.gestor_personas.buscar_profesor_por_codigo(cod)
             if not prof:
                 self.lbl_error.configure(text="⚠️ Docente no encontrado en la base de datos.")
                 return

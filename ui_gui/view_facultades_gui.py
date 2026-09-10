@@ -119,13 +119,15 @@ class FacultadesViewGUI(ctk.CTkFrame):
 
             nom_dec = _get_nombre_decano(getattr(fac, "idDecano", None))
 
+            correo_fac = getattr(fac, "correo", None) or getattr(fac, "correoInstitucional", None) or getattr(fac, "email", "N/A")
+
             cells = [
                 (getattr(fac, "codigoFacultad", "N/A"), "#F59E0B"),
                 (getattr(fac, "nombre", "N/A"), "#F8FAFC"),
                 (nom_dec, "#38BDF8" if nom_dec != "Sin Asignar" else "#94A3B8"),
                 getattr(fac, "ubicacion", "N/A"),
                 getattr(fac, "telefono", "N/A"),
-                getattr(fac, "correo", "N/A"),
+                (str(correo_fac), "#38BDF8" if "@" in str(correo_fac) else "#94A3B8"),
                 ("badge", getattr(fac, "estado", "ACTIVO"), "active"),
                 act_spec,
             ]

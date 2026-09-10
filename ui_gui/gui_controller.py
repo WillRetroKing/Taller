@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from persistencia import GestorPersistencia, GestorCRUD
+from persistencia.gestor_multi_tenancy import GestorMultiTenancy, TenantUniversidad
 from nomina import GestorNomina
 from gestores import (
     GestorAcademico,
@@ -65,9 +66,21 @@ class PITAController:
     """Contenedor singleton/controlador para la GUI."""
 
     def __init__(self, directorio_datos: str = "datos") -> None:
-        self.directorio_datos = Path(directorio_datos)
+        self.directorio_base = Path(directorio_datos)
+        self.gestor_multi_tenancy = GestorMultiTenancy(self.directorio_base)
+        self.tenants: list[TenantUniversidad] = self.gestor_multi_tenancy.tenants
+        self.tenant_activo: TenantUniversidad | None = self.tenants[0] if self.tenants else None
+
+        # Si el tenant tiene subdirectorio aislado existente, usamos su almacén independiente
+        if self.tenant_activo and (self.directorio_base / self.tenant_activo.directorio).is_dir():
+            self.directorio_datos = self.directorio_base / self.tenant_activo.directorio
+        else:
+            self.directorio_datos = self.directorio_base
+
         self.gestor_persistencia = GestorPersistencia(self.directorio_datos)
 
+        self.universidades: list[Universidad] = []
+        self.universidad_activa: Universidad | None = None
         self.universidad: Universidad | None = None
         self.facultades: list[Facultad] = []
         self.programas: list[ProgramaAcademico] = []
@@ -115,6 +128,22 @@ class PITAController:
                         print(f"Advertencia al cargar {tipo.__name__}: {err_entidad}")
                         datos[tipo] = []
 
+            self.universidades = datos.get(Universidad, [])
+            if self.gestor_multi_tenancy and self.gestor_multi_tenancy.tenants:
+                ids_presentes = {u.idUniversidad for u in self.universidades}
+                for t in self.gestor_multi_tenancy.tenants:
+                    if t.idUniversidad not in ids_presentes:
+                        self.universidades.append(
+                            Universidad(
+                                idUniversidad=t.idUniversidad,
+                                codigoInstitucional=t.codigo,
+                                nombre=t.nombre,
+                                estado=t.estado,
+                            )
+                        )
+            if self.universidades:
+                self.universidad_activa = self.universidades[0]
+                self.universidad = self.universidad_activa
             self.facultades = datos.get(Facultad, [])
             self.programas = datos.get(ProgramaAcademico, [])
             self.planes = datos.get(PlanEstudio, [])
@@ -212,6 +241,9 @@ class PITAController:
             factores=self.factores,
             producciones=self.producciones,
             administrativos=self.administrativos,
+            universidades=self.universidades,
+            facultades=self.facultades,
+            programas=self.programas,
         )
         self.gestor_matriculas = GestorMatriculas(
             self.estudiantes,
@@ -236,6 +268,67 @@ class PITAController:
             self.parametros,
         )
         self.gestor_crud = GestorCRUD(self.facultades, campo_id="idFacultad", campo_codigo="codigoFacultad")
+
+    def seleccionar_universidad(self, identificador: int | str) -> bool:
+        """Cambia la universidad activa, conmutando al directorio de almacenamiento aislado del tenant."""
+        tenant = self.gestor_multi_tenancy.obtener_tenant(identificador)
+        if not tenant:
+            univ = next((u for u in self.universidades if str(u.idUniversidad) == str(identificador) or (u.nombre and str(identificador).upper() in u.nombre.upper())), None)
+            if univ and univ.idUniversidad:
+                tenant = self.gestor_multi_tenancy.obtener_tenant(univ.idUniversidad)
+
+        if tenant:
+            self.tenant_activo = tenant
+            dir_tenant = self.directorio_base / tenant.directorio
+            if dir_tenant.is_dir():
+                self.directorio_datos = dir_tenant
+                self.gestor_persistencia = GestorPersistencia(self.directorio_datos)
+                self.cargar_datos()
+                univ_tenant = next((u for u in self.universidades if u.idUniversidad == tenant.idUniversidad), None)
+                if univ_tenant:
+                    self.universidad_activa = univ_tenant
+                    self.universidad = univ_tenant
+                self._recrear_gestores()
+                return True
+
+        univ_mem = next((u for u in self.universidades if str(u.idUniversidad) == str(identificador)), None)
+        if univ_mem:
+            self.universidad_activa = univ_mem
+            self.universidad = univ_mem
+            return True
+        return False
+
+    def agregar_universidad(
+        self,
+        nombre: str,
+        codigo: str | None = None,
+        nit: str = "",
+        ciudad: str = "",
+        departamento: str = "",
+        direccion: str = "",
+        telefono: str = "",
+        correo: str = "",
+        web: str = "",
+        caja_compensacion: str = "",
+        arl: str = "",
+    ) -> TenantUniversidad:
+        """Registra una nueva universidad con código único institucional y conmuta al nuevo espacio aislado."""
+        tenant = self.gestor_multi_tenancy.registrar_tenant(
+            nombre=nombre,
+            codigo=codigo,
+            nit=nit,
+            ciudad=ciudad,
+            departamento=departamento,
+            direccion=direccion,
+            telefono=telefono,
+            correo=correo,
+            web=web,
+            caja_compensacion=caja_compensacion,
+            arl=arl,
+        )
+        self.tenants = self.gestor_multi_tenancy.tenants
+        self.seleccionar_universidad(tenant.idUniversidad)
+        return tenant
 
     def guardar_datos(self) -> None:
         """Guardar todas las entidades en la persistencia de archivos planos."""
@@ -348,5 +441,8 @@ class PITAController:
             ParametroNormativo(18, PNC.NOTA_MINIMA_APROBATORIA, "Nota Mínima Aprobatoria", "Nota mínima aprobar", "DECIMAL", "3.0", "puntos", "Reglamento Estudiantil", "Art. 45", date(2026, 1, 1), date(2026, 12, 31), "ESTUDIANTES", "ACTIVO"),
             ParametroNormativo(19, PNC.PROMEDIO_MINIMO_EBRA, "Promedio Mínimo EBRA", "Umbral de riesgo EBRA", "DECIMAL", "3.0", "puntos", "Reglamento Estudiantil", "Art. 52", date(2026, 1, 1), date(2026, 12, 31), "ESTUDIANTES", "ACTIVO"),
             ParametroNormativo(20, PNC.MAXIMO_CREDITOS_PERIODO, "Máximo Créditos Período", "Límite máximo de créditos semestrales", "DECIMAL", "22", "créditos", "Reglamento Estudiantil", "Art. 30", date(2026, 1, 1), date(2026, 12, 31), "ESTUDIANTES", "ACTIVO"),
+            ParametroNormativo(21, PNC.PORCENTAJE_ESTAMPILLA, "Estampilla Pro-Universidad %", "Descuento Estampilla 0.2% del básico", "PORCENTUAL", "0.002", "%", "Ordenanza Departamental", "Art. 1", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
+            ParametroNormativo(22, PNC.RETENCION_FUENTE_SALARIO, "Retención en la Fuente Salario", "Retención en la fuente aplicada a salarios docentes", "MONETARIO", "107000", "COP", "Estatuto Tributario", "Art. 383", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
+            ParametroNormativo(23, PNC.APLICA_EXONERACION_LEY_1819, "Aplica Exoneración Ley 1819", "Aplica exoneración de aportes patronales (Salud, SENA, ICBF) si IBC < 10 SMMLV", "TEXTO", "SI", "booleano", "Estatuto Tributario", "Art. 114-1", date(2026, 1, 1), date(2026, 12, 31), "TODOS", "ACTIVO"),
         ]
         self.parametros.extend(defaults)

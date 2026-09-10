@@ -14,14 +14,14 @@ class ErrorFactor(ValueError):
 class GestorFactores:
     def __init__(
         self,
-        categorias: list[CategoriaDocente],
-        factores: list[FactorSalarial],
-        producciones: list[ProduccionAcademica],
+        categorias: list[CategoriaDocente] | None = None,
+        factores: list[FactorSalarial] | None = None,
+        producciones: list[ProduccionAcademica] | None = None,
         profesores: list[Profesor] | None = None,
     ) -> None:
-        self.categorias = categorias
-        self.factores = factores
-        self.producciones = producciones
+        self.categorias = categorias if categorias is not None else []
+        self.factores = factores if factores is not None else []
+        self.producciones = producciones if producciones is not None else []
         self.profesores = profesores if profesores is not None else []
 
     def crear_categoria(self, categoria: CategoriaDocente) -> CategoriaDocente:
@@ -138,13 +138,55 @@ class GestorFactores:
         return produccion
 
     def calcular_puntos_profesor(self, id_profesor: int, fecha_corte: date | None = None) -> Decimal:
-        """Calcula los puntos vigentes de carrera docente bajo Decreto 1279."""
+        """Calcula los puntos vigentes de carrera docente bajo Decreto 1279.
+        
+        En el marco del Decreto 1279 de 2002 y la normativa universitaria colombiana,
+        los puntos salariales aplican exclusivamente a profesores de PLANTA (carrera docente).
+        Los profesores ocasionales y de cátedra no acumulan puntos del Decreto 1279 (puntos = 0).
+        """
         profesor = self._buscar(self.profesores, "idProfesor", id_profesor, "profesor")
+        tipo_prof = str(getattr(profesor.tipoProfesor, "value", profesor.tipoProfesor or "")).upper()
+        
+        # Validación de régimen: solo profesores de planta acumulan puntos de carrera docente
+        if tipo_prof in ("OCASIONAL", "CATEDRATICO", "CATEDRATICO_AD_HONOREM", "AD_HONOREM"):
+            profesor.puntosSalariales = Decimal("0")
+            return Decimal("0")
+
         fecha = fecha_corte or date.today()
         categoria = self._categoria_vigente(profesor, fecha)
         puntos_categoria = self._puntos_categoria(categoria, profesor)
-        puntos_factores = sum((self._puntos_factor(factor, fecha) for factor in self.factores if factor.idProfesor == id_profesor), Decimal("0"))
+
+        # 1. Puntos por factores salariales aprobados / activos
+        puntos_factores = Decimal("0")
+        tiene_factor_titulo = False
+        for factor in self.factores:
+            if factor.idProfesor == id_profesor:
+                pts_f = self._puntos_factor(factor, fecha)
+                puntos_factores += pts_f
+                tipo_f = str(getattr(factor.tipoFactor, "value", factor.tipoFactor or "")).upper()
+                nom_f = str(factor.nombre or "").upper()
+                if (
+                    tipo_f == TipoFactor.TITULO_ACADEMICO.value
+                    or any(w in nom_f or w in tipo_f for w in ("DOCTOR", "MAESTR", "TITULO", "ESPEC"))
+                ):
+                    if pts_f > Decimal("0"):
+                        tiene_factor_titulo = True
+
+        # 2. Reconocimiento estatutario de puntos por posgrado (Decreto 1279 Arts. 10 y 11)
+        # Si el docente de planta tiene título de posgrado en su perfil y no tiene factor registrado,
+        # se reconocen los puntos normativos de ley (Doctorado: 120 pts, Maestría: 40 pts, Especialización: 20 pts)
+        if not tiene_factor_titulo:
+            nivel = str(profesor.nivelPosgradoReconocido or profesor.maximoNivelEstudio or "").upper()
+            if "DOCTOR" in nivel:
+                puntos_factores += Decimal("120")
+            elif "MAESTR" in nivel:
+                puntos_factores += Decimal("40")
+            elif "ESPEC" in nivel:
+                puntos_factores += Decimal("20")
+
+        # 3. Puntos por productividad académica (artículos, libros, etc.)
         puntos_produccion = sum((self._puntos_produccion(produccion, fecha) for produccion in self.producciones if produccion.idProfesor == id_profesor), Decimal("0"))
+
         total = puntos_categoria + puntos_factores + puntos_produccion
         profesor.puntosSalariales = total
         return total
@@ -163,23 +205,30 @@ class GestorFactores:
         if categoria is not None:
             return categoria.puntosCategoria if categoria.puntosCategoria is not None else (categoria.puntosBase or Decimal("0"))
         codigo = str(profesor.categoriaReconocida or profesor.categoriaDocente or "").upper()
+        puntos_estandar = {"AUXILIAR": Decimal("180"), "ASISTENTE": Decimal("250"), "ASOCIADO": Decimal("350"), "TITULAR": Decimal("450")}
+        if codigo in puntos_estandar:
+            return puntos_estandar[codigo]
         return {"AUXILIAR": Decimal("37"), "ASISTENTE": Decimal("58"), "ASOCIADO": Decimal("74"), "TITULAR": Decimal("96")}.get(codigo, Decimal("0"))
 
     @staticmethod
     def _puntos_factor(factor: FactorSalarial, fecha: date) -> Decimal:
-        if str(getattr(factor.estado, "value", factor.estado or "")).upper() != "APROBADO" or getattr(factor.tipoFactor, "value", factor.tipoFactor) == TipoFactor.CATEGORIA_DOCENTE.value:
+        estado_f = str(getattr(factor.estado, "value", factor.estado or "")).upper()
+        if estado_f not in ("APROBADO", "ACTIVO", "RECONOCIDO") or getattr(factor.tipoFactor, "value", factor.tipoFactor) == TipoFactor.CATEGORIA_DOCENTE.value:
             return Decimal("0")
         inicio = factor.fechaEfectoSalarial or factor.fechaReconocimiento or factor.vigenciaDesde
         if (inicio and inicio > fecha) or (factor.vigenciaHasta and fecha > factor.vigenciaHasta):
             return Decimal("0")
-        return factor.puntosReconocidos if factor.puntosReconocidos is not None else (factor.puntosAprobados or Decimal("0"))
+        return factor.puntosReconocidos if factor.puntosReconocidos is not None else (factor.puntosAprobados or factor.puntosSolicitados or Decimal("0"))
 
     @staticmethod
     def _puntos_produccion(produccion: ProduccionAcademica, fecha: date) -> Decimal:
-        if str(produccion.estadoValidacion or "").upper() != "VALIDADO":
+        estado_p = str(produccion.estadoValidacion or "").upper()
+        if estado_p not in ("VALIDADO", "APROBADO", "ACTIVO", "RECONOCIDO"):
             return Decimal("0")
         fecha_efecto = produccion.fechaActoReconocimiento or produccion.fechaReconocimiento
-        return Decimal("0") if fecha_efecto and fecha_efecto > fecha else (produccion.puntosReconocidosProfesor or Decimal("0"))
+        if fecha_efecto and fecha_efecto > fecha:
+            return Decimal("0")
+        return produccion.puntosReconocidosProfesor if produccion.puntosReconocidosProfesor is not None else (produccion.puntosReconocidos or produccion.puntosAprobados or Decimal("0"))
 
     def consultar_factores_profesor(self, id_profesor: int) -> list[FactorSalarial]:
         return [factor for factor in self.factores if factor.idProfesor == id_profesor]

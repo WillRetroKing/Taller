@@ -1,2 +1,1 @@
-1|1|ARTICULO|Algoritmos Genéticos y Grafos Paralelos|2024-05-12|IEEE Transactions|||15|||APROBADO||||A1||||||2||||||||1.0|||||||
-2|3|ARTICULO|Modelos de Optimización en Epidemiología|2023-04-10|Springer Nature|||15|||APROBADO||||A1||||||1||||||||1.0|||||||
+1|1|ARTICULO_A2|Optimizacion de Algoritmos en Grafos Paralelos|2026-09-10|IEEE Transactions on Computers|IEEE Transactions on Computers||6.00|2026-09-10||VALIDADO||||||||||2||||||||0.5|6.00||||||

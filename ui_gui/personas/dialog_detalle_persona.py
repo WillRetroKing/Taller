@@ -143,6 +143,46 @@ class DialogDetallePersona(ctk.CTkToplevel):
                 self._agregar_fila_detalle(card_est, lbl, val)
             ctk.CTkFrame(card_est, height=4, fg_color="transparent").pack()
 
+            # Asignaturas y cursos matriculados
+            mats_est = [m.idMatricula for m in getattr(self.controller, "matriculas", []) if getattr(m, "idEstudiante", None) == getattr(est_rel, "idEstudiante", None)]
+            dets_est = [d for d in getattr(self.controller, "detalles_matricula", []) if getattr(d, "idMatricula", None) in mats_est]
+            if dets_est:
+                card_mat = ctk.CTkFrame(
+                    scroll_info,
+                    fg_color=Colors.BG_CARD,
+                    corner_radius=8,
+                    border_width=1,
+                    border_color=Colors.BORDER_SUBTLE,
+                )
+                card_mat.pack(fill="x", pady=6)
+                ctk.CTkLabel(
+                    card_mat,
+                    text="📚 Asignaturas y Cursos Matriculados",
+                    font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                    text_color="#0284C7",
+                ).pack(anchor="w", padx=16, pady=(12, 6))
+
+                ctk.CTkFrame(card_mat, height=1, fg_color=Colors.BORDER_SUBTLE).pack(fill="x", padx=12, pady=(0, 6))
+
+                for d in dets_est:
+                    of = next((o for o in getattr(self.controller, "ofertas", []) if str(getattr(o, "idOfertaCurso", "")) == str(getattr(d, "idOfertaCurso", ""))), None)
+                    c = next((cur for cur in getattr(self.controller, "cursos", []) if of and str(getattr(cur, "idCurso", "")) == str(getattr(of, "idCurso", ""))), None)
+                    if not c:
+                        c = next((cur for cur in getattr(self.controller, "cursos", []) if str(getattr(cur, "idCurso", "")) == str(getattr(d, "idOfertaCurso", ""))), None)
+
+                    c_nom = getattr(c, "nombre", "Asignatura") if c else "Asignatura"
+                    c_cod = getattr(c, "codigoCurso", "") if c else ""
+                    c_cred = getattr(c, "numeroCreditos", 3) if c else 3
+                    gr = getattr(of, "grupo", "01") if of else "01"
+                    est_c = clean_enum(getattr(d, "estadoCurso", "EN_CURSO"))
+                    nota_f = getattr(d, "notaFinal", None)
+                    nota_txt = f"Nota: {float(nota_f):.2f}" if nota_f is not None else "Sin nota"
+
+                    rotulo = f"📖 {c_cod} - {c_nom} (Gr. {gr})" if c_cod else f"📖 {c_nom} (Gr. {gr})"
+                    detalle_val = f"{c_cred} Créditos | {est_c.title()} [{nota_txt}]"
+                    self._agregar_fila_detalle(card_mat, rotulo, detalle_val)
+                ctk.CTkFrame(card_mat, height=4, fg_color="transparent").pack()
+
         if prof_rel:
             card_prof = ctk.CTkFrame(
                 scroll_info,

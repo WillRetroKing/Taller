@@ -55,11 +55,11 @@ class CalculadoraDeducciones:
     # ------------------------------------------------------------------
     def calcular_descuento_salud(self, ibc: Decimal, fecha: date | None = None, codigos_utilizados: dict[str, str] | None = None) -> Decimal:
         pct = self.obtener_porcentaje("PORCENTAJE_SALUD_TRABAJADOR", Decimal("0.04"), fecha, codigos_utilizados)
-        return self.redondear_pila(ibc * pct)
+        return self.redondear(ibc * pct)
 
     def calcular_descuento_pension(self, ibc: Decimal, fecha: date | None = None, codigos_utilizados: dict[str, str] | None = None) -> Decimal:
         pct = self.obtener_porcentaje("PORCENTAJE_PENSION_TRABAJADOR", Decimal("0.04"), fecha, codigos_utilizados)
-        return self.redondear_pila(ibc * pct)
+        return self.redondear(ibc * pct)
 
     def calcular_fondo_solidaridad(self, ibc: Decimal, salario_minimo: Decimal, fecha: date | None = None, codigos_utilizados: dict[str, str] | None = None) -> Decimal:
         if ibc >= self.CUATRO * salario_minimo:
@@ -74,12 +74,7 @@ class CalculadoraDeducciones:
         parametros_personalizados: dict[str, Any] | None = None,
         codigos_utilizados: dict[str, str] | None = None,
     ) -> Decimal:
-        base_minima = (
-            Decimal(parametros_personalizados['base_minima'])
-            if parametros_personalizados and 'base_minima' in parametros_personalizados
-            else (self.obtener_parametro_decimal("BASE_MINIMA_RETENCION_FUENTE", fecha) or Decimal("4500000"))
-        )
-        if ibc < base_minima:
+        if ibc <= self.CERO:
             return self.CERO
 
         # 1. Si existe valor monetario parametrizado para retención en la fuente por salario
@@ -88,6 +83,14 @@ class CalculadoraDeducciones:
             if codigos_utilizados is not None:
                 codigos_utilizados["RETENCION_FUENTE_SALARIO"] = str(val_fijo)
             return self.redondear(val_fijo)
+
+        base_minima = (
+            Decimal(parametros_personalizados['base_minima'])
+            if parametros_personalizados and 'base_minima' in parametros_personalizados
+            else (self.obtener_parametro_decimal("BASE_MINIMA_RETENCION_FUENTE", fecha) or Decimal("4500000"))
+        )
+        if ibc < base_minima:
+            return self.CERO
 
         if parametros_personalizados:
             pct = Decimal(parametros_personalizados.get('porcentaje', self.obtener_porcentaje("PORCENTAJE_RETENCION_FUENTE", self.CERO, fecha, codigos_utilizados)))

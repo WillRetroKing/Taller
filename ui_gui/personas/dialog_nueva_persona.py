@@ -220,6 +220,18 @@ class DialogNuevaPersona(ctk.CTkToplevel):
             entry_area.grid(row=9, column=1, sticky="ew", padx=5, pady=(2, 4))
             self.widgets_rol["area"] = entry_area
 
+            ctk.CTkLabel(self.sub_rol, text="Grupo de Investigación (MinCiencias)", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=10, column=0, sticky="w", padx=5, pady=(2, 0))
+            ctk.CTkLabel(self.sub_rol, text="Nombre del Grupo / Semillero", font=ctk.CTkFont(size=11), text_color="#94A3B8").grid(row=10, column=1, sticky="w", padx=5, pady=(2, 0))
+
+            combo_grupo = ctk.CTkComboBox(self.sub_rol, values=["NINGUNO", "GRUPO_A1 (0.56 SMMLV)", "GRUPO_A (0.47 SMMLV)", "GRUPO_B (0.42 SMMLV)", "GRUPO_C (0.38 SMMLV)", "SEMILLERO (0.20 SMMLV)"])
+            combo_grupo.set("NINGUNO")
+            combo_grupo.grid(row=11, column=0, sticky="ew", padx=5, pady=(2, 8))
+            self.widgets_rol["grupo_inv"] = combo_grupo
+
+            entry_ngrupo = ctk.CTkEntry(self.sub_rol, placeholder_text="ej: GIDSE / Semillero de IA")
+            entry_ngrupo.grid(row=11, column=1, sticky="ew", padx=5, pady=(2, 8))
+            self.widgets_rol["nombre_grupo"] = entry_ngrupo
+
         elif nuevo_rol == "ADMINISTRATIVO":
             ctk.CTkLabel(self.sub_rol, text="Código Empleado *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=0, column=0, sticky="w", padx=5, pady=(2, 0))
             ctk.CTkLabel(self.sub_rol, text="Cargo Institucional *", font=ctk.CTkFont(size=11, weight="bold"), text_color="#94A3B8").grid(row=0, column=1, sticky="w", padx=5, pady=(2, 0))
@@ -328,7 +340,11 @@ class DialogNuevaPersona(ctk.CTkToplevel):
                 datos_rol["dedicacion"] = Dedicacion.TIEMPO_COMPLETO
 
             datos_rol["categoriaDocente"] = self.widgets_rol["categoria_docente"].get() if "categoria_docente" in self.widgets_rol else "ASISTENTE"
-            datos_rol["maximoNivelEstudio"] = self.widgets_rol["nivel_estudio"].get() if "nivel_estudio" in self.widgets_rol else "MAESTRIA"
+            nivel_est = self.widgets_rol["nivel_estudio"].get() if "nivel_estudio" in self.widgets_rol else "MAESTRIA"
+            datos_rol["maximoNivelEstudio"] = nivel_est
+            if nivel_est in ("ESPECIALIZACION", "MAESTRIA", "DOCTORADO"):
+                datos_rol["nivelPosgradoReconocido"] = nivel_est
+
             datos_rol["tituloProfesional"] = self.widgets_rol["titulo"].get().strip() if "titulo" in self.widgets_rol else ""
             datos_rol["areaConocimiento"] = self.widgets_rol["area"].get().strip() if "area" in self.widgets_rol else ""
 
@@ -337,6 +353,17 @@ class DialogNuevaPersona(ctk.CTkToplevel):
 
             puntos_str = self.widgets_rol["puntos"].get().strip() if "puntos" in self.widgets_rol else "350"
             datos_rol["puntosSalariales"] = Decimal(puntos_str) if puntos_str.replace(".", "", 1).isdigit() else Decimal("350")
+
+            grupo_raw = self.widgets_rol["grupo_inv"].get() if "grupo_inv" in self.widgets_rol else "NINGUNO"
+            grupo_clean = grupo_raw.split(" ")[0].strip()
+            if grupo_clean != "NINGUNO":
+                datos_rol["categoriaGrupoInvestigacion"] = grupo_clean
+                datos_rol["grupoInvestigacion"] = self.widgets_rol["nombre_grupo"].get().strip() if "nombre_grupo" in self.widgets_rol else grupo_clean
+                datos_rol["productividadInvestigativaVigente"] = True
+                datos_rol["certificacionVicerrectoriaInvestigacion"] = f"VIC-INV-2026-{siguiente_id}"
+            else:
+                datos_rol["categoriaGrupoInvestigacion"] = None
+                datos_rol["productividadInvestigativaVigente"] = False
 
         elif rol == "ADMINISTRATIVO":
             datos_rol["cargo"] = self.widgets_rol["cargo"].get().strip() if "cargo" in self.widgets_rol else "Profesional Universitario"

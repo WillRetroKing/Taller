@@ -20,3 +20,4 @@
 20|MAXIMO_CREDITOS_PERIODO|Máximo Créditos Período|Límite máximo de créditos semestrales|DECIMAL|22|créditos|Reglamento Estudiantil|Art. 30|2026-01-01|2026-12-31|ESTUDIANTES|ACTIVO
 21|PORCENTAJE_ESTAMPILLA|Estampilla Pro-Universidad %|Descuento Estampilla 0.2% del básico|PORCENTUAL|0.002|%|Ordenanza Departamental|Art. 1|2026-01-01|2026-12-31|TODOS|ACTIVO
 22|RETENCION_FUENTE_SALARIO|Retención en la Fuente Salario|Retención en la fuente aplicada a salarios docentes|MONETARIO|107000|COP|Estatuto Tributario|Art. 383|2026-01-01|2026-12-31|TODOS|ACTIVO
+23|APLICA_EXONERACION_LEY_1819|Aplica Exoneración Ley 1819|Aplica exoneración de aportes patronales (Salud, SENA, ICBF) si IBC < 10 SMMLV|TEXTO|SI|booleano|Estatuto Tributario|Art. 114-1|2026-01-01|2026-12-31|TODOS|ACTIVO
