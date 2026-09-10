@@ -644,7 +644,8 @@ class NominaViewGUI(ctk.CTkFrame):
             return
 
         prof = next((p for p in self.controller.profesores if getattr(p, "idProfesor", None) is not None and getattr(p, "idProfesor", None) == getattr(liq, "idProfesor", None)), None) if getattr(liq, "idProfesor", None) is not None else None
-        con = next((c for c in self.controller.contratos if c.idContrato == getattr(liq, "idContrato", None)), None)
+        contrato = next((c for c in self.controller.contratos if c.idContrato == getattr(liq, "idContrato", None)), None)
+        con = contrato
         adm = None
         pers = None
 
@@ -701,8 +702,18 @@ class NominaViewGUI(ctk.CTkFrame):
             txt_periodo_full = f"Periodo N° {id_periodo or 1}"
 
         # 2. Información Salarial y Base de Cotización (IBC)
-        categoria_doc = getattr(liq, "categoriaLiquidada", None) or (getattr(prof, "categoriaDocente", None) if prof else None) or "Titular"
-        es_planta_doc = bool(prof and ("PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper() or "PLANTA" in str(getattr(contrato, "modalidadProfesor", "")).upper()))
+        tipo_liq = str(getattr(liq, "tipoProfesorLiquidado", "") or "").upper()
+        regimen_liq = str(getattr(liq, "regimenLiquidado", "") or "").upper()
+        es_planta_doc = (
+            "PLANTA" in tipo_liq
+            or "1279" in regimen_liq
+            or bool(
+                prof and (
+                    "PLANTA" in str(getattr(prof, "tipoProfesor", "")).upper()
+                    or (contrato and "PLANTA" in str(getattr(contrato, "modalidadProfesor", "")).upper())
+                )
+            )
+        )
         pts_doc = getattr(liq, "puntosSalarialesUsados", None) or (getattr(prof, "puntosSalariales", None) if es_planta_doc else None) or (450 if es_planta_doc else 0)
         valor_pto = getattr(liq, "valorPuntoUsado", None) or 23924
         ibc_val = Decimal(str(getattr(liq, "baseCotizacionSeguridadSocial", None) or getattr(liq, "salarioBase", None) or getattr(liq, "totalDevengado", 0) or 0))
