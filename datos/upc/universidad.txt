@@ -1,1 +1,1 @@
-1|Universidad Popular del Cesar|892300128-6|1084|Sede Sabanas, Av. Universidad|Valledupar|Cesar|5842000|rectoria@unicesar.edu.co|https://www.unicesar.edu.co|ACTIVO|Comfacesar|Positiva Compañía de Seguros
+1|Universidad Popular del Cesar|892300128-6|UPC|Sede Sabanas, Av. Universidad|Valledupar|Cesar|5842000|rectoria@unicesar.edu.co|https://www.unicesar.edu.co|ACTIVO|Comfacesar|Positiva Compañía de Seguros

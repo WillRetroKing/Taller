@@ -1,0 +1,3 @@
+1|ECBTI|Escuela de Ciencias Básicas, Tecnología e Ingeniería|Sede Central Bogotá y Centros Zonales|Campus Virtual UNAD|3443700 ext 1200|ecbti@unad.edu.co|4|1981-07-07|ACTIVO|3
+2|ECACEN|Escuela de Ciencias Administrativas, Contables y de Negocios|Sede Central Bogotá|Campus Virtual UNAD|3443700 ext 1300|ecacen@unad.edu.co|5|1981-07-07|ACTIVO|3
+3|ECSAH|Escuela de Ciencias Sociales, Artes y Humanidades|Sede Central Bogotá|Campus Virtual UNAD|3443700 ext 1400|ecsah@unad.edu.co|6|1994-03-10|ACTIVO|3

@@ -1,0 +1,7 @@
+1|CC|1018456789|Camilo|Andrés|Rodríguez|Morales|2003-04-15|Cra 30 #45-10|3114567890|camilo@gmail.com|crodriguezm@unal.edu.co|Bogota|2022-01-15|ACTIVO
+2|CC|1019876543|Valentina||Restrepo|Cardona|2004-09-20|Calle 53 #24-18|3159876543|valen@gmail.com|vrestrepoc@unal.edu.co|Bogota|2023-01-15|ACTIVO
+3|CC|1020456123|Diego|Fernando|Mora|Jiménez|2002-12-05|Calle 68 #14-22|3204567891|diego@gmail.com|dmoraj@unal.edu.co|Bogota|2022-08-10|ACTIVO
+4|CC|19456789|Jorge|Eliécer|Gaitán|Silva|1975-08-12|Ciudad Universitaria Edif. 401|3109871234|gaitan@gmail.com|jgaitans@unal.edu.co|Bogota|2005-02-01|ACTIVO
+5|CC|52789123|Beatriz|Elena|Gómez|Prieto|1982-03-25|Calle 100 #15-30|3184567892|beatriz@gmail.com|bgomezp@unal.edu.co|Bogota|2015-08-10|ACTIVO
+6|CC|79890123|Mauricio|Antonio|Cárdenas|Santamaría|1986-10-18|Cra 7 #72-40|3007894561|mauricio@gmail.com|mcardenass@unal.edu.co|Bogota|2018-01-15|ACTIVO
+7|CC|51987654|Clara|Inés|Pardo|Ortiz|1980-05-30|Calle 45 #19-12|3123456789|clara@gmail.com|cpardoo@unal.edu.co|Bogota|2010-03-01|ACTIVO

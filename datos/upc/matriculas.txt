@@ -1,0 +1,2 @@
+1|1|1|2026-01-20|7|2.7|ACTIVO|Alerta EBRA
+2|2|1|2026-01-21|7|4.2|ACTIVO|Ordinaria

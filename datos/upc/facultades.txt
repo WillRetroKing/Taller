@@ -1,1 +1,3 @@
-1|FIT|Facultad de Ingenierias y Tecnologicas|Facultad institucional UPC|Campus Sabanas, Bloque B|5842000|fit@unicesar.edu.co||2026-09-09|ACTIVO|1
+1|FAC-ING|Facultad de Ingenierías y Tecnológicas|Formación integral en tecnologías|Sede Sabanas|5842001|ingenieria@unicesar.edu.co|1|1998-03-15|ACTIVO|1
+2|FAC-SALUD|Facultad de Ciencias de la Salud|Formación en salud|Sede Campus San Martín|5842002|salud@unicesar.edu.co|2|2000-05-20|ACTIVO|1
+3|FAC-FACAC|Facultad de Ciencias Administrativas|Formación empresarial|Sede Hurtado|5842003|facac@unicesar.edu.co|3|1995-08-10|ACTIVO|1

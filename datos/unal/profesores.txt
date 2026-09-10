@@ -1,0 +1,3 @@
+1|4|DOC-UNAL-101|1|2005-02-01|PLANTA|TITULAR|TIEMPO_COMPLETO|DOCTORADO|Doctor en Ciencias de la Computación|Inteligencia Artificial y Complejidad|40|450|ACTIVO|Decreto 1279|||||||||||||||||||||||||||||||||||||||||||
+2|5|DOC-UNAL-102|2|2015-08-10|OCASIONAL|ASOCIADO|TIEMPO_COMPLETO|MAESTRIA|Médica Especialista en Neuroanatomía|Morfología y Cirugía|40|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||
+3|6|DOC-UNAL-103|1|2018-01-15|CATEDRATICO|ASISTENTE|HORA_CATEDRA|MAESTRIA|Magíster en Ingeniería de Software|Algoritmos y Arquitectura|16|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||

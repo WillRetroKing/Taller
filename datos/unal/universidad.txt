@@ -1,1 +1,1 @@
-2|Universidad Nacional de Colombia|899999063-3|1101|Carrera 45 # 26-85, Edificio Uriel Gutiérrez|Bogota|Cundinamarca|3165000|contacto@unal.edu.co|https://unal.edu.co|ACTIVO|Compensar|Positiva Compañía de Seguros
+2|Universidad Nacional de Colombia|899999063-3|UNAL|Carrera 45 # 26-85, Ciudad Universitaria|Bogota|Cundinamarca|3165000|contacto@unal.edu.co|https://unal.edu.co|ACTIVO|Compensar|Positiva Compañía de Seguros
