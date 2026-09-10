@@ -1,6 +1,6 @@
 1|1||1|6313763.00|||6313763.00|Salario Ordinario|SALARIO_ORDINARIO||1|salarioOrdinario = IBC||||6313763.00|1|1|1|1||||2026-09-09
 2|1||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||1|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-09
-3|1||1|0.00|||0.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||0.00|0|0|0|0||||2026-09-09
+3|1||1|0.00|||1575815.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||1575815.00|0|0|0|0||||2026-09-09
 4|1||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||1|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-09
 5|1||1|6313763.00|0.04||252600.00|Descuento Salud|DESCUENTO_SALUD||1|IBC * porcentajeSaludTrabajador||||252600.00|0|0|0|0||||2026-09-09
 6|1||1|6313763.00|0.04||252600.00|Descuento Pension|DESCUENTO_PENSION||1|IBC * porcentajePensionTrabajador||||252600.00|0|0|0|0||||2026-09-09
