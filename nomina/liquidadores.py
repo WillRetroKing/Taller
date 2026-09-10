@@ -249,18 +249,24 @@ class LiquidadorOcasional(MotorLiquidacionBase):
         if factor_categoria is not None and "MEDIO" in ded_contra:
             factor_categoria = factor_categoria / Decimal("2")
 
-        # Si el profesor tiene categoría registrada, aplicar el factor de la tabla estatutaria (CU-21)
+        salario_estatutario = None
         if factor_categoria is not None:
-            factor = factor_categoria
+            salario_estatutario = self.gestor._redondear(salario_minimo * factor_categoria)
+
+        # Si el contrato tiene un salarioBase expresamente pactado (ej. Caso FSP 8M), respetarlo si es superior
+        if contrato.salarioBase is not None and contrato.salarioBase > self.CERO:
+            if salario_estatutario is not None and contrato.salarioBase < salario_estatutario:
+                salario_base = salario_estatutario
+            else:
+                salario_base = contrato.salarioBase
+        elif salario_estatutario is not None:
+            salario_base = salario_estatutario
         elif contrato.factorSalarialSMMLV is not None and contrato.factorSalarialSMMLV > self.CERO:
             factor = contrato.factorSalarialSMMLV
+            salario_base = self.gestor._redondear(salario_minimo * factor)
         else:
             factor = Decimal("2.645") if "MEDIO" not in ded_contra else Decimal("1.3225")
-
-        factor = self.gestor._decimal(factor, "factor salarial del contrato")
-
-        # CU-21: salarioBase = SALARIO_MINIMO * factorCategoriaDedicacion (No asignar salario mínimo directamente)
-        salario_base = self.gestor._redondear(salario_minimo * factor)
+            salario_base = self.gestor._redondear(salario_minimo * factor)
         horas_no_cumplidas = self.gestor._decimal(
             (contrato.horasIncumplidas if horas_incumplidas is None else horas_incumplidas) or self.CERO,
             "horas incumplidas",

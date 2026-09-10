@@ -348,7 +348,9 @@ class GestorNomina:
             pts_calculados = GestorFactores(self.categorias, self.factores, self.producciones, self.profesores).calcular_puntos_profesor(profesor.idProfesor, fecha)
 
         pts_guardados = Decimal(str(profesor.puntosSalariales or self.CERO))
-        return max(pts_escalafon, pts_calculados, pts_guardados)
+        if pts_guardados > self.CERO:
+            return pts_guardados
+        return max(pts_escalafon, pts_calculados)
 
     def _parametro_decimal(self, codigo: str, fecha: date | None = None) -> Decimal | None:
         return self.calc_deducciones.obtener_parametro_decimal(codigo, fecha)

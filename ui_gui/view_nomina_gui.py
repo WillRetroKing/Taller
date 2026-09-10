@@ -532,7 +532,7 @@ class NominaViewGUI(ctk.CTkFrame):
         periodos_abiertos = [p for p in self.controller.periodos_nomina if str(getattr(p, "estado", "ABIERTO")).upper() == "ABIERTO"]
         per_options = [f"#{p.idPeriodoNomina} - {getattr(p, 'anio', 2026)} {MESES[getattr(p, 'mes', 1)] if 1 <= getattr(p, 'mes', 1) <= 12 else ''} (Abierto)" for p in periodos_abiertos] or ["Sin periodos abiertos"]
 
-        combo_per = ctk.CTkComboBox(dialog, values=per_options, width=470)
+        combo_per = ctk.CTkComboBox(dialog, values=per_options, width=470, command=lambda _: _verificar_contrato_seleccionado(combo_emp.get()))
         combo_per.pack(padx=25, pady=(0, 8))
         if self.periodo_seleccionado_id:
             for opt in per_options:
@@ -561,28 +561,60 @@ class NominaViewGUI(ctk.CTkFrame):
                 return
 
             cod = seleccion.split(" - ")[0].strip()
-            tiene_contrato = False
+            contrato_activo = None
             if tipo_var.get() == "Docente":
                 prof = next((p for p in self.controller.profesores if str(p.codigoProfesor) == cod), None)
                 if prof:
-                    tiene_contrato = any(c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO" for c in self.controller.contratos)
+                    contrato_activo = next((c for c in self.controller.contratos if c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO"), None)
             else:
                 adm = next((a for a in self.controller.administrativos if str(a.codigoEmpleado) == cod or f"ADM-{a.idAdministrativo}" == cod), None)
                 if adm:
-                    tiene_contrato = any(c.idPersona == adm.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO" for c in self.controller.contratos)
+                    contrato_activo = next((c for c in self.controller.contratos if c.idPersona == adm.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO"), None)
 
-            if tiene_contrato:
-                lbl_alerta.configure(
-                    text="✅ Contrato laboral vigente confirmado. Cumple requisitos para liquidación.",
-                    text_color="#10B981"
-                )
-                btn_ejecutar.configure(state="normal", fg_color="#059669")
-            else:
+            if not contrato_activo:
                 lbl_alerta.configure(
                     text="⚠️ Este empleado NO cuenta con un contrato activo registrado.\nDebe formalizar su vinculación en el módulo de Contratos antes de liquidar.",
                     text_color="#EF4444"
                 )
                 btn_ejecutar.configure(state="disabled", fg_color="#475569")
+                return
+
+            # Sincronizar automáticamente el período correspondiente al contrato si existe
+            f_ini = getattr(contrato_activo, "fechaInicio", None)
+            sel_p_actual = combo_per.get()
+            target_pid = int(sel_p_actual.split(" - ")[0].replace("#", "").strip()) if sel_p_actual and sel_p_actual.startswith("#") else None
+            per_sel = next((p for p in periodos_abiertos if p.idPeriodoNomina == target_pid), None)
+
+            if f_ini and per_sel and (f_ini > per_sel.fechaFin or (getattr(contrato_activo, "fechaFin", None) and contrato_activo.fechaFin < per_sel.fechaInicio)):
+                periodo_coincidente = next((p for p in periodos_abiertos if p.fechaInicio <= f_ini <= p.fechaFin), None)
+                if periodo_coincidente:
+                    opt_match = next((opt for opt in per_options if opt.startswith(f"#{periodo_coincidente.idPeriodoNomina} ")), None)
+                    if opt_match:
+                        combo_per.set(opt_match)
+                        per_sel = periodo_coincidente
+
+            # Validar compatibilidad de fechas
+            if per_sel and f_ini:
+                if f_ini > per_sel.fechaFin:
+                    lbl_alerta.configure(
+                        text=f"⚠️ El contrato inicia el {f_ini}, posterior al período ({per_sel.fechaInicio} a {per_sel.fechaFin}). Seleccione el período correspondiente.",
+                        text_color="#F59E0B"
+                    )
+                    btn_ejecutar.configure(state="disabled", fg_color="#475569")
+                    return
+                if getattr(contrato_activo, "fechaFin", None) and contrato_activo.fechaFin < per_sel.fechaInicio:
+                    lbl_alerta.configure(
+                        text=f"⚠️ El contrato finalizó el {contrato_activo.fechaFin}, previo al período ({per_sel.fechaInicio} a {per_sel.fechaFin}).",
+                        text_color="#EF4444"
+                    )
+                    btn_ejecutar.configure(state="disabled", fg_color="#475569")
+                    return
+
+            lbl_alerta.configure(
+                text="✅ Contrato laboral vigente confirmado. Cumple requisitos para liquidación.",
+                text_color="#10B981"
+            )
+            btn_ejecutar.configure(state="normal", fg_color="#059669")
 
         combo_emp = ctk.CTkComboBox(dialog, values=prof_options, width=470, command=_verificar_contrato_seleccionado)
         combo_emp.pack(padx=25, pady=(0, 6))
@@ -702,6 +734,7 @@ class NominaViewGUI(ctk.CTkFrame):
             txt_periodo_full = f"Periodo N° {id_periodo or 1}"
 
         # 2. Información Salarial y Base de Cotización (IBC)
+        categoria_doc = getattr(liq, "categoriaLiquidada", None) or (getattr(prof, "categoriaDocente", None) if prof else None) or "Titular"
         tipo_liq = str(getattr(liq, "tipoProfesorLiquidado", "") or "").upper()
         regimen_liq = str(getattr(liq, "regimenLiquidado", "") or "").upper()
         es_planta_doc = (
@@ -1162,71 +1195,7 @@ class NominaViewGUI(ctk.CTkFrame):
                 liq = self.controller.gestor_nomina.liquidarProfesorCatedratico(contrato.idContrato, periodo.idPeriodoNomina)
         except Exception as err_liq:
             print(f"[NOMINA] Advertencia al liquidar con motor formal: {err_liq}")
-            liq = None
-
-        if liq is None:
-            # Fallback respetando estrictamente el régimen legal aplicable
-            val_punto = Decimal("23924")
-            try:
-                v_pto = self.controller.gestor_parametros.obtener_parametro_vigente("VALOR_PUNTO_SALARIAL", getattr(periodo, "fechaFin", None))
-                if v_pto:
-                    val_punto = Decimal(str(v_pto))
-            except Exception:
-                pass
-
-            smmlv = Decimal("1300000")
-            try:
-                v_smm = self.controller.gestor_parametros.obtener_parametro_vigente("SALARIO_MINIMO", getattr(periodo, "fechaFin", None))
-                if v_smm:
-                    smmlv = Decimal(str(v_smm))
-            except Exception:
-                pass
-
-            val_cat = Decimal("38500")
-
-            if "PLANTA" in tipo_prof:
-                pts = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0))
-                if pts == 0:
-                    cat = str(getattr(prof, "categoriaDocente", "") or "").upper()
-                    pts = {"AUXILIAR": Decimal("180"), "ASISTENTE": Decimal("250"), "ASOCIADO": Decimal("350"), "TITULAR": Decimal("450")}.get(cat, Decimal("450"))
-                    if "DOCTOR" in str(getattr(prof, "maximoNivelEstudio", "")).upper():
-                        pts += Decimal("120")
-                    prof.puntosSalariales = pts
-                f_ded = Decimal("0.5") if "MEDIO" in str(getattr(contrato, "dedicacion", "")).upper() else Decimal("1")
-                sueldo_base = (pts * val_punto * f_ded).quantize(Decimal("1"))
-            elif getattr(contrato, "salarioBase", None):
-                sueldo_base = Decimal(str(contrato.salarioBase))
-            elif "CATEDRATICO" in tipo_prof:
-                hrs = Decimal(str(getattr(contrato, "horasSemanales", 12) or 12))
-                sueldo_base = hrs * Decimal("4") * val_cat
-            elif "OCASIONAL" in tipo_prof:
-                factor = Decimal(str(getattr(contrato, "factorSalarialSMMLV", "3.125") or "3.125"))
-                sueldo_base = (smmlv * factor).quantize(Decimal("1"))
-            else:
-                sueldo_base = Decimal("0")
-
-            devengado_final = sueldo_base
-            total_deducciones = (devengado_final * Decimal("0.08")).quantize(Decimal("1"))
-            neto_pagar = devengado_final - total_deducciones
-            prestaciones = (devengado_final * Decimal("0.2083")).quantize(Decimal("1"))
-
-            self.controller.liquidaciones = [l for l in self.controller.liquidaciones if l.idProfesor != prof.idProfesor or l.idPeriodoNomina != periodo.idPeriodoNomina]
-
-            siguiente_id = max((l.idLiquidacion or 0 for l in self.controller.liquidaciones), default=0) + 1
-            liq = LiquidacionNomina(
-                idLiquidacion=siguiente_id,
-                idProfesor=prof.idProfesor,
-                idContrato=contrato.idContrato,
-                idPeriodoNomina=periodo.idPeriodoNomina,
-                fechaLiquidacion=date.today(),
-                salarioBase=round(sueldo_base, 2),
-                totalDevengado=round(devengado_final, 2),
-                totalDescuentos=round(total_deducciones, 2),
-                netoPagar=round(neto_pagar, 2),
-                totalPrestaciones=round(prestaciones, 2),
-                estado="LIQUIDADO",
-            )
-            self.controller.liquidaciones.append(liq)
+            return False, f"El motor de nómina no pudo liquidar el docente: {err_liq}"
 
         self.controller._recrear_gestores()
         return True, "Docente liquidado exitosamente."
@@ -1258,43 +1227,11 @@ class NominaViewGUI(ctk.CTkFrame):
             self.controller.detalles_liquidacion = [d for d in self.controller.detalles_liquidacion if getattr(d, "idLiquidacion", None) not in ids_previos]
             self.controller._recrear_gestores()
 
-        liq = None
         try:
             liq = self.controller.gestor_nomina.liquidarAdministrativo(contrato.idContrato, periodo.idPeriodoNomina)
-        except Exception:
-            liq = None
-
-        if liq is None:
-            sueldo_base = Decimal(str(contrato.salarioBase or adm.salarioBase or 2800000))
-            smmlv = Decimal("1750905")
-            auxilio = Decimal("249095") if sueldo_base <= Decimal("2") * smmlv else Decimal("0")
-            devengado = sueldo_base + auxilio
-            ibc = sueldo_base
-            salud = (ibc * Decimal("0.04")).quantize(Decimal("1"))
-            pension = (ibc * Decimal("0.04")).quantize(Decimal("1"))
-            deducciones = salud + pension
-            neto = devengado - deducciones
-            prestaciones = (devengado * Decimal("0.2183")).quantize(Decimal("1"))
-
-            siguiente_id = max((l.idLiquidacion or 0 for l in self.controller.liquidaciones), default=0) + 1
-            liq = LiquidacionNomina(
-                idLiquidacion=siguiente_id,
-                idProfesor=None,
-                idContrato=contrato.idContrato,
-                idPeriodoNomina=periodo.idPeriodoNomina,
-                fechaLiquidacion=date.today(),
-                salarioBase=round(sueldo_base, 2),
-                totalDevengado=round(devengado, 2),
-                totalDescuentos=round(deducciones, 2),
-                netoPagar=round(neto, 2),
-                totalPrestaciones=round(prestaciones, 2),
-                baseCotizacionSeguridadSocial=round(ibc, 2),
-                valorAuxilioTransporteCotizado=round(auxilio, 2),
-                estado="PROCESADA",
-                regimenLiquidado="LEY_100_CST",
-                categoriaLiquidada=adm.cargo or "ADMINISTRATIVO",
-            )
-            self.controller.liquidaciones.append(liq)
+        except Exception as err_liq:
+            print(f"[NOMINA] Advertencia al liquidar administrativo con motor formal: {err_liq}")
+            return False, f"El motor de nómina no pudo liquidar el administrativo: {err_liq}"
 
         self.controller._recrear_gestores()
         return True, "Administrativo liquidado exitosamente."
