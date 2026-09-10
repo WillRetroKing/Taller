@@ -113,10 +113,14 @@ class NominaViewGUI(ctk.CTkFrame):
 
         self.tab_liquidaciones = self.tabview.add("📊 Resumen de Liquidaciones")
         self.tab_parafiscales = self.tabview.add("🏢 Aportes Patronales & Parafiscales")
+        self.tab_anual = self.tabview.add("📅 Desglose de Nómina Anual")
         self.tab_normatividad = self.tabview.add("📜 Reglas Decreto 1279 / Acuerdo 027")
 
         self.scroll_parafiscales = ctk.CTkScrollableFrame(self.tab_parafiscales, fg_color="transparent")
         self.scroll_parafiscales.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.scroll_anual = ctk.CTkScrollableFrame(self.tab_anual, fg_color="transparent")
+        self.scroll_anual.pack(fill="both", expand=True, padx=10, pady=10)
 
         self._llenar_tab_normatividad()
         self.actualizar()
@@ -1389,3 +1393,109 @@ class NominaViewGUI(ctk.CTkFrame):
         self._crear_tarjetas_kpi()
         self._llenar_tab_liquidaciones()
         self._llenar_tab_parafiscales()
+        self._llenar_tab_anual()
+
+    def _llenar_tab_anual(self) -> None:
+        if not hasattr(self, "scroll_anual"):
+            return
+        for w in self.scroll_anual.winfo_children():
+            w.destroy()
+
+        from pathlib import Path
+        from nomina.desglose_anual import CalculadorDesgloseAnual
+        setattr(self.controller.gestor_nomina, "personas", self.controller.personas)
+        calculador = CalculadorDesgloseAnual(self.controller.gestor_nomina)
+        institucional = calculador.generar_desglose_institucional(2026)
+
+        # Header con botón de exportar
+        top_bar = ctk.CTkFrame(self.scroll_anual, fg_color="transparent")
+        top_bar.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(
+            top_bar,
+            text="📅 Consolidado Anual de Nómina y Prestaciones Sociales (Cierre 360 Días)",
+            font=ctk.CTkFont(family="Segoe UI", size=15, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
+        ).pack(side="left")
+
+        def _exportar_reporte():
+            txt = calculador.generar_reporte_texto(2026)
+            p = Path("docs/DESGLOSE_NOMINA_ANUAL_2026.md")
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(txt, encoding="utf-8")
+            btn_exp.configure(text="✅ Exportado a docs/DESGLOSE_NOMINA_ANUAL_2026.md", fg_color="#059669")
+
+        btn_exp = ctk.CTkButton(
+            top_bar,
+            text="📥 Exportar Reporte Anual (.md)",
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            fg_color="#0067C0",
+            hover_color="#005FB8",
+            command=_exportar_reporte,
+            height=32,
+            corner_radius=6,
+        )
+        btn_exp.pack(side="right")
+
+        # KPIs Anuales
+        kpi_frame = ctk.CTkFrame(self.scroll_anual, fg_color="transparent")
+        kpi_frame.pack(fill="x", pady=(0, 15))
+
+        kpis = [
+            ("💵 Devengado Anual", f"$ {institucional['total_devengado_anual']:,.0f} COP", Colors.WIN_BLUE),
+            ("📉 Deducciones Anuales", f"$ {institucional['total_descuentos_anual']:,.0f} COP", Colors.ACCENT_DANGER),
+            ("✅ Neto Anual Docentes", f"$ {institucional['total_neto_anual']:,.0f} COP", "#10B981"),
+            ("🏖️ Prestaciones Anuales", f"$ {institucional['total_prestaciones_anual']:,.0f} COP", Colors.ACCENT_WARNING),
+            ("🏢 Costo Total Empleador", f"$ {institucional['costo_total_institucional_anual']:,.0f} COP", "#8B5CF6"),
+        ]
+
+        for tit, val, col in kpis:
+            card = ctk.CTkFrame(kpi_frame, fg_color=Colors.BG_CARD, corner_radius=8, border_width=1, border_color=Colors.BORDER_SUBTLE)
+            card.pack(side="left", fill="both", expand=True, padx=4)
+            ctk.CTkLabel(card, text=tit, font=ctk.CTkFont(size=10, weight="bold"), text_color=Colors.TEXT_MUTED).pack(anchor="w", padx=10, pady=(8, 2))
+            ctk.CTkLabel(card, text=val, font=ctk.CTkFont(size=12, weight="bold"), text_color=col).pack(anchor="w", padx=10, pady=(0, 8))
+
+        # Tarjetas detalladas por contrato
+        for d in institucional["desgloses_individuales"]:
+            c_card = ctk.CTkFrame(self.scroll_anual, fg_color=Colors.BG_CARD, corner_radius=10, border_width=1, border_color=Colors.BORDER_SUBTLE)
+            c_card.pack(fill="x", pady=8)
+
+            c_hdr = ctk.CTkFrame(c_card, fg_color="transparent")
+            c_hdr.pack(fill="x", padx=14, pady=(10, 6))
+
+            ctk.CTkLabel(
+                c_hdr,
+                text=f"👤 {d.nombre_completo} — Contrato #{d.id_contrato} ({d.tipo_personal} | {d.regimen})",
+                font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
+                text_color=Colors.TEXT_MAIN,
+            ).pack(side="left")
+
+            ctk.CTkLabel(
+                c_hdr,
+                text=f"Vigencia: {d.meses_considerados} meses ({d.dias_trabajados_anio} días)  |  Costo Total: $ {d.costo_total_empleador_anual:,.0f} COP",
+                font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+                text_color=Colors.WIN_BLUE,
+            ).pack(side="right")
+
+            headers = ["Concepto Salarial / Prestacional", "Categoría", "Factor / %", "Valor Mensual", "Valor Anual Consolidado"]
+            col_weights = [4, 2, 3, 3, 3]
+            col_mins = [180, 100, 120, 110, 120]
+
+            t = PITAGridTable(c_card, headers=headers, col_weights=col_weights, col_mins=col_mins)
+            t.pack(fill="x", padx=10, pady=(0, 10))
+
+            for it in d.items:
+                cat_color = {
+                    "DEVENGADO": "#10B981",
+                    "DEDUCCION": "#EF4444",
+                    "PRESTACION": "#F59E0B",
+                    "APORTE_PATRONAL": "#6366F1",
+                }.get(it.categoria, "#94A3B8")
+
+                t.add_row_items([
+                    it.concepto,
+                    ("badge", it.categoria, "active" if it.categoria == "DEVENGADO" else "neutral"),
+                    it.porcentaje_o_factor,
+                    f"$ {it.valor_mensual_promedio:,.2f}",
+                    (f"$ {it.valor_anual_consolidado:,.2f}", cat_color),
+                ])

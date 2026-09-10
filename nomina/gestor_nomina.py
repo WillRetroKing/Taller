@@ -202,6 +202,16 @@ class GestorNomina:
     def totales_por_tipo_profesor(self, id_periodo_nomina: int) -> dict[str, dict[str, Decimal]]:
         return self.ciclo_vida.totales_por_tipo_profesor(id_periodo_nomina)
 
+    def desglose_nomina_anual(self, id_contrato: int, anio: int = 2026) -> Any:
+        from nomina.desglose_anual import CalculadorDesgloseAnual
+        calculador = CalculadorDesgloseAnual(self)
+        return calculador.generar_desglose_por_contrato(id_contrato, anio=anio)
+
+    def resumen_nomina_anual(self, anio: int = 2026) -> dict[str, Any]:
+        from nomina.desglose_anual import CalculadorDesgloseAnual
+        calculador = CalculadorDesgloseAnual(self)
+        return calculador.generar_desglose_institucional(anio=anio)
+
     # ------------------------------------------------------------------
     # HELPERS Y CONSULTAS INTERNAS
     # ------------------------------------------------------------------
