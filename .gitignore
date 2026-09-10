@@ -83,6 +83,8 @@ _deps/
 *.sln.docstates
 .vscode/
 .idea/
+.claude/
+.gemini/
 *.swp
 *.swo
 *~
