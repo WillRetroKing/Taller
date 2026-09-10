@@ -1,0 +1,4 @@
+1|1|LUNES|18:00|20:00|Campus Virtual UNAD - Moodle|Sede Virtual Nacional|TEORICA|ACTIVO
+2|1|MIERCOLES|18:00|20:00|Webconferencia Teams|Sede Virtual Nacional|PRACTICA|ACTIVO
+3|2|MARTES|19:00|21:00|Laboratorio Remoto Cloud|Sede Virtual Nacional|PRACTICA|ACTIVO
+4|3|JUEVES|18:00|20:00|Webconferencia Teams|Sede Virtual Nacional|TEORICA|ACTIVO

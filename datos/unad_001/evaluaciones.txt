@@ -1,0 +1,3 @@
+1|1|Fase 1 - Reconocimiento|PARCIAL|25|2026-02-28|Actividad individual inicial|ACTIVO
+2|1|Fase 2 - Trabajo Colaborativo|PARCIAL|50|2026-04-30|Taller de aplicación virtual|ACTIVO
+3|1|Fase 3 - Evaluación Final POC|FINAL|25|2026-06-10|Prueba objetiva cerrada|ACTIVO

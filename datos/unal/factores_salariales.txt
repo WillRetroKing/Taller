@@ -1,0 +1,3 @@
+1|Doctorado en Ciencias Computacionales|TITULO_ACADEMICO||120||2010-06-01|Res. Rectoría UNAL 105|1|ACTIVO||||||||||||||||||||||
+2|Artículo IEEE Transactions Q1|PRODUCTIVIDAD_ACADEMICA||15||2023-03-15|Comité Puntaje UNAL|1|ACTIVO||||||||||||||||||||||
+3|Libro de Investigación en Complejidad Computacional|PRODUCTIVIDAD_ACADEMICA||35||2022-05-20|Comité Puntaje UNAL 410|1|ACTIVO||||||||||||||||||||||

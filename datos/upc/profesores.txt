@@ -1,0 +1,4 @@
+1|4|DOC-5277|1|2010-02-01|OCASIONAL|ASOCIADO|TIEMPO_COMPLETO|DOCTORADO|Ingeniero de Sistemas|Estructura de Datos e Ingeniería de Software|40|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||
+2|5|PROF-002|1|2020-01-15|CATEDRATICO|ASISTENTE|HORA_CATEDRA|MAESTRIA|Ingeniero de Sistemas|Bases de Datos|12|0|ACTIVO|Acuerdo 027|||||||||||||||||||||||||||||||||||||||||||
+3|6|PROF-003|2|2018-01-20|PLANTA|TITULAR|TIEMPO_COMPLETO|DOCTORADO|Enfermera Especialista|Salud Pública|40|600|ACTIVO|Decreto 1279|||||||||||||||||||||||||||||||||||||||||||
+4|8|DOC-OC-042|1|2026-08-01|OCASIONAL|ASISTENTE|TIEMPO_COMPLETO|MAESTRIA|Ingeniero de Sistemas|Inteligencia Artificial|40|0|ACTIVO|Acuerdo 027 de 2024|||||||||||||||||||GRUPO_B|||1||CERT-INV-2026-004|MAESTRIA|Magíster en Informática|2020-06-15|1|||1|0.45|||||||||||

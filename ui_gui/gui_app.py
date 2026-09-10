@@ -62,12 +62,18 @@ class PITAApplication(ctk.CTk):
         header_brand = ctk.CTkFrame(self.header_frame, fg_color="transparent")
         header_brand.pack(side="left", padx=20, pady=10)
 
-        ctk.CTkLabel(
+        nombre_univ_act = (
+            self.controller.universidad_activa.nombre.upper()
+            if self.controller.universidad_activa and self.controller.universidad_activa.nombre
+            else "SISTEMA MULTI-UNIVERSITARIO"
+        )
+        self.lbl_univ = ctk.CTkLabel(
             header_brand,
-            text="🏛️ UNIVERSIDAD POPULAR DEL CESAR",
+            text=f"🏛️ {nombre_univ_act}",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
             text_color=Colors.TEXT_ACCENT,
-        ).pack(anchor="w")
+        )
+        self.lbl_univ.pack(anchor="w")
 
         ctk.CTkLabel(
             header_brand,
@@ -93,6 +99,46 @@ class PITAApplication(ctk.CTk):
             text_color=Colors.BADGE_ACTIVE_TXT,
         )
         self.lbl_status.pack(padx=12, pady=4)
+
+        # Selector de Universidad Activa (Multi-Tenancy por Directorio)
+        nombres_univ = (
+            [t.nombre for t in self.controller.tenants if t.nombre]
+            if getattr(self.controller, "tenants", None)
+            else ([u.nombre for u in self.controller.universidades if u.nombre] or ["Universidad Popular del Cesar"])
+        )
+        val_inicial = (
+            self.controller.tenant_activo.nombre
+            if getattr(self.controller, "tenant_activo", None)
+            else (self.controller.universidad_activa.nombre if self.controller.universidad_activa else nombres_univ[0])
+        )
+        self.selector_univ = ctk.CTkOptionMenu(
+            self.header_frame,
+            values=nombres_univ,
+            command=self._on_cambiar_universidad,
+            width=260,
+            height=30,
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            fg_color="#F8FAFC",
+            button_color=Colors.ACCENT_PRIMARY,
+            text_color=Colors.TEXT_MAIN,
+        )
+        self.selector_univ.set(val_inicial)
+        self.selector_univ.pack(side="right", padx=(6, 10), pady=12)
+
+        self.btn_nueva_univ = ctk.CTkButton(
+            self.header_frame,
+            text="➕ Nueva Univ.",
+            command=self._abrir_modal_nueva_universidad,
+            width=110,
+            height=30,
+            font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            fg_color=Colors.BG_CARD,
+            hover_color=Colors.BORDER_SUBTLE,
+            text_color=Colors.ACCENT_PRIMARY,
+            border_width=1,
+            border_color=Colors.BORDER_SUBTLE,
+        )
+        self.btn_nueva_univ.pack(side="right", padx=(0, 6), pady=12)
 
         # ------------------------------------------------------------------
         # Sidebar (Navegación Lateral Estilo Windows 11 NavigationRail Limpio)
@@ -265,6 +311,188 @@ class PITAApplication(ctk.CTk):
     def _cambiar_tema(self, seleccion: str) -> None:
         mode = "Dark" if "Oscuro" in seleccion else "Light"
         ctk.set_appearance_mode(mode)
+
+    def _on_cambiar_universidad(self, nombre_seleccionado: str) -> None:
+        if self.controller.seleccionar_universidad(nombre_seleccionado):
+            univ = self.controller.universidad_activa
+            nom = univ.nombre if univ and univ.nombre else nombre_seleccionado
+            if hasattr(self, "lbl_univ"):
+                self.lbl_univ.configure(text=f"🏛️ {nom.upper()}")
+            if hasattr(self, "lbl_status") and hasattr(self.controller, "directorio_datos"):
+                dir_label = self.controller.directorio_datos.name
+                self.lbl_status.configure(text=f"🟢 Conectado: datos/{dir_label}/")
+            self.title(f"PITA v2.0 - Programa Integrado de Transacciones Académicas | {nom}")
+            if hasattr(self, "vista_actual") and self.vista_actual in self.vistas:
+                self.mostrar_vista(self.vista_actual)
+
+    def _abrir_modal_nueva_universidad(self) -> None:
+        """Modal para registrar una nueva universidad con código único institucional y almacenamiento aislado."""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("🏛️ Registrar Nueva Universidad - PITA v2.0")
+        dialog.geometry("540x560")
+        dialog.resizable(False, False)
+        dialog.grab_set()
+
+        card = ctk.CTkFrame(dialog, fg_color=Colors.BG_CARD, corner_radius=12, border_width=1, border_color=Colors.BORDER_SUBTLE)
+        card.pack(fill="both", expand=True, padx=20, pady=20)
+
+        ctk.CTkLabel(
+            card,
+            text="🏛️ Registrar Nueva Universidad",
+            font=ctk.CTkFont(family="Segoe UI", size=17, weight="bold"),
+            text_color=Colors.TEXT_MAIN,
+        ).pack(pady=(15, 2))
+
+        ctk.CTkLabel(
+            card,
+            text="Se creará un espacio de datos aislado con código único institucional.",
+            font=ctk.CTkFont(family="Segoe UI", size=11),
+            text_color=Colors.TEXT_MUTED,
+        ).pack(pady=(0, 15))
+
+        # Formulario
+        form_frame = ctk.CTkFrame(card, fg_color="transparent")
+        form_frame.pack(fill="x", padx=25)
+
+        # 1. Nombre Institucional
+        ctk.CTkLabel(form_frame, text="Nombre Institución *", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).grid(row=0, column=0, sticky="w", pady=(4, 2))
+        entry_nombre = ctk.CTkEntry(form_frame, placeholder_text="ej: Universidad de Antioquia", width=420)
+        entry_nombre.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+
+        # 2. Código Único + Botón Sugerir
+        ctk.CTkLabel(form_frame, text="Código Único Institucional *", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).grid(row=2, column=0, sticky="w", pady=(4, 2))
+        code_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        code_frame.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+        entry_codigo = ctk.CTkEntry(code_frame, placeholder_text="ej: UDEA", width=290)
+        entry_codigo.pack(side="left", fill="x", expand=True, padx=(0, 8))
+
+        def _auto_sugerir():
+            nom = entry_nombre.get().strip()
+            if nom and hasattr(self.controller, "gestor_multi_tenancy"):
+                sug = self.controller.gestor_multi_tenancy.generar_codigo_sugerido(nom)
+                entry_codigo.delete(0, "end")
+                entry_codigo.insert(0, sug)
+
+        btn_sugerir = ctk.CTkButton(
+            code_frame,
+            text="✨ Sugerir Código",
+            width=120,
+            command=_auto_sugerir,
+            fg_color=Colors.BG_SIDEBAR,
+            hover_color=Colors.BORDER_SUBTLE,
+            text_color=Colors.TEXT_MAIN,
+            border_width=1,
+            border_color=Colors.BORDER_SUBTLE,
+        )
+        btn_sugerir.pack(side="right")
+
+        def _on_nombre_key(event):
+            if not entry_codigo.get().strip():
+                _auto_sugerir()
+        entry_nombre.bind("<KeyRelease>", _on_nombre_key)
+
+        # 3. NIT y Ciudad
+        row_nit_ciu = ctk.CTkFrame(form_frame, fg_color="transparent")
+        row_nit_ciu.grid(row=4, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+
+        f_nit = ctk.CTkFrame(row_nit_ciu, fg_color="transparent")
+        f_nit.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        ctk.CTkLabel(f_nit, text="NIT", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(anchor="w", pady=(0, 2))
+        entry_nit = ctk.CTkEntry(f_nit, placeholder_text="890980040-8")
+        entry_nit.pack(fill="x")
+
+        f_ciu = ctk.CTkFrame(row_nit_ciu, fg_color="transparent")
+        f_ciu.pack(side="right", fill="x", expand=True, padx=(5, 0))
+        ctk.CTkLabel(f_ciu, text="Ciudad Sede", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(anchor="w", pady=(0, 2))
+        entry_ciudad = ctk.CTkEntry(f_ciu, placeholder_text="Medellín")
+        entry_ciudad.pack(fill="x")
+
+        # 4. Caja Compensación y ARL
+        row_caja_arl = ctk.CTkFrame(form_frame, fg_color="transparent")
+        row_caja_arl.grid(row=5, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+
+        f_caja = ctk.CTkFrame(row_caja_arl, fg_color="transparent")
+        f_caja.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        ctk.CTkLabel(f_caja, text="Caja Compensación", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(anchor="w", pady=(0, 2))
+        entry_caja = ctk.CTkEntry(f_caja, placeholder_text="Comfenalco")
+        entry_caja.pack(fill="x")
+
+        f_arl = ctk.CTkFrame(row_caja_arl, fg_color="transparent")
+        f_arl.pack(side="right", fill="x", expand=True, padx=(5, 0))
+        ctk.CTkLabel(f_arl, text="ARL", font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"), text_color=Colors.TEXT_MAIN).pack(anchor="w", pady=(0, 2))
+        entry_arl = ctk.CTkEntry(f_arl, placeholder_text="Positiva")
+        entry_arl.pack(fill="x")
+
+        # Etiqueta de validación/error
+        lbl_error = ctk.CTkLabel(card, text="", font=ctk.CTkFont(family="Segoe UI", size=11), text_color="#EF4444")
+        lbl_error.pack(pady=(4, 8))
+
+        # Botones de Acción
+        btn_box = ctk.CTkFrame(card, fg_color="transparent")
+        btn_box.pack(pady=(0, 10))
+
+        def _cancelar():
+            dialog.destroy()
+
+        def _guardar_nueva_universidad():
+            nombre = entry_nombre.get().strip()
+            codigo = entry_codigo.get().strip().upper()
+            nit = entry_nit.get().strip()
+            ciudad = entry_ciudad.get().strip()
+            caja = entry_caja.get().strip()
+            arl = entry_arl.get().strip()
+
+            if not nombre:
+                lbl_error.configure(text="⚠️ Ingrese el nombre de la universidad.")
+                return
+
+            if not codigo:
+                codigo = self.controller.gestor_multi_tenancy.generar_codigo_sugerido(nombre)
+
+            # Validar unicidad del código
+            if not self.controller.gestor_multi_tenancy.validar_codigo_disponible(codigo):
+                lbl_error.configure(text=f"⚠️ El código '{codigo}' ya existe. Debe ser único.")
+                return
+
+            try:
+                tenant = self.controller.agregar_universidad(
+                    nombre=nombre,
+                    codigo=codigo,
+                    nit=nit,
+                    ciudad=ciudad,
+                    caja_compensacion=caja,
+                    arl=arl,
+                )
+                # Actualizar selector del header
+                nombres_actualizados = [t.nombre for t in self.controller.tenants if t.nombre]
+                self.selector_univ.configure(values=nombres_actualizados)
+                self.selector_univ.set(tenant.nombre)
+                self._on_cambiar_universidad(tenant.nombre)
+                dialog.destroy()
+            except Exception as e:
+                lbl_error.configure(text=f"❌ Error al guardar: {e}")
+
+        ctk.CTkButton(
+            btn_box,
+            text="Cancelar",
+            width=110,
+            command=_cancelar,
+            fg_color="transparent",
+            border_width=1,
+            border_color=Colors.BORDER_SUBTLE,
+            text_color=Colors.TEXT_MUTED,
+        ).pack(side="left", padx=8)
+
+        ctk.CTkButton(
+            btn_box,
+            text="💾 Guardar y Activar",
+            width=170,
+            command=_guardar_nueva_universidad,
+            fg_color=Colors.ACCENT_PRIMARY,
+            hover_color=Colors.ACCENT_PRIMARY_HOVER,
+            text_color="#FFFFFF",
+            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
+        ).pack(side="left", padx=8)
 
     # ------------------------------------------------------------------
     # Gestión de Inicio Con / Sin Datos (Requerimiento #59 Taller PITA)

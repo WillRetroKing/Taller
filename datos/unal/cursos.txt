@@ -1,0 +1,5 @@
+1|UNAL-INF-101|Programación y Algoritmia|Fundamentos de diseño algorítmico y POO|4|4|2|6|35|3.0|ACTIVO
+2|UNAL-INF-201|Estructuras de Datos y Complejidad|Árboles, grafos y análisis asintótico|4|4|2|6|30|3.0|ACTIVO
+3|UNAL-INF-301|Inteligencia Artificial Aplicada|Búsquedas, redes neuronales y ML|4|3|3|6|25|3.0|ACTIVO
+4|UNAL-MED-101|Morfología y Anatomía Humana|Anatomía sistémica y disección|5|4|4|7|25|3.0|ACTIVO
+5|UNAL-PSI-101|Procesos Psicológicos Básicos|Percepción, memoria y atención|3|3|0|6|35|3.0|ACTIVO
