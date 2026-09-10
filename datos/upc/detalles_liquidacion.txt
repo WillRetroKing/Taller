@@ -46,3 +46,18 @@
 46|3||1|14354400.00|0.04||574176.00|Aporte Caja|APORTE_CAJA||1|IBC * porcentajeCajaCompensacion||||574176.00|0|0|0|0||||2026-09-09
 47|3||1|14354400.00|0.02||0.00|Aporte Sena|APORTE_SENA||1|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-09
 48|3||1|14354400.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||1|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-09
+49|4||1|4062500.00|||4062500.00|Salario Ordinario|SALARIO_ORDINARIO||1|salarioOrdinario = IBC||||4062500.00|1|1|1|1||||2026-09-10
+50|4||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||1|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-10
+51|4||1|0.00|||585000.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||585000.00|0|0|0|0||||2026-09-10
+52|4||1|0.00|||546000.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||1|SMMLV * factorInvestigacion||||546000.00|0|0|0|0||||2026-09-10
+53|4||1|4062500.00|0.04||162500.00|Descuento Salud|DESCUENTO_SALUD||1|IBC * porcentajeSaludTrabajador||||162500.00|0|0|0|0||||2026-09-10
+54|4||1|4062500.00|0.04||162500.00|Descuento Pension|DESCUENTO_PENSION||1|IBC * porcentajePensionTrabajador||||162500.00|0|0|0|0||||2026-09-10
+55|4||1|4062500.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||1|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-10
+56|4||1|4062500.00|0||0.00|Retencion Fuente|RETENCION_FUENTE||1|IBC * porcentajeRetencionFuente||||0.00|0|0|0|0||||2026-09-10
+57|4||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||1|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-10
+58|4||1|4062500.00|0.085||0.00|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||1|IBC * porcentajeSaludEmpleador||||0.00|0|0|0|0||||2026-09-10
+59|4||1|4062500.00|0.12||487500.00|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||1|IBC * porcentajePensionEmpleador||||487500.00|0|0|0|0||||2026-09-10
+60|4||1|4062500.00|||21206.25|Aporte Arl|APORTE_ARL||1|IBC * porcentajeARL||||21206.25|0|0|0|0||||2026-09-10
+61|4||1|4062500.00|0.04||162500.00|Aporte Caja|APORTE_CAJA||1|IBC * porcentajeCajaCompensacion||||162500.00|0|0|0|0||||2026-09-10
+62|4||1|4062500.00|0.02||0.00|Aporte Sena|APORTE_SENA||1|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-10
+63|4||1|4062500.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||1|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-10

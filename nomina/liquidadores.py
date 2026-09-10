@@ -69,11 +69,15 @@ class MotorLiquidacionBase:
         descuento_pension = calc_ded.calcular_descuento_pension(ibc, fecha_param, codigos_utilizados)
         fondo_solidaridad = calc_ded.calcular_fondo_solidaridad(ibc, salario_minimo, fecha_param, codigos_utilizados)
         retencion = calc_ded.calcular_retencion_fuente(ibc, fecha_param, codigos_utilizados=codigos_utilizados)
-        descuento_estampilla = (
-            calc_ded.calcular_descuento_estampilla(salario_base, fecha_param, codigos_utilizados)
-            if calc_ded.obtener_parametro_decimal("PORCENTAJE_ESTAMPILLA", fecha_param) is not None
-            else self.CERO
-        )
+        aplica_estampilla = getattr(contrato, "aplicaDescuentoEstampilla", None)
+        if aplica_estampilla is False or "sin estampilla" in str(getattr(contrato, "observaciones", "") or "").lower():
+            descuento_estampilla = self.CERO
+        else:
+            descuento_estampilla = (
+                calc_ded.calcular_descuento_estampilla(salario_base, fecha_param, codigos_utilizados)
+                if calc_ded.obtener_parametro_decimal("PORCENTAJE_ESTAMPILLA", fecha_param) is not None
+                else self.CERO
+            )
 
         # En universidades públicas (UPC), los docentes de planta (servidores públicos bajo Dec. 1279)
         # no están exonerados de salud patronal (Art. 114-1 Par. 2 E.T.), aportando el 8.5%.

@@ -115,11 +115,13 @@ class CalculadoraPrestaciones:
         *,
         regimen_especial: bool = False,
     ) -> dict[str, Decimal]:
+        cesantias = self.redondear(base_prestacional * dias / self.DIAS_ANIO)
+        intereses = self.redondear(cesantias * dias * Decimal("0.12") / self.DIAS_ANIO)
         provisiones = {
-            "cesantias": self.redondear(base_prestacional * dias / self.DIAS_ANIO),
-            "intereses": self.redondear(base_prestacional * dias * Decimal("0.12") / self.DIAS_ANIO),
+            "cesantias": cesantias,
+            "intereses": intereses,
             "prima_servicios": self.redondear(base_prestacional * dias / self.DIAS_ANIO),
-            "prima_navidad": self.redondear(base_prestacional * dias / self.DIAS_ANIO),
+            "prima_navidad": self.redondear(base_prestacional * dias / self.DIAS_ANIO) if regimen_especial else self.CERO,
             "vacaciones": self.redondear(ibc * dias / Decimal("720")),
             "prima_vacaciones": self.CERO,
             "bonificacion_servicios": self.CERO,

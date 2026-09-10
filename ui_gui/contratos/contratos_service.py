@@ -66,23 +66,31 @@ class ContratosService:
         dedicacion: str,
         horas: Decimal,
     ) -> Decimal:
-        val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("19850"))
-        val_cat = self.obtener_parametro_decimal("VALOR_HORA_CATEDRA", Decimal("45000"))
+        val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("23924"))
+        val_cat = self.obtener_parametro_decimal("VALOR_HORA_CATEDRA", Decimal("38500"))
         smmlv = self.obtener_parametro_decimal("SALARIO_MINIMO", Decimal("1300000"))
 
         if "PLANTA" in tipo_contrato:
             pts = getattr(profesor, "puntosSalariales", 0) or 0
-            return Decimal(str(pts)) * val_pto
+            if not pts or pts == 0:
+                cat = str(getattr(profesor, "categoriaDocente", "") or "").upper()
+                pts_cat = {"AUXILIAR": Decimal("180"), "ASISTENTE": Decimal("250"), "ASOCIADO": Decimal("350"), "TITULAR": Decimal("450")}.get(cat, Decimal("250"))
+                pts_doc = Decimal("120") if "DOCTOR" in str(getattr(profesor, "maximoNivelEstudio", "")).upper() else Decimal("0")
+                pts = pts_cat + pts_doc
+            sug = Decimal(str(pts)) * val_pto
+            if "MEDIO" in dedicacion:
+                sug = sug / Decimal("2")
+            return sug
 
         elif "OCASIONAL" in tipo_contrato:
             cat = getattr(profesor, "categoriaDocente", "AUXILIAR") or "AUXILIAR"
             factores_cat = {
-                "AUXILIAR": Decimal("2.6"),
-                "ASISTENTE": Decimal("3.0"),
-                "ASOCIADO": Decimal("3.5"),
-                "TITULAR": Decimal("4.0"),
+                "AUXILIAR": Decimal("2.645"),
+                "ASISTENTE": Decimal("3.125"),
+                "ASOCIADO": Decimal("3.606"),
+                "TITULAR": Decimal("3.918"),
             }
-            mult = factores_cat.get(cat, Decimal("2.6"))
+            mult = factores_cat.get(cat, Decimal("3.125"))
             sug = smmlv * mult
             if "MEDIO" in dedicacion:
                 sug = sug / Decimal("2")
@@ -232,6 +240,12 @@ class ContratosService:
         prof = self.buscar_profesor_por_id(id_profesor)
         if prof:
             prof.puntosSalariales = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0)) + puntos
+            if str(getattr(prof, "tipoProfesor", "")).upper() == "PLANTA":
+                val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("23924"))
+                for c in self.controller.contratos:
+                    if c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO":
+                        f_ded = Decimal("0.5") if "MEDIO" in str(getattr(c, "dedicacion", "")).upper() else Decimal("1")
+                        c.salarioBase = (prof.puntosSalariales * val_pto * f_ded).quantize(Decimal("1"))
 
         self.controller._recrear_gestores()
         return factor
@@ -268,6 +282,12 @@ class ContratosService:
         prof = self.buscar_profesor_por_id(id_profesor)
         if prof:
             prof.puntosSalariales = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0)) + puntos_docente
+            if str(getattr(prof, "tipoProfesor", "")).upper() == "PLANTA":
+                val_pto = self.obtener_parametro_decimal("VALOR_PUNTO_SALARIAL", Decimal("23924"))
+                for c in self.controller.contratos:
+                    if c.idPersona == prof.idPersona and str(getattr(c, "estado", "")).upper() == "ACTIVO":
+                        f_ded = Decimal("0.5") if "MEDIO" in str(getattr(c, "dedicacion", "")).upper() else Decimal("1")
+                        c.salarioBase = (prof.puntosSalariales * val_pto * f_ded).quantize(Decimal("1"))
 
         self.controller._recrear_gestores()
         return produccion

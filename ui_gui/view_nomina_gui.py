@@ -1160,25 +1160,47 @@ class NominaViewGUI(ctk.CTkFrame):
                 liq = self.controller.gestor_nomina.liquidarProfesorOcasional(contrato.idContrato, periodo.idPeriodoNomina)
             elif "CATEDRATICO" in tipo_prof:
                 liq = self.controller.gestor_nomina.liquidarProfesorCatedratico(contrato.idContrato, periodo.idPeriodoNomina)
-        except Exception:
+        except Exception as err_liq:
+            print(f"[NOMINA] Advertencia al liquidar con motor formal: {err_liq}")
             liq = None
 
         if liq is None:
-            # Fallback respetando estrictamente el contrato activo existente
-            val_punto = Decimal("19850")
+            # Fallback respetando estrictamente el régimen legal aplicable
+            val_punto = Decimal("23924")
+            try:
+                v_pto = self.controller.gestor_parametros.obtener_parametro_vigente("VALOR_PUNTO_SALARIAL", getattr(periodo, "fechaFin", None))
+                if v_pto:
+                    val_punto = Decimal(str(v_pto))
+            except Exception:
+                pass
+
             smmlv = Decimal("1300000")
+            try:
+                v_smm = self.controller.gestor_parametros.obtener_parametro_vigente("SALARIO_MINIMO", getattr(periodo, "fechaFin", None))
+                if v_smm:
+                    smmlv = Decimal(str(v_smm))
+            except Exception:
+                pass
+
             val_cat = Decimal("38500")
 
-            if getattr(contrato, "salarioBase", None):
-                sueldo_base = Decimal(str(contrato.salarioBase))
-            elif "PLANTA" in tipo_prof:
+            if "PLANTA" in tipo_prof:
                 pts = Decimal(str(getattr(prof, "puntosSalariales", 0) or 0))
-                sueldo_base = (pts * val_punto) if pts > 0 else Decimal("3500000")
+                if pts == 0:
+                    cat = str(getattr(prof, "categoriaDocente", "") or "").upper()
+                    pts = {"AUXILIAR": Decimal("180"), "ASISTENTE": Decimal("250"), "ASOCIADO": Decimal("350"), "TITULAR": Decimal("450")}.get(cat, Decimal("450"))
+                    if "DOCTOR" in str(getattr(prof, "maximoNivelEstudio", "")).upper():
+                        pts += Decimal("120")
+                    prof.puntosSalariales = pts
+                f_ded = Decimal("0.5") if "MEDIO" in str(getattr(contrato, "dedicacion", "")).upper() else Decimal("1")
+                sueldo_base = (pts * val_punto * f_ded).quantize(Decimal("1"))
+            elif getattr(contrato, "salarioBase", None):
+                sueldo_base = Decimal(str(contrato.salarioBase))
             elif "CATEDRATICO" in tipo_prof:
                 hrs = Decimal(str(getattr(contrato, "horasSemanales", 12) or 12))
                 sueldo_base = hrs * Decimal("4") * val_cat
             elif "OCASIONAL" in tipo_prof:
-                factor = Decimal(str(getattr(contrato, "factorSalarialSMMLV", "2.92") or "2.92"))
+                factor = Decimal(str(getattr(contrato, "factorSalarialSMMLV", "3.125") or "3.125"))
                 sueldo_base = (smmlv * factor).quantize(Decimal("1"))
             else:
                 sueldo_base = Decimal("0")
