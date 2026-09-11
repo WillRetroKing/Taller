@@ -176,6 +176,15 @@ Una vez finalizada la compilación exitosamente, los ejecutables estarán listos
 .\build\Release\pita_backend.exe
 ```
 
+##### Ejecutar la Suite de Pruebas Automatizadas (GoogleTest):
+```powershell
+# Estando dentro de la carpeta 'cpp':
+.\build\Release\pita_tests.exe
+
+# O mediante CTest:
+ctest --test-dir build -C Release --output-on-failure
+```
+
 *(Opcional: Si deseas tener el ejecutable `pita_gui.exe` en la raíz del proyecto para ejecutarlo como `.\pita_gui.exe`, puedes copiarlo ejecutando: `copy .\build\Release\pita_gui.exe ..\`)*.
 
 ---

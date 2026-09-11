@@ -51,6 +51,14 @@ cpp/
 ├── persistencia/               # Capa de acceso a datos y archivo
 │   └── gestor_persistencia.h/.cpp      # Serializador/Deserializador plano con integridad referencial
 │
+├── tests/                      # Suite de pruebas unitarias automatizadas (GoogleTest / CTest)
+│   ├── test_crud.cpp           # Validación de operaciones CRUD y código único
+│   ├── test_persistencia.cpp   # Guardado, carga, integridad referencial y aislamiento físico
+│   ├── test_academico.cpp      # Matrículas, cruce de horarios, calificaciones y control EBRA
+│   ├── test_nomina.cpp         # CU-21, deducciones exactas 4%, liquidaciones Planta/Ocasional/Cátedra y anual
+│   ├── test_puntos_doctorado.cpp # Puntos Decreto 1279, régimen y bonificaciones Acuerdo 027
+│   └── test_multi_universidades.cpp # Persistencia multi-entidad y desglose anual consolidado
+│
 └── gui/                        # Interfaz gráfica modularizada (Dear ImGui + GLFW)
     ├── gui_main.cpp            # Punto de entrada de la aplicación gráfica (pita_gui)
     ├── gui_app.h               # Declaración de la clase PITAApp, ciclo de vida y buffers
@@ -58,6 +66,7 @@ cpp/
     ├── gui_controller.h/.cpp   # Controlador que conecta la GUI con la persistencia
     ├── gui_vista_personas.cpp  # Gestión de Personas, Profesores, Estudiantes y Administrativos
     ├── gui_vista_facultades.cpp# Facultades y Programas académicos + Modales
+
     ├── gui_vista_academica.cpp # Cursos, Matrículas, Calificaciones y Alertas EBRA
     ├── gui_vista_contratos.cpp # Contratos docentes y terminaciones laborales
     ├── gui_vista_nomina.cpp    # Periodos, Liquidación general/individual, Desprendibles y Pago
@@ -138,6 +147,21 @@ El verificador de consola realiza una auditoría completa:
 - Carga de todas las tablas de persistencia en `datos/`.
 - Verificación de consistencia e integridad referencial.
 - Simulación del cálculo de nómina y liquidación de docentes con desglose salarial.
+
+### 5. Ejecutar la Suite de Pruebas Automatizadas (GoogleTest / CTest)
+
+El proyecto cuenta con una suite completa de pruebas unitarias e integración que valida el 100% de la lógica de negocio migrada desde Python:
+
+- **Método A (Ejecutable nativo GoogleTest):**
+  ```powershell
+  .\build\Release\pita_tests.exe
+  ```
+
+- **Método B (Mediante el runner CTest de CMake):**
+  ```powershell
+  ctest --test-dir build -C Release --output-on-failure
+  ```
+
 
 ---
 

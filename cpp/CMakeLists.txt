@@ -35,11 +35,15 @@ set(PITA_BACKEND_SOURCES
     nomina/calculadora_prestaciones.cpp
     nomina/gestor_nomina.cpp
     nomina/desglose_anual.cpp
+    gui/gui_controller.cpp
 )
 
 # Librería estática pita_lib
 add_library(pita_lib STATIC ${PITA_BACKEND_SOURCES})
-target_include_directories(pita_lib PUBLIC ${PITA_INCLUDE_DIRS})
+target_include_directories(pita_lib PUBLIC
+    ${PITA_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/gui
+)
 
 # Ejecutable CLI (Consola)
 add_executable(pita_backend main.cpp)
@@ -100,7 +104,6 @@ set(PITA_GUI_SOURCES
     gui/gui_vista_contratos.cpp
     gui/gui_vista_nomina.cpp
     gui/gui_vista_parametros.cpp
-    gui/gui_controller.cpp
 )
 
 add_executable(pita_gui ${PITA_GUI_SOURCES})
@@ -116,3 +119,42 @@ target_link_libraries(pita_gui PRIVATE
     glfw
     opengl32
 )
+
+# ======================================================================
+# Suite de Pruebas Automatizadas con GoogleTest (GTest)
+# ======================================================================
+enable_testing()
+
+message(STATUS "Configurando GoogleTest via FetchContent...")
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.14.0
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+set(PITA_TEST_SOURCES
+    tests/test_crud.cpp
+    tests/test_persistencia.cpp
+    tests/test_academico.cpp
+    tests/test_nomina.cpp
+    tests/test_puntos_doctorado.cpp
+    tests/test_multi_universidades.cpp
+)
+
+add_executable(pita_tests ${PITA_TEST_SOURCES})
+target_include_directories(pita_tests PRIVATE
+    ${PITA_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/gui
+)
+target_link_libraries(pita_tests PRIVATE
+    pita_lib
+    gtest_main
+)
+
+add_test(NAME pita_tests COMMAND pita_tests)
+set_tests_properties(pita_tests PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+

@@ -117,6 +117,12 @@ std::string GestorPersistencia::serializarUniversidad(const Universidad& e) {
     res += (e.sitioWeb.has_value() ? *e.sitioWeb : "");
     res += '|';
     res += (e.estado.has_value() ? *e.estado : "");
+    res += '|';
+    res += (e.cajaCompensacion.has_value() ? *e.cajaCompensacion : "");
+    res += '|';
+    res += (e.arl.has_value() ? *e.arl : "");
+    res += '|';
+    res += (e.aplicaExoneracionLey1819.has_value() ? (*e.aplicaExoneracionLey1819 ? "1" : "0") : "");
     return res;
 }
 
