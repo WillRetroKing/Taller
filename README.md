@@ -42,9 +42,9 @@ Taller/
 ├── nomina/                        # Motor de cálculo salarial y prestacional (Python)
 ├── persistencia/                  # Gestor CRUD e integridad referencial (Python)
 ├── ui_gui/                        # Interfaz gráfica moderna en CustomTkinter (Python)
+├── tests/                         # Suite de pruebas automatizadas (pytest/unittest)
 ├── main.py / gui_main.py          # Puntos de entrada para la versión Python
 ├── requirements.txt               # Dependencias de Python
-├── test_pita.py                   # Suite de pruebas automatizadas (pytest/unittest)
 │
 ├── cpp/                           # Proyecto completo desacoplado en C++17
 │   ├── CMakeLists.txt             # Configuración de compilación con CMake
@@ -93,7 +93,7 @@ python gui_main.py
 
 #### 4. Ejecutar las Pruebas Automatizadas:
 ```bash
-pytest -v test_pita.py
+pytest -v tests/
 ```
 
 ---
