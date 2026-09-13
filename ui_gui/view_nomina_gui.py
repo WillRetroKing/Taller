@@ -820,6 +820,8 @@ class NominaViewGUI(ctk.CTkFrame):
                 # Nombre descriptivo formal
                 if tm == "SALARIO_ORDINARIO":
                     label_nombre = label_asignacion_basica
+                elif tm == "BONIFICACION_POSGRADO":
+                    label_nombre = "Bonificación por Posgrado (Dec. 1279)" if es_planta else "Bonificación por Cualificación en Postgrado"
                 elif tm in MAPA_CONCEPTOS:
                     label_nombre = MAPA_CONCEPTOS[tm][0]
                 elif obs and obs.strip():

@@ -34,176 +34,18 @@ def _parse_fecha(texto: str) -> date | None:
 # DIÁLOGOS DE PERÍODOS ACADÉMICOS
 # ======================================================================
 
-class DialogNuevoPeriodo(ctk.CTkToplevel):
-    """Modal para aperturar / registrar un nuevo período académico."""
+class DialogFormPeriodo(ctk.CTkToplevel):
+    """Modal unificado para dar de alta o editar un Período Académico."""
 
-    def __init__(self, parent: ctk.CTkBaseClass, service: AcademicaService, on_success: Callable[[], None]) -> None:
-        super().__init__(parent)
-        self.service = service
-        self.on_success = on_success
-
-        self.title("📅 Aperturar Período Académico")
-        self.geometry("540x660")
-        self.minsize(500, 580)
-        self.grab_set()
-
-        self._crear_interfaz()
-
-    def _crear_interfaz(self) -> None:
-        scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=20, pady=15)
-
-        ctk.CTkLabel(
-            scroll,
-            text="Apertura de Período Académico",
-            font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
-            text_color="#F8FAFC",
-        ).pack(anchor="w", pady=(0, 2))
-
-        ctk.CTkLabel(
-            scroll,
-            text="Configure el calendario académico, períodos de matrícula y cancelaciones.",
-            font=ctk.CTkFont(family="Segoe UI", size=11),
-            text_color="#94A3B8",
-        ).pack(anchor="w", pady=(0, 15))
-
-        def _campo(label: str, default: str = "", placeholder: str = "") -> ctk.CTkEntry:
-            ctk.CTkLabel(
-                scroll,
-                text=label,
-                font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-                text_color="#CBD5E1",
-            ).pack(anchor="w", pady=(6, 2))
-            e = ctk.CTkEntry(scroll, height=36, placeholder_text=placeholder)
-            if default:
-                e.insert(0, default)
-            e.pack(fill="x", pady=(0, 4))
-            return e
-
-        self.entry_codigo = _campo("Código del Período *", default="2026-1", placeholder="ej: 2026-1")
-        self.entry_nombre = _campo("Nombre Descriptivo *", default="Primer Período Académico 2026", placeholder="ej: Primer Semestre 2026")
-
-        row_num = ctk.CTkFrame(scroll, fg_color="transparent")
-        row_num.pack(fill="x", pady=(4, 4))
-        row_num.columnconfigure(0, weight=1)
-        row_num.columnconfigure(1, weight=1)
-
-        ctk.CTkLabel(row_num, text="Año *", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").grid(row=0, column=0, sticky="w", padx=(0, 5))
-        ctk.CTkLabel(row_num, text="Número Período (Semestre) *", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").grid(row=0, column=1, sticky="w", padx=(5, 0))
-
-        self.entry_anio = ctk.CTkEntry(row_num, height=36)
-        self.entry_anio.insert(0, "2026")
-        self.entry_anio.grid(row=1, column=0, sticky="ew", padx=(0, 5), pady=(2, 0))
-
-        self.entry_num = ctk.CTkEntry(row_num, height=36)
-        self.entry_num.insert(0, "1")
-        self.entry_num.grid(row=1, column=1, sticky="ew", padx=(5, 0), pady=(2, 0))
-
-        self.entry_finicio = _campo("Fecha Inicio Clases (YYYY-MM-DD)", default="2026-02-01")
-        self.entry_ffin = _campo("Fecha Fin Clases (YYYY-MM-DD)", default="2026-06-30")
-        self.entry_fmat_ini = _campo("Fecha Inicio Matrícula (YYYY-MM-DD)", default="2026-01-15")
-        self.entry_fmat_fin = _campo("Fecha Fin Matrícula (YYYY-MM-DD)", default="2026-02-10")
-        self.entry_fcanc = _campo("Fecha Límite Cancelación (YYYY-MM-DD)", default="2026-04-15")
-
-        ctk.CTkLabel(
-            scroll,
-            text="Estado Inicial del Período *",
-            font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"),
-            text_color="#CBD5E1",
-        ).pack(anchor="w", pady=(8, 2))
-
-        self.combo_estado = ctk.CTkComboBox(
-            scroll,
-            values=["ABIERTO", "EN_CURSO", "PLANIFICACION", "CERRADO"],
-            height=36,
-        )
-        self.combo_estado.set("ABIERTO")
-        self.combo_estado.pack(fill="x", pady=(0, 10))
-
-        self.lbl_error = ctk.CTkLabel(scroll, text="", font=ctk.CTkFont(size=12, weight="bold"), text_color="#EF4444")
-        self.lbl_error.pack(anchor="w", pady=(2, 8))
-
-        btn_box = ctk.CTkFrame(scroll, fg_color="transparent")
-        btn_box.pack(fill="x", pady=(10, 10))
-
-        ctk.CTkButton(
-            btn_box,
-            text="💾 Aperturar Período",
-            font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
-            fg_color="#059669",
-            hover_color="#047857",
-            height=40,
-            command=self._guardar,
-        ).pack(side="left", expand=True, fill="x", padx=(0, 6))
-
-        ctk.CTkButton(
-            btn_box,
-            text="Cancelar",
-            font=ctk.CTkFont(family="Segoe UI", size=12),
-            fg_color="#334155",
-            hover_color="#475569",
-            height=40,
-            command=self.destroy,
-        ).pack(side="right", padx=(6, 0))
-
-    def _guardar(self) -> None:
-        cod = self.entry_codigo.get().strip()
-        nom = self.entry_nombre.get().strip()
-        anio_str = self.entry_anio.get().strip()
-        num_str = self.entry_num.get().strip()
-
-        if not cod or not nom:
-            self.lbl_error.configure(text="⚠️ El código y el nombre son obligatorios.")
-            return
-
-        try:
-            anio = int(anio_str)
-            num = int(num_str)
-        except ValueError:
-            self.lbl_error.configure(text="⚠️ Año y Número de período deben ser números enteros.")
-            return
-
-        f_ini = _parse_fecha(self.entry_finicio.get())
-        f_fin = _parse_fecha(self.entry_ffin.get())
-        f_mat_ini = _parse_fecha(self.entry_fmat_ini.get())
-        f_mat_fin = _parse_fecha(self.entry_fmat_fin.get())
-        f_canc = _parse_fecha(self.entry_fcanc.get())
-
-        estado = self.combo_estado.get().strip() or "ABIERTO"
-
-        ctrl = self.service.controller
-        nuevo_id = max((p.idPeriodo or 0 for p in ctrl.periodos_academicos), default=0) + 1
-
-        periodo = PeriodoAcademico(
-            idPeriodo=nuevo_id,
-            codigo=cod,
-            nombre=nom,
-            anio=anio,
-            numeroPeriodo=num,
-            fechaInicio=f_ini,
-            fechaFin=f_fin,
-            fechaInicioMatricula=f_mat_ini,
-            fechaFinMatricula=f_mat_fin,
-            fechaLimiteCancelacion=f_canc,
-            estado=estado,
-        )
-
-        ctrl.periodos_academicos.append(periodo)
-        ctrl.guardar_datos()
-        self.destroy()
-        self.on_success()
-
-
-class DialogEditarPeriodo(ctk.CTkToplevel):
-    """Modal para editar fechas y estado de un período académico existente."""
-
-    def __init__(self, parent: ctk.CTkBaseClass, service: AcademicaService, periodo: PeriodoAcademico, on_success: Callable[[], None]) -> None:
+    def __init__(self, parent: ctk.CTkBaseClass, service: 'AcademicaService', on_success: 'Callable[[], None]', periodo: 'PeriodoAcademico' = None) -> None:
         super().__init__(parent)
         self.service = service
         self.periodo = periodo
+        self.is_edit = periodo is not None
         self.on_success = on_success
 
-        self.title(f"✏️ Editar Período: {periodo.codigo}")
+        titulo = f"✏️ Editar Período: {periodo.codigo}" if self.is_edit else "➕ Abrir Nuevo Período Académico"
+        self.title(titulo)
         self.geometry("540x620")
         self.minsize(500, 550)
         self.grab_set()
@@ -216,29 +58,36 @@ class DialogEditarPeriodo(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             scroll,
-            text=f"Modificar Período Académico {self.periodo.codigo}",
+            text=f"Modificar Período Académico {self.periodo.codigo}" if self.is_edit else "Apertura de Período Académico",
             font=ctk.CTkFont(family="Segoe UI", size=18, weight="bold"),
             text_color="#F8FAFC",
         ).pack(anchor="w", pady=(0, 15))
 
-        def _campo(label: str, val: str) -> ctk.CTkEntry:
+        def _campo(label: str, val: str = "", placeholder: str = "") -> ctk.CTkEntry:
             ctk.CTkLabel(scroll, text=label, font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").pack(anchor="w", pady=(6, 2))
-            e = ctk.CTkEntry(scroll, height=36)
-            e.insert(0, val)
+            e = ctk.CTkEntry(scroll, placeholder_text=placeholder, height=36)
+            if val:
+                e.insert(0, val)
             e.pack(fill="x", pady=(0, 4))
             return e
 
-        self.entry_nom = _campo("Nombre Descriptivo *", self.periodo.nombre or "")
-        self.entry_finicio = _campo("Fecha Inicio Clases (YYYY-MM-DD)", str(self.periodo.fechaInicio or ""))
-        self.entry_ffin = _campo("Fecha Fin Clases (YYYY-MM-DD)", str(self.periodo.fechaFin or ""))
-        self.entry_fmat_ini = _campo("Fecha Inicio Matrícula (YYYY-MM-DD)", str(self.periodo.fechaInicioMatricula or ""))
-        self.entry_fmat_fin = _campo("Fecha Fin Matrícula (YYYY-MM-DD)", str(self.periodo.fechaFinMatricula or ""))
-        self.entry_fcanc = _campo("Fecha Límite Cancelación (YYYY-MM-DD)", str(self.periodo.fechaLimiteCancelacion or ""))
+        if not self.is_edit:
+            import datetime
+            y = datetime.date.today().year
+            self.entry_cod = _campo("Código del Período (ej: 2026-I, 2026-II) *", placeholder=f"ej: {y}-I")
+        
+        self.entry_nom = _campo("Nombre Descriptivo *", self.periodo.nombre if self.is_edit else "", placeholder="ej: Primer Semestre 2026")
+        self.entry_finicio = _campo("Fecha Inicio Clases (YYYY-MM-DD)", str(self.periodo.fechaInicio if self.is_edit and self.periodo.fechaInicio else ""), placeholder="ej: 2026-02-01")
+        self.entry_ffin = _campo("Fecha Fin Clases (YYYY-MM-DD)", str(self.periodo.fechaFin if self.is_edit and self.periodo.fechaFin else ""), placeholder="ej: 2026-06-15")
+        self.entry_fmat_ini = _campo("Fecha Inicio Matrícula (YYYY-MM-DD)", str(self.periodo.fechaInicioMatricula if self.is_edit and self.periodo.fechaInicioMatricula else ""))
+        self.entry_fmat_fin = _campo("Fecha Fin Matrícula (YYYY-MM-DD)", str(self.periodo.fechaFinMatricula if self.is_edit and self.periodo.fechaFinMatricula else ""))
+        self.entry_fcanc = _campo("Fecha Límite Cancelación (YYYY-MM-DD)", str(self.periodo.fechaLimiteCancelacion if self.is_edit and self.periodo.fechaLimiteCancelacion else ""))
 
-        ctk.CTkLabel(scroll, text="Estado del Período *", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").pack(anchor="w", pady=(8, 2))
-        self.combo_estado = ctk.CTkComboBox(scroll, values=["ABIERTO", "EN_CURSO", "PLANIFICACION", "CERRADO"], height=36)
-        self.combo_estado.set(self.periodo.estado or "ABIERTO")
-        self.combo_estado.pack(fill="x", pady=(0, 10))
+        if self.is_edit:
+            ctk.CTkLabel(scroll, text="Estado del Período *", font=ctk.CTkFont(family="Segoe UI", size=12, weight="bold"), text_color="#CBD5E1").pack(anchor="w", pady=(8, 2))
+            self.combo_estado = ctk.CTkComboBox(scroll, values=["ABIERTO", "EN_CURSO", "PLANIFICACION", "CERRADO"], height=36)
+            self.combo_estado.set(self.periodo.estado or "ABIERTO")
+            self.combo_estado.pack(fill="x", pady=(0, 10))
 
         self.lbl_error = ctk.CTkLabel(scroll, text="", font=ctk.CTkFont(size=12, weight="bold"), text_color="#EF4444")
         self.lbl_error.pack(anchor="w", pady=(2, 8))
@@ -248,7 +97,7 @@ class DialogEditarPeriodo(ctk.CTkToplevel):
 
         ctk.CTkButton(
             btn_box,
-            text="💾 Guardar Cambios",
+            text="💾 Guardar Cambios" if self.is_edit else "➕ Aperturar Período",
             font=ctk.CTkFont(family="Segoe UI", size=13, weight="bold"),
             fg_color="#10B981",
             hover_color="#059669",
@@ -259,27 +108,44 @@ class DialogEditarPeriodo(ctk.CTkToplevel):
         ctk.CTkButton(btn_box, text="Cancelar", font=ctk.CTkFont(size=12), fg_color="#334155", hover_color="#475569", height=40, command=self.destroy).pack(side="right", padx=(6, 0))
 
     def _guardar(self) -> None:
+        if not self.is_edit:
+            cod = self.entry_cod.get().strip()
         nom = self.entry_nom.get().strip()
-        if not nom:
+
+        if not self.is_edit and (not cod or not nom):
+            self.lbl_error.configure(text="⚠️ El código y el nombre son obligatorios.")
+            return
+        elif self.is_edit and not nom:
             self.lbl_error.configure(text="⚠️ El nombre es obligatorio.")
             return
 
-        self.periodo.nombre = nom
-        self.periodo.fechaInicio = _parse_fecha(self.entry_finicio.get())
-        self.periodo.fechaFin = _parse_fecha(self.entry_ffin.get())
-        self.periodo.fechaInicioMatricula = _parse_fecha(self.entry_fmat_ini.get())
-        self.periodo.fechaFinMatricula = _parse_fecha(self.entry_fmat_fin.get())
-        self.periodo.fechaLimiteCancelacion = _parse_fecha(self.entry_fcanc.get())
-        self.periodo.estado = self.combo_estado.get().strip() or "ABIERTO"
+        if self.is_edit:
+            self.periodo.nombre = nom
+            self.periodo.fechaInicio = _parse_fecha(self.entry_finicio.get())
+            self.periodo.fechaFin = _parse_fecha(self.entry_ffin.get())
+            self.periodo.fechaInicioMatricula = _parse_fecha(self.entry_fmat_ini.get())
+            self.periodo.fechaFinMatricula = _parse_fecha(self.entry_fmat_fin.get())
+            self.periodo.fechaLimiteCancelacion = _parse_fecha(self.entry_fcanc.get())
+            self.periodo.estado = self.combo_estado.get().strip() or "ABIERTO"
 
-        self.service.controller.guardar_datos()
-        self.destroy()
-        self.on_success()
-
-
-# ======================================================================
-# DIÁLOGOS DE PLANES DE ESTUDIO
-# ======================================================================
+            self.service.controller.guardar_datos()
+            self.destroy()
+            self.on_success()
+        else:
+            try:
+                self.service.crear_periodo(
+                    codigo=cod,
+                    nombre=nom,
+                    fecha_inicio=self.entry_finicio.get().strip(),
+                    fecha_fin=self.entry_ffin.get().strip(),
+                    matricula_ini=self.entry_fmat_ini.get().strip(),
+                    matricula_fin=self.entry_fmat_fin.get().strip(),
+                    limite_canc=self.entry_fcanc.get().strip()
+                )
+                self.destroy()
+                self.on_success()
+            except Exception as e:
+                self.lbl_error.configure(text=f"⚠️ Error: {e}")
 
 class DialogNuevoPlanEstudio(ctk.CTkToplevel):
     """Modal para crear un nuevo Plan de Estudio curricular."""

@@ -1,0 +1,3 @@
+1|1|Primer Parcial|PARCIAL|30|2026-03-15|Estructuras lineales|ACTIVO
+2|1|Segundo Parcial|PARCIAL|30|2026-04-30|Árboles y grafos|ACTIVO
+3|1|Examen Final|FINAL|40|2026-06-15|Examen práctico acumulativo|ACTIVO

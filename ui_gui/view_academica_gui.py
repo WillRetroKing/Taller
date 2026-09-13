@@ -17,8 +17,8 @@ from ui_gui.components import clean_enum
 from ui_gui.academica.academica_service import AcademicaService
 from ui_gui.academica.academica_tabs import AcademicaTabs
 from ui_gui.academica.dialogs_cursos_ofertas import (
-    DialogNuevoCurso,
-    DialogEditarCurso,
+    DialogFormCurso,
+    
     DialogNuevaOferta,
 )
 from ui_gui.academica.dialogs_notas import (
@@ -26,8 +26,8 @@ from ui_gui.academica.dialogs_notas import (
     DialogLimpiarNota,
 )
 from ui_gui.academica.dialogs_planes_periodos import (
-    DialogNuevoPeriodo,
-    DialogEditarPeriodo,
+    DialogFormPeriodo,
+    
     DialogNuevoPlanEstudio,
     DialogMallaCurricular,
 )
@@ -184,10 +184,10 @@ class AcademicaViewGUI(ctk.CTkFrame):
     # MODALES Y ACCIONES (RETROCOMPATIBILIDAD TOTAL)
     # ------------------------------------------------------------------
     def _abrir_modal_nuevo_periodo(self) -> None:
-        DialogNuevoPeriodo(self, self.service, on_success=self.actualizar)
+        DialogFormPeriodo(self, self.service, on_success=self.actualizar)
 
     def _editar_periodo(self, periodo: PeriodoAcademico) -> None:
-        DialogEditarPeriodo(self, self.service, periodo, on_success=self.actualizar)
+        DialogFormPeriodo(self, self.service, on_success=self.actualizar, periodo=periodo)
 
     def _cambiar_estado_periodo(self, periodo: PeriodoAcademico) -> None:
         nuevo = "CERRADO" if clean_enum(getattr(periodo, "estado", "")) == "ABIERTO" else "ABIERTO"
@@ -229,10 +229,10 @@ class AcademicaViewGUI(ctk.CTkFrame):
         self.actualizar()
 
     def _abrir_modal_nuevo_curso(self) -> None:
-        DialogNuevoCurso(self, self.service, on_success=self.actualizar)
+        DialogFormCurso(self, self.service, on_success=self.actualizar)
 
     def _editar_curso(self, curso: Curso) -> None:
-        DialogEditarCurso(self, curso, self.service, on_success=self.actualizar)
+        DialogFormCurso(self, self.service, on_success=self.actualizar, curso=curso)
 
     def _eliminar_curso(self, id_curso: int) -> None:
         self.service.eliminar_curso(id_curso)

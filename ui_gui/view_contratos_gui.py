@@ -9,11 +9,11 @@ from ui_gui.theme import Colors, create_styled_tabview
 from ui_gui.contratos.contratos_service import ContratosService
 from ui_gui.contratos.contratos_kpis import ContratosKPIs
 from ui_gui.contratos.contratos_tabs import ContratosTabsRenderer
-from ui_gui.contratos.dialog_nuevo_contrato import DialogNuevoContrato
+from ui_gui.contratos.dialog_form_contrato import DialogFormContrato
 from ui_gui.contratos.dialog_reconocer_puntos import DialogReconocerPuntos
 from ui_gui.contratos.dialog_contrato_acciones import (
     DialogDetalleContrato,
-    DialogEditarContrato,
+    
     DialogTerminarContrato,
 )
 
@@ -113,7 +113,7 @@ class ContratosViewGUI(ctk.CTkFrame):
     # MODALES
     # -------------------------------------------------------------------------
     def _abrir_modal_nuevo_contrato(self) -> None:
-        DialogNuevoContrato(self, self.controller, self.service, self.actualizar)
+        DialogFormContrato(self, self.controller, self.service, on_success=self.actualizar)
 
     def _abrir_modal_reconocer_puntos(self) -> None:
         DialogReconocerPuntos(self, self.controller, self.service, self.actualizar)
@@ -122,7 +122,7 @@ class ContratosViewGUI(ctk.CTkFrame):
         DialogDetalleContrato(self, contrato, self.controller, self.service)
 
     def _abrir_modal_editar_contrato(self, contrato: Contrato) -> None:
-        DialogEditarContrato(self, contrato, self.controller, self.service, self.actualizar)
+        DialogFormContrato(self, self.controller, self.service, on_success=self.actualizar, contrato=contrato)
 
     def _abrir_modal_terminar_contrato(self, contrato: Contrato) -> None:
         DialogTerminarContrato(self, contrato, self.controller, self.service, self.actualizar)

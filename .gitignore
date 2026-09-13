@@ -101,7 +101,9 @@ ehthumbs.db
 .Trashes
 
 # --- Archivos Temporales y Scratch ---
-scratch/
+scratch/*
+!scratch/generar_datos_iniciales.py
 tmp/
 *.tmp
 *.log
+*.bak

@@ -1,80 +1,48 @@
-1|1||1|1387592.00|||1387592.00|Salario Ordinario|SALARIO_ORDINARIO||1|salarioOrdinario = IBC||||1387592.00|1|1|1|1||||2026-09-10
-2|1||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||1|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-10
-3|1||1|0.00|||0.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||0.00|0|0|0|0||||2026-09-10
-4|1||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||1|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-10
-5|1||1|1387592.00|0.04||55500.00|Descuento Salud|DESCUENTO_SALUD||1|IBC * porcentajeSaludTrabajador||||55500.00|0|0|0|0||||2026-09-10
-6|1||1|1387592.00|0.04||55500.00|Descuento Pension|DESCUENTO_PENSION||1|IBC * porcentajePensionTrabajador||||55500.00|0|0|0|0||||2026-09-10
-7|1||1|1387592.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||1|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-10
-8|1||1|1387592.00|0||0.00|Retencion Fuente|RETENCION_FUENTE||1|IBC * porcentajeRetencionFuente||||0.00|0|0|0|0||||2026-09-10
-9|1||1|1387592.00|0.002||2775.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||1|salarioBase * porcentajeEstampilla||||2775.00|0|0|0|0||||2026-09-10
-10|1||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||1|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-10
-11|1||1|1387592.00|0.085||117945.32|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||1|IBC * porcentajeSaludEmpleador||||117945.32|0|0|0|0||||2026-09-10
-12|1||1|1387592.00|0.12||166511.04|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||1|IBC * porcentajePensionEmpleador||||166511.04|0|0|0|0||||2026-09-10
-13|1||1|1387592.00|||7243.23|Aporte Arl|APORTE_ARL||1|IBC * porcentajeARL||||7243.23|0|0|0|0||||2026-09-10
-14|1||1|1387592.00|0.04||55503.68|Aporte Caja|APORTE_CAJA||1|IBC * porcentajeCajaCompensacion||||55503.68|0|0|0|0||||2026-09-10
-15|1||1|1387592.00|0.02||0.00|Aporte Sena|APORTE_SENA||1|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-10
-16|1||1|1387592.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||1|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-10
-17|3||1|6313763.00|||6313763.00|Salario Ordinario|SALARIO_ORDINARIO||1|salarioOrdinario = IBC||||6313763.00|1|1|1|1||||2026-09-10
-18|3||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||1|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-10
-19|3||1|0.00|||1575815.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||1575815.00|0|0|0|0||||2026-09-10
-20|3||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||1|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-10
-21|3||1|6313763.00|0.04||252600.00|Descuento Salud|DESCUENTO_SALUD||1|IBC * porcentajeSaludTrabajador||||252600.00|0|0|0|0||||2026-09-10
-22|3||1|6313763.00|0.04||252600.00|Descuento Pension|DESCUENTO_PENSION||1|IBC * porcentajePensionTrabajador||||252600.00|0|0|0|0||||2026-09-10
-23|3||1|6313763.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||1|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-10
-24|3||1|6313763.00|0||107000.00|Retencion Fuente|RETENCION_FUENTE||1|IBC * porcentajeRetencionFuente||||107000.00|0|0|0|0||||2026-09-10
-25|3||1|6313763.00|0.002||12628.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||1|salarioBase * porcentajeEstampilla||||12628.00|0|0|0|0||||2026-09-10
-26|3||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||1|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-10
-27|3||1|6313763.00|0.085||0.00|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||1|IBC * porcentajeSaludEmpleador||||0.00|0|0|0|0||||2026-09-10
-28|3||1|6313763.00|0.12||757651.56|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||1|IBC * porcentajePensionEmpleador||||757651.56|0|0|0|0||||2026-09-10
-29|3||1|6313763.00|||32957.84|Aporte Arl|APORTE_ARL||1|IBC * porcentajeARL||||32957.84|0|0|0|0||||2026-09-10
-30|3||1|6313763.00|0.04||252550.52|Aporte Caja|APORTE_CAJA||1|IBC * porcentajeCajaCompensacion||||252550.52|0|0|0|0||||2026-09-10
-31|3||1|6313763.00|0.02||0.00|Aporte Sena|APORTE_SENA||1|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-10
-32|3||1|6313763.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||1|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-10
-33|5||1|1387592.00|||1387592.00|Salario Ordinario|SALARIO_ORDINARIO||2|salarioOrdinario = IBC||||1387592.00|1|1|1|1||||2026-09-10
-34|5||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||2|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-10
-35|5||1|0.00|||0.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||2|SMMLV * factorPosgrado||||0.00|0|0|0|0||||2026-09-10
-36|5||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||2|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-10
-37|5||1|1387592.00|0.04||55503.68|Descuento Salud|DESCUENTO_SALUD||2|IBC * porcentajeSaludTrabajador||||55503.68|0|0|0|0||||2026-09-10
-38|5||1|1387592.00|0.04||55503.68|Descuento Pension|DESCUENTO_PENSION||2|IBC * porcentajePensionTrabajador||||55503.68|0|0|0|0||||2026-09-10
-39|5||1|1387592.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||2|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-10
-40|5||1|1387592.00|0||107000.00|Retencion Fuente|RETENCION_FUENTE||2|IBC * porcentajeRetencionFuente||||107000.00|0|0|0|0||||2026-09-10
-41|5||1|1387592.00|0.002||2775.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||2|salarioBase * porcentajeEstampilla||||2775.00|0|0|0|0||||2026-09-10
-42|5||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||2|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-10
-43|5||1|1387592.00|0.085||117945.32|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||2|IBC * porcentajeSaludEmpleador||||117945.32|0|0|0|0||||2026-09-10
-44|5||1|1387592.00|0.12||166511.04|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||2|IBC * porcentajePensionEmpleador||||166511.04|0|0|0|0||||2026-09-10
-45|5||1|1387592.00|||7243.23|Aporte Arl|APORTE_ARL||2|IBC * porcentajeARL||||7243.23|0|0|0|0||||2026-09-10
-46|5||1|1387592.00|0.04||55503.68|Aporte Caja|APORTE_CAJA||2|IBC * porcentajeCajaCompensacion||||55503.68|0|0|0|0||||2026-09-10
-47|5||1|1387592.00|0.02||0.00|Aporte Sena|APORTE_SENA||2|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-10
-48|5||1|1387592.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||2|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-10
-49|6||1|2464000.00|||2464000.00|Salario Ordinario|SALARIO_ORDINARIO||2|salarioOrdinario = IBC||||2464000.00|1|1|1|1||||2026-09-10
-50|6||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||2|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-10
-51|6||1|0.00|||175091.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||2|SMMLV * factorPosgrado||||175091.00|0|0|0|0||||2026-09-10
-52|6||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||2|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-10
-53|6||1|2464000.00|0.04||98560.00|Descuento Salud|DESCUENTO_SALUD||2|IBC * porcentajeSaludTrabajador||||98560.00|0|0|0|0||||2026-09-10
-54|6||1|2464000.00|0.04||98560.00|Descuento Pension|DESCUENTO_PENSION||2|IBC * porcentajePensionTrabajador||||98560.00|0|0|0|0||||2026-09-10
-55|6||1|2464000.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||2|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-10
-56|6||1|2464000.00|0||107000.00|Retencion Fuente|RETENCION_FUENTE||2|IBC * porcentajeRetencionFuente||||107000.00|0|0|0|0||||2026-09-10
-57|6||1|2464000.00|0.002||4928.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||2|salarioBase * porcentajeEstampilla||||4928.00|0|0|0|0||||2026-09-10
-58|6||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||2|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-10
-59|6||1|2464000.00|0.085||0.00|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||2|IBC * porcentajeSaludEmpleador||||0.00|0|0|0|0||||2026-09-10
-60|6||1|2464000.00|0.12||295680.00|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||2|IBC * porcentajePensionEmpleador||||295680.00|0|0|0|0||||2026-09-10
-61|6||1|2464000.00|||12862.08|Aporte Arl|APORTE_ARL||2|IBC * porcentajeARL||||12862.08|0|0|0|0||||2026-09-10
-62|6||1|2464000.00|0.04||98560.00|Aporte Caja|APORTE_CAJA||2|IBC * porcentajeCajaCompensacion||||98560.00|0|0|0|0||||2026-09-10
-63|6||1|2464000.00|0.02||0.00|Aporte Sena|APORTE_SENA||2|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-10
-64|6||1|2464000.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||2|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-10
-65|7||1|6313763.00|||6313763.00|Salario Ordinario|SALARIO_ORDINARIO||2|salarioOrdinario = IBC||||6313763.00|1|1|1|1||||2026-09-10
-66|7||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||2|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-10
-67|7||1|0.00|||1575815.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||2|SMMLV * factorPosgrado||||1575815.00|0|0|0|0||||2026-09-10
-68|7||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||2|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-10
-69|7||1|6313763.00|0.04||252550.52|Descuento Salud|DESCUENTO_SALUD||2|IBC * porcentajeSaludTrabajador||||252550.52|0|0|0|0||||2026-09-10
-70|7||1|6313763.00|0.04||252550.52|Descuento Pension|DESCUENTO_PENSION||2|IBC * porcentajePensionTrabajador||||252550.52|0|0|0|0||||2026-09-10
-71|7||1|6313763.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||2|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-10
-72|7||1|6313763.00|0||107000.00|Retencion Fuente|RETENCION_FUENTE||2|IBC * porcentajeRetencionFuente||||107000.00|0|0|0|0||||2026-09-10
-73|7||1|6313763.00|0.002||12628.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||2|salarioBase * porcentajeEstampilla||||12628.00|0|0|0|0||||2026-09-10
-74|7||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||2|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-10
-75|7||1|6313763.00|0.085||0.00|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||2|IBC * porcentajeSaludEmpleador||||0.00|0|0|0|0||||2026-09-10
-76|7||1|6313763.00|0.12||757651.56|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||2|IBC * porcentajePensionEmpleador||||757651.56|0|0|0|0||||2026-09-10
-77|7||1|6313763.00|||32957.84|Aporte Arl|APORTE_ARL||2|IBC * porcentajeARL||||32957.84|0|0|0|0||||2026-09-10
-78|7||1|6313763.00|0.04||252550.52|Aporte Caja|APORTE_CAJA||2|IBC * porcentajeCajaCompensacion||||252550.52|0|0|0|0||||2026-09-10
-79|7||1|6313763.00|0.02||0.00|Aporte Sena|APORTE_SENA||2|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-10
-80|7||1|6313763.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||2|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-10
+1|1||1|6313763.00|||6313763.00|Salario Ordinario|SALARIO_ORDINARIO||1|salarioOrdinario = IBC||||6313763.00|1|1|1|1||||2026-09-13
+2|1||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||1|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-13
+3|1||1|0.00|||1575815.00|Bonificación por Cualificación en Postgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||1575815.00|0|0|0|0||||2026-09-13
+4|1||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||1|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-13
+5|1||1|6313763.00|0.04||252600.00|Descuento Salud|DESCUENTO_SALUD||1|IBC * porcentajeSaludTrabajador||||252600.00|0|0|0|0||||2026-09-13
+6|1||1|6313763.00|0.04||252600.00|Descuento Pension|DESCUENTO_PENSION||1|IBC * porcentajePensionTrabajador||||252600.00|0|0|0|0||||2026-09-13
+7|1||1|6313763.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||1|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-13
+8|1||1|6313763.00|0||107000.00|Retencion Fuente|RETENCION_FUENTE||1|IBC * porcentajeRetencionFuente||||107000.00|0|0|0|0||||2026-09-13
+9|1||1|6313763.00|0.002||12628.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||1|salarioBase * porcentajeEstampilla||||12628.00|0|0|0|0||||2026-09-13
+10|1||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||1|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-13
+11|1||1|6313763.00|0.085||0.00|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||1|IBC * porcentajeSaludEmpleador||||0.00|0|0|0|0||||2026-09-13
+12|1||1|6313763.00|0.12||757651.56|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||1|IBC * porcentajePensionEmpleador||||757651.56|0|0|0|0||||2026-09-13
+13|1||1|6313763.00|||32957.84|Aporte Arl|APORTE_ARL||1|IBC * porcentajeARL||||32957.84|0|0|0|0||||2026-09-13
+14|1||1|6313763.00|0.04||252550.52|Aporte Caja|APORTE_CAJA||1|IBC * porcentajeCajaCompensacion||||252550.52|0|0|0|0||||2026-09-13
+15|1||1|6313763.00|0.02||0.00|Aporte Sena|APORTE_SENA||1|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-13
+16|1||1|6313763.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||1|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-13
+17|2||1|1848000.00|||1848000.00|Salario Ordinario|SALARIO_ORDINARIO||1|salarioOrdinario = IBC||||1848000.00|1|1|1|1||||2026-09-13
+18|2||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||1|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-13
+19|2||1|0.00|||787907.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||787907.00|0|0|0|0||||2026-09-13
+20|2||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||1|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-13
+21|2||1|1848000.00|0.04||73920.00|Descuento Salud|DESCUENTO_SALUD||1|IBC * porcentajeSaludTrabajador||||73920.00|0|0|0|0||||2026-09-13
+22|2||1|1848000.00|0.04||73920.00|Descuento Pension|DESCUENTO_PENSION||1|IBC * porcentajePensionTrabajador||||73920.00|0|0|0|0||||2026-09-13
+23|2||1|1848000.00|0.01||0.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||1|IBC * porcentajeFondoSolidaridad||||0.00|0|0|0|0||||2026-09-13
+24|2||1|1848000.00|0||107000.00|Retencion Fuente|RETENCION_FUENTE||1|IBC * porcentajeRetencionFuente||||107000.00|0|0|0|0||||2026-09-13
+25|2||1|1848000.00|0.002||3696.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||1|salarioBase * porcentajeEstampilla||||3696.00|0|0|0|0||||2026-09-13
+26|2||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||1|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-13
+27|2||1|1848000.00|0.085||0.00|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||1|IBC * porcentajeSaludEmpleador||||0.00|0|0|0|0||||2026-09-13
+28|2||1|1848000.00|0.12||221760.00|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||1|IBC * porcentajePensionEmpleador||||221760.00|0|0|0|0||||2026-09-13
+29|2||1|1848000.00|||9646.56|Aporte Arl|APORTE_ARL||1|IBC * porcentajeARL||||9646.56|0|0|0|0||||2026-09-13
+30|2||1|1848000.00|0.04||73920.00|Aporte Caja|APORTE_CAJA||1|IBC * porcentajeCajaCompensacion||||73920.00|0|0|0|0||||2026-09-13
+31|2||1|1848000.00|0.02||0.00|Aporte Sena|APORTE_SENA||1|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-13
+32|2||1|1848000.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||1|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-13
+33|3||1|10765800.00|||10765800.00|Salario Ordinario|SALARIO_ORDINARIO||1|salarioOrdinario = IBC||||10765800.00|1|1|1|1||||2026-09-13
+34|3||1|0.00|||0.00|Auxilio Transporte|AUXILIO_TRANSPORTE||1|auxilio según salario y SMMLV||||0.00|0|0|1|0||||2026-09-13
+35|3||1|0.00|||0.00|Bonificacion Posgrado|BONIFICACION_POSGRADO||1|SMMLV * factorPosgrado||||0.00|0|0|0|0||||2026-09-13
+36|3||1|0.00|||0.00|Bonificacion Investigacion|BONIFICACION_INVESTIGACION||1|SMMLV * factorInvestigacion||||0.00|0|0|0|0||||2026-09-13
+37|3||1|10765800.00|0.04||430632.00|Descuento Salud|DESCUENTO_SALUD||1|IBC * porcentajeSaludTrabajador||||430632.00|0|0|0|0||||2026-09-13
+38|3||1|10765800.00|0.04||430632.00|Descuento Pension|DESCUENTO_PENSION||1|IBC * porcentajePensionTrabajador||||430632.00|0|0|0|0||||2026-09-13
+39|3||1|10765800.00|0.01||107700.00|Fondo Solidaridad|FONDO_SOLIDARIDAD||1|IBC * porcentajeFondoSolidaridad||||107700.00|0|0|0|0||||2026-09-13
+40|3||1|10765800.00|0||107000.00|Retencion Fuente|RETENCION_FUENTE||1|IBC * porcentajeRetencionFuente||||107000.00|0|0|0|0||||2026-09-13
+41|3||1|10765800.00|0.002||21532.00|Descuento Estampilla|DESCUENTO_ESTAMPILLA||1|salarioBase * porcentajeEstampilla||||21532.00|0|0|0|0||||2026-09-13
+42|3||1|0.00|||0.00|Descuento Incumplimiento|DESCUENTO_INCUMPLIMIENTO||1|horasIncumplidas * valorHoraIncumplida||||0.00|0|0|0|0||||2026-09-13
+43|3||1|10765800.00|0.085||0.00|Aporte Salud Patronal|APORTE_SALUD_PATRONAL||1|IBC * porcentajeSaludEmpleador||||0.00|0|0|0|0||||2026-09-13
+44|3||1|10765800.00|0.12||1291896.00|Aporte Pension Patronal|APORTE_PENSION_PATRONAL||1|IBC * porcentajePensionEmpleador||||1291896.00|0|0|0|0||||2026-09-13
+45|3||1|10765800.00|||56197.48|Aporte Arl|APORTE_ARL||1|IBC * porcentajeARL||||56197.48|0|0|0|0||||2026-09-13
+46|3||1|10765800.00|0.04||430632.00|Aporte Caja|APORTE_CAJA||1|IBC * porcentajeCajaCompensacion||||430632.00|0|0|0|0||||2026-09-13
+47|3||1|10765800.00|0.02||0.00|Aporte Sena|APORTE_SENA||1|IBC * porcentajeSENA||||0.00|0|0|0|0||||2026-09-13
+48|3||1|10765800.00|0.03||0.00|Aporte Icbf|APORTE_ICBF||1|IBC * porcentajeICBF||||0.00|0|0|0|0||||2026-09-13

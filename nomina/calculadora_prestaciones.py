@@ -87,6 +87,11 @@ class CalculadoraPrestaciones:
         incluir_bonificaciones: bool,
         codigos_utilizados: dict[str, str] | None = None,
     ) -> Decimal:
+        tipo_prof = str(getattr(profesor.tipoProfesor, "value", profesor.tipoProfesor or "")).upper()
+        mod_contra = str(getattr(contrato.modalidadProfesor or contrato.tipoContrato, "value", contrato.modalidadProfesor or contrato.tipoContrato or "")).upper()
+        if "PLANTA" in tipo_prof or "PLANTA" in mod_contra:
+            return self.CERO
+            
         if contrato.permiteBonificacionInvestigacion is False or not incluir_bonificaciones:
             return self.CERO
         grupo = str(profesor.categoriaGrupoInvestigacion or "").upper()

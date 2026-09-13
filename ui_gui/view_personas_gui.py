@@ -9,12 +9,8 @@ from ui_gui.theme import Colors, create_styled_tabview
 from ui_gui.personas.personas_service import PersonasService
 from ui_gui.personas.personas_tabs import PersonasTabsRenderer
 from ui_gui.personas.dialog_detalle_persona import DialogDetallePersona
-from ui_gui.personas.dialog_nueva_persona import DialogNuevaPersona
-from ui_gui.personas.dialog_editar_persona import (
-    DialogEditarEstudiante,
-    DialogEditarProfesor,
-    DialogEditarAdministrativo,
-)
+from ui_gui.personas.dialog_form_persona import DialogFormPersona
+
 
 if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
@@ -135,28 +131,28 @@ class PersonasViewGUI(ctk.CTkFrame):
     # MODALES Y ACCIONES
     # ------------------------------------------------------------------
     def _abrir_modal_nueva_persona(self) -> None:
-        DialogNuevaPersona(self, self.controller, self.service, self.actualizar)
+        DialogFormPersona(self, self.controller, self.service, on_success=self.actualizar)
 
     def _ver_detalle_persona(self, persona: Persona | None) -> None:
         if persona:
             DialogDetallePersona(self, self.controller, persona)
 
     def _editar_estudiante(self, est: Estudiante, pers: Persona | None) -> None:
-        DialogEditarEstudiante(self, est, pers, self.controller, self.service, self.actualizar_tablas)
+        DialogFormPersona(self, self.controller, self.service, on_success=self.actualizar_tablas, persona=pers, rol_obj=est, tipo_rol="ESTUDIANTE")
 
     def _desactivar_estudiante(self, id_estudiante: int) -> None:
         self.service.desactivar_estudiante(id_estudiante)
         self.actualizar_tablas()
 
     def _editar_profesor(self, prof: Profesor, pers: Persona | None) -> None:
-        DialogEditarProfesor(self, prof, pers, self.controller, self.service, self.actualizar_tablas)
+        DialogFormPersona(self, self.controller, self.service, on_success=self.actualizar_tablas, persona=pers, rol_obj=prof, tipo_rol="PROFESOR")
 
     def _desactivar_profesor(self, id_profesor: int) -> None:
         self.service.desactivar_profesor(id_profesor)
         self.actualizar_tablas()
 
     def _editar_administrativo(self, adm: Administrativo, pers: Persona | None) -> None:
-        DialogEditarAdministrativo(self, adm, pers, self.controller, self.service, self.actualizar_tablas)
+        DialogFormPersona(self, self.controller, self.service, on_success=self.actualizar_tablas, persona=pers, rol_obj=adm, tipo_rol="ADMINISTRATIVO")
 
     def _desactivar_administrativo(self, id_administrativo: int) -> None:
         self.service.desactivar_administrativo(id_administrativo)

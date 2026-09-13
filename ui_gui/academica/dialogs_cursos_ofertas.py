@@ -14,15 +14,18 @@ if TYPE_CHECKING:
     from ui_gui.gui_controller import PITAController
 
 
-class DialogNuevoCurso(ctk.CTkToplevel):
-    """Modal para dar de alta una nueva asignatura en el catálogo."""
+class DialogFormCurso(ctk.CTkToplevel):
+    """Modal unificado para dar de alta o editar una asignatura en el catálogo."""
 
-    def __init__(self, parent: ctk.CTkBaseClass, service: AcademicaService, on_success: Callable[[], None]) -> None:
+    def __init__(self, parent: ctk.CTkBaseClass, service: 'AcademicaService', on_success: 'Callable[[], None]', curso: 'Curso' = None) -> None:
         super().__init__(parent)
+        self.curso = curso
+        self.is_edit = curso is not None
         self.service = service
         self.on_success = on_success
 
-        self.title("➕ Crear Nueva Asignatura")
+        titulo = f"✏️ Editar Asignatura {curso.codigoCurso}" if self.is_edit else "➕ Crear Nueva Asignatura"
+        self.title(titulo)
         self.geometry("520x680")
         self.minsize(480, 600)
         self.grab_set()
@@ -35,18 +38,18 @@ class DialogNuevoCurso(ctk.CTkToplevel):
 
         ctk.CTkLabel(
             scroll,
-            text="Crear Asignatura en el Catálogo",
+            text=f"✏️ Modificar Asignatura: {self.curso.codigoCurso}" if self.is_edit else "Crear Asignatura en el Catálogo",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color="#F8FAFC",
         ).pack(anchor="w", padx=10, pady=(5, 2))
         ctk.CTkLabel(
             scroll,
-            text="Defina los parámetros académicos, créditos y nota mínima aprobatoria.",
+            text="Ajuste los créditos, intensidades horarias y la nota mínima requerida." if self.is_edit else "Defina los parámetros académicos, créditos y nota mínima aprobatoria.",
             font=ctk.CTkFont(size=11),
             text_color="#94A3B8",
         ).pack(anchor="w", padx=10, pady=(0, 15))
 
-        def _agregar_campo(label_text: str, default_val: str = "", placeholder: str = "") -> ctk.CTkEntry:
+        def _agregar_campo(label_text: str, default_val: str = "", placeholder: str = "", disabled: bool = False) -> ctk.CTkEntry:
             ctk.CTkLabel(
                 scroll,
                 text=label_text,
@@ -56,22 +59,40 @@ class DialogNuevoCurso(ctk.CTkToplevel):
             entry = ctk.CTkEntry(scroll, placeholder_text=placeholder, height=36)
             if default_val:
                 entry.insert(0, default_val)
+            if disabled:
+                entry.configure(state="disabled", text_color="#94A3B8")
             entry.pack(fill="x", padx=10, pady=(0, 4))
             return entry
 
-        entry_cod = _agregar_campo("Código de la Asignatura *", placeholder="ej: INF-201")
-        entry_nom = _agregar_campo("Nombre de la Asignatura *", placeholder="ej: Inteligencia Artificial")
-        entry_cred = _agregar_campo("Número de Créditos *", default_val="3", placeholder="ej: 3")
-        entry_ht = _agregar_campo("Horas Teóricas Semanales", default_val="3", placeholder="ej: 3")
-        entry_hp = _agregar_campo("Horas Prácticas Semanales", default_val="2", placeholder="ej: 2")
-        entry_nota = _agregar_campo("Nota Mínima Aprobatoria * (Reglamento Art. 45)", default_val="3.0", placeholder="ej: 3.0")
-        entry_cupo = _agregar_campo("Cupo Sugerido de Estudiantes", default_val="30", placeholder="ej: 30")
+        if self.is_edit:
+            self.entry_cod = _agregar_campo("Código del Curso (Identificador)", default_val=self.curso.codigoCurso or "N/A", disabled=True)
+            entry_nom = _agregar_campo("Nombre de la Asignatura *", default_val=self.curso.nombre or "")
+            entry_cred = _agregar_campo("Número de Créditos *", default_val=str(self.curso.numeroCreditos or 3))
+            entry_ht = _agregar_campo("Horas Teóricas Semanales", default_val=str(getattr(self.curso, "horasTeoricas", 3) or 3))
+            entry_hp = _agregar_campo("Horas Prácticas Semanales", default_val=str(getattr(self.curso, "horasPracticas", 2) or 2))
+            
+            curr_nota = getattr(self.curso, "notaMinimaAprobatoria", None)
+            try:
+                nota_str = f"{float(curr_nota):.1f}" if (curr_nota is not None and float(curr_nota) > 0) else "3.0"
+            except Exception:
+                nota_str = "3.0"
+            entry_nota = _agregar_campo("Nota Mínima Aprobatoria * (Reglamento Art. 45)", default_val=nota_str)
+            entry_cupo = _agregar_campo("Cupo Sugerido de Estudiantes", default_val=str(getattr(self.curso, "cupoSugerido", 30) or 30))
+        else:
+            self.entry_cod = _agregar_campo("Código de la Asignatura *", placeholder="ej: INF-201")
+            entry_nom = _agregar_campo("Nombre de la Asignatura *", placeholder="ej: Inteligencia Artificial")
+            entry_cred = _agregar_campo("Número de Créditos *", default_val="3", placeholder="ej: 3")
+            entry_ht = _agregar_campo("Horas Teóricas Semanales", default_val="3", placeholder="ej: 3")
+            entry_hp = _agregar_campo("Horas Prácticas Semanales", default_val="2", placeholder="ej: 2")
+            entry_nota = _agregar_campo("Nota Mínima Aprobatoria * (Reglamento Art. 45)", default_val="3.0", placeholder="ej: 3.0")
+            entry_cupo = _agregar_campo("Cupo Sugerido de Estudiantes", default_val="30", placeholder="ej: 30")
 
         lbl_error = ctk.CTkLabel(scroll, text="", font=ctk.CTkFont(size=11, weight="bold"), text_color="#EF4444")
         lbl_error.pack(padx=10, pady=(6, 0))
 
         def _guardar():
-            cod = entry_cod.get().strip()
+            if not self.is_edit:
+                cod = self.entry_cod.get().strip()
             nom = entry_nom.get().strip()
             cred = entry_cred.get().strip()
             ht = entry_ht.get().strip()
@@ -79,159 +100,61 @@ class DialogNuevoCurso(ctk.CTkToplevel):
             nota = entry_nota.get().strip().replace(",", ".")
             cupo = entry_cupo.get().strip()
 
-            if not cod or not nom:
+            if not self.is_edit and (not cod or not nom):
                 lbl_error.configure(text="⚠️ El código y el nombre son obligatorios.")
+                return
+            elif self.is_edit and not nom:
+                lbl_error.configure(text="⚠️ El nombre de la asignatura no puede estar vacío.")
                 return
 
             c_cred = int(cred) if cred.isdigit() else 3
             c_ht = int(ht) if ht.isdigit() else 3
             c_hp = int(hp) if hp.isdigit() else 2
             c_cupo = int(cupo) if cupo.isdigit() else 30
-
+            
             try:
-                c_nota = Decimal(nota)
-                if c_nota <= Decimal("0"):
-                    c_nota = Decimal("3.0")
-            except Exception:
-                c_nota = Decimal("3.0")
-
-            self.service.crear_curso(cod, nom, c_cred, c_ht, c_hp, c_cupo, c_nota)
-            self.destroy()
-            self.on_success()
-
-        btn_frame = ctk.CTkFrame(scroll, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=10, pady=(15, 10))
-
-        ctk.CTkButton(
-            btn_frame,
-            text="💾 Guardar Asignatura",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color="#0067C0",
-            hover_color="#005FB8",
-            height=38,
-            command=_guardar,
-        ).pack(side="left", expand=True, fill="x", padx=(0, 6))
-
-        ctk.CTkButton(
-            btn_frame,
-            text="Cancelar",
-            font=ctk.CTkFont(size=12),
-            fg_color="#334155",
-            hover_color="#475569",
-            height=38,
-            command=self.destroy,
-        ).pack(side="right", padx=(6, 0))
-
-
-class DialogEditarCurso(ctk.CTkToplevel):
-    """Modal para editar una asignatura existente."""
-
-    def __init__(self, parent: ctk.CTkBaseClass, curso: Curso, service: AcademicaService, on_success: Callable[[], None]) -> None:
-        super().__init__(parent)
-        self.curso = curso
-        self.service = service
-        self.on_success = on_success
-
-        self.title(f"✏️ Editar Asignatura {curso.codigoCurso}")
-        self.geometry("520x680")
-        self.minsize(480, 600)
-        self.grab_set()
-
-        self._crear_interfaz()
-
-    def _crear_interfaz(self) -> None:
-        scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        scroll.pack(fill="both", expand=True, padx=15, pady=10)
-
-        ctk.CTkLabel(
-            scroll,
-            text=f"✏️ Modificar Asignatura: {self.curso.codigoCurso}",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            text_color="#F8FAFC",
-        ).pack(anchor="w", padx=10, pady=(5, 2))
-        ctk.CTkLabel(
-            scroll,
-            text="Ajuste los créditos, intensidades horarias y la nota mínima requerida.",
-            font=ctk.CTkFont(size=11),
-            text_color="#94A3B8",
-        ).pack(anchor="w", padx=10, pady=(0, 15))
-
-        def _agregar_campo(label_text: str, default_val: str = "", disabled: bool = False) -> ctk.CTkEntry:
-            ctk.CTkLabel(
-                scroll,
-                text=label_text,
-                font=ctk.CTkFont(size=12, weight="bold"),
-                text_color="#CBD5E1",
-            ).pack(anchor="w", padx=10, pady=(6, 2))
-            entry = ctk.CTkEntry(scroll, height=36)
-            if default_val:
-                entry.insert(0, default_val)
-            if disabled:
-                entry.configure(state="disabled", text_color="#94A3B8")
-            entry.pack(fill="x", padx=10, pady=(0, 4))
-            return entry
-
-        _agregar_campo("Código del Curso (Identificador)", default_val=self.curso.codigoCurso or "N/A", disabled=True)
-        entry_nom = _agregar_campo("Nombre de la Asignatura *", default_val=self.curso.nombre or "")
-        entry_cred = _agregar_campo("Número de Créditos *", default_val=str(self.curso.numeroCreditos or 3))
-        entry_ht = _agregar_campo("Horas Teóricas Semanales", default_val=str(getattr(self.curso, "horasTeoricas", 3) or 3))
-        entry_hp = _agregar_campo("Horas Prácticas Semanales", default_val=str(getattr(self.curso, "horasPracticas", 2) or 2))
-
-        # Nota mínima aprobatoria actual con fallback seguro
-        curr_nota = getattr(self.curso, "notaMinimaAprobatoria", None)
-        try:
-            nota_str = f"{float(curr_nota):.1f}" if (curr_nota is not None and float(curr_nota) > 0) else "3.0"
-        except Exception:
-            nota_str = "3.0"
-        entry_nota = _agregar_campo("Nota Mínima Aprobatoria * (Reglamento Art. 45)", default_val=nota_str)
-
-        entry_cupo = _agregar_campo("Cupo Sugerido de Estudiantes", default_val=str(getattr(self.curso, "cupoSugerido", 30) or 30))
-
-        lbl_error = ctk.CTkLabel(scroll, text="", font=ctk.CTkFont(size=11, weight="bold"), text_color="#EF4444")
-        lbl_error.pack(padx=10, pady=(6, 0))
-
-        def _guardar():
-            nom = entry_nom.get().strip()
-            cred = entry_cred.get().strip()
-            ht = entry_ht.get().strip()
-            hp = entry_hp.get().strip()
-            nota = entry_nota.get().strip().replace(",", ".")
-            cupo = entry_cupo.get().strip()
-
-            if not nom:
-                lbl_error.configure(text="⚠️ El nombre de la asignatura no puede estar vacío.")
-                return
-
-            self.curso.nombre = nom
-            if cred.isdigit():
-                self.curso.numeroCreditos = int(cred)
-            if ht.isdigit():
-                self.curso.horasTeoricas = int(ht)
-            if hp.isdigit():
-                self.curso.horasPracticas = int(hp)
-            if cupo.isdigit():
-                self.curso.cupoSugerido = int(cupo)
-
-            try:
+                from decimal import Decimal
                 val_nota = Decimal(nota)
-                if val_nota > Decimal("0"):
-                    self.curso.notaMinimaAprobatoria = val_nota
-                else:
-                    self.curso.notaMinimaAprobatoria = Decimal("3.0")
+                if val_nota <= Decimal("0"):
+                    val_nota = Decimal("3.0")
             except Exception:
-                self.curso.notaMinimaAprobatoria = Decimal("3.0")
+                val_nota = Decimal("3.0")
 
-            self.service.controller._recrear_gestores()
-            self.service.controller.guardar_datos()
-            self.destroy()
-            self.on_success()
+            if self.is_edit:
+                self.curso.nombre = nom
+                self.curso.numeroCreditos = c_cred
+                self.curso.horasTeoricas = c_ht
+                self.curso.horasPracticas = c_hp
+                self.curso.cupoSugerido = c_cupo
+                self.curso.notaMinimaAprobatoria = val_nota
+
+                self.service.controller._recrear_gestores()
+                self.service.controller.guardar_datos()
+                self.destroy()
+                self.on_success()
+            else:
+                try:
+                    from decimal import Decimal
+                    self.service.crear_curso(
+                        codigo=cod,
+                        nombre=nom,
+                        creditos=c_cred,
+                        horas_t=c_ht,
+                        horas_p=c_hp,
+                        nota_minima=float(val_nota),
+                        cupo_sugerido=c_cupo
+                    )
+                    self.destroy()
+                    self.on_success()
+                except Exception as e:
+                    lbl_error.configure(text=f"⚠️ Error: {e}")
 
         btn_frame = ctk.CTkFrame(scroll, fg_color="transparent")
         btn_frame.pack(fill="x", padx=10, pady=(15, 10))
 
         ctk.CTkButton(
             btn_frame,
-            text="💾 Guardar Cambios",
+            text="💾 Guardar Cambios" if self.is_edit else "➕ Registrar Curso",
             font=ctk.CTkFont(size=12, weight="bold"),
             fg_color="#10B981",
             hover_color="#059669",
@@ -248,7 +171,6 @@ class DialogEditarCurso(ctk.CTkToplevel):
             height=38,
             command=self.destroy,
         ).pack(side="right", padx=(6, 0))
-
 
 class DialogNuevaOferta(ctk.CTkToplevel):
     """Modal para abrir una nueva oferta académica / grupo."""

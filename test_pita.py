@@ -202,6 +202,48 @@ class TestContratosParametrosNomina(unittest.TestCase):
         self.assertEqual(liquidacion.bonificacionPosgrado, Decimal("80.00"))
         self.assertEqual(liquidacion.baseSeguridadSocial, Decimal("1600.00"))
 
+    def test_liquidacion_ad_honorem_sin_devengado(self):
+        """P-11: un contrato catedrático ad honorem se liquida con devengado, deducciones, prestaciones y costo en cero."""
+        profesor = Profesor(idProfesor=1, idPersona=10)
+        contrato_honorem = Contrato(
+            idContrato=1,
+            idPersona=10,
+            modalidadProfesor="CATEDRATICO_AD_HONOREM",
+            esAdHonorem=True,
+            horasMensualesAsignadas=Decimal("48"),
+            horasMensualesCumplidas=Decimal("48"),
+            valorHoraCatedraVigente=Decimal("38500"),
+            permiteBonificacionPosgrado=False,
+            permiteBonificacionInvestigacion=False,
+            estado="ACTIVO",
+        )
+        periodo = PeriodoNomina(1, salarioMinimoVigente=Decimal("1000"))
+        liquidacion = GestorNomina([contrato_honorem], [profesor], [periodo]).liquidarProfesorCatedratico(1, 1)
+        self.assertEqual(liquidacion.salarioBase, Decimal("0"))
+        self.assertEqual(liquidacion.salarioOrdinario, Decimal("0.00"))
+        self.assertEqual(liquidacion.baseSeguridadSocial, Decimal("0.00"))
+        self.assertEqual(liquidacion.totalDevengado, Decimal("0.00"))
+        self.assertEqual(liquidacion.totalDescuentos, Decimal("0.00"))
+        self.assertEqual(liquidacion.totalPrestaciones, Decimal("0.00"))
+        self.assertEqual(liquidacion.netoPagar, Decimal("0.00"))
+        self.assertEqual(liquidacion.costoTotalEmpleador, Decimal("0.00"))
+        self.assertEqual(liquidacion.tipoProfesorLiquidado, TipoProfesor.CATEDRATICO)
+
+        # Contraste: el mismo contrato sin la condición ad honorem sí devenga (48 h * $20 = $960)
+        contrato_pago = Contrato(
+            idContrato=2,
+            idPersona=10,
+            modalidadProfesor="CATEDRATICO",
+            horasMensualesAsignadas=Decimal("48"),
+            horasMensualesCumplidas=Decimal("48"),
+            valorHoraCatedraVigente=Decimal("20"),
+            permiteBonificacionPosgrado=False,
+            permiteBonificacionInvestigacion=False,
+            estado="ACTIVO",
+        )
+        pago = GestorNomina([contrato_pago], [profesor], [PeriodoNomina(2, salarioMinimoVigente=Decimal("1000"))]).liquidarProfesorCatedratico(2, 2)
+        self.assertEqual(pago.salarioOrdinario, Decimal("960.00"))
+
     def test_nomina_usa_parametro_vigente_del_periodo(self):
         profesor = Profesor(idProfesor=1, idPersona=10)
         contrato = Contrato(idContrato=1, idPersona=10, modalidadProfesor="OCASIONAL", factorSalarialSMMLV=Decimal("1"), estado="ACTIVO")

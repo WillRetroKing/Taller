@@ -1,4 +1,4 @@
-﻿CONSOLIDADO FINAL DEL MODELO CONCEPTUAL PITA 
+CONSOLIDADO FINAL DEL MODELO CONCEPTUAL PITA 
 
 1. Alcance definitivo 
 
@@ -71,7 +71,10 @@ Estas entidades cubren las estructuras académicas, las personas, la contrataci�
    1. telefono 
    1. correoInstitucional 
    1. sitioWeb 
-   1. estado ![ref3]
+   1. estado 
+   1. cajaCompensacion
+   1. arl
+   1. aplicaExoneracionLey1819 ![ref3]
 1. Facultad \
    Facultad 
 - idFacultad 
@@ -83,7 +86,8 @@ Estas entidades cubren las estructuras académicas, las personas, la contrataci�
 - correo 
 - idDecano 
 - fechaCreacion 
-- estado ![ref2]
+- estado 
+- idUniversidad ![ref2]
 3. ProgramaAcademico \
    ProgramaAcademico 
    1. idPrograma 
@@ -486,7 +490,8 @@ Contrato
 - incumplimientoComprobado 
 - decisionJudicialOAdministrativa 
 - documentoSoporteTerminacion 
-- estadoFinalContrato ![ref4]
+- estadoFinalContrato
+- idUniversidad ![ref4]
 22. CategoriaDocente \
     CategoriaDocente 
 - idCategoria 
@@ -585,7 +590,9 @@ PRODUCTIVIDAD\_ACADEMICA
 
 DIRECCION\_ACADEMICO\_ADMINISTRATIVA 
 
-DESEMPENO\_DESTACADO POSGRADO 
+DESEMPENO\_DESTACADO 
+
+POSGRADO 
 
 GRUPO\_INVESTIGACION 
 
@@ -734,7 +741,8 @@ SEMILLERO ![ref8]
 - liquidacionOrigen 
 - version 
 - usuarioLiquidador 
-- usuarioAprobador ![ref1]
+- usuarioAprobador 
+- parametros_utilizados ![ref1]
 27. ConceptoNomina \
     ConceptoNomina 
 - idConcepto 
@@ -847,11 +855,27 @@ PORCENTAJE\_RIESGOS\_LABORALES
 
 PORCENTAJE\_CAJA\_COMPENSACION 
 
+TOPE\_BONIFICACION\_SERVICIOS
+
+PORCENTAJE\_BONIFICACION\_SERVICIOS\_HASTA\_TOPE
+
+PORCENTAJE\_BONIFICACION\_SERVICIOS\_SOBRE\_TOPE
+
+PORCENTAJE\_RETENCION\_FUENTE
+
+BASE\_MINIMA\_RETENCION\_FUENTE
+
+PORCENTAJE\_ESTAMPILLA
+
+RETENCION\_FUENTE\_SALARIO
+
 NOTA\_MINIMA\_APROBATORIA 
 
 PROMEDIO\_MINIMO\_EBRA 
 
-MAXIMO\_CREDITOS\_PERIODO ![ref4]
+MAXIMO\_CREDITOS\_PERIODO 
+
+APLICA\_EXONERACION\_LEY\_1819 ![ref4]
 
 30. ArchivoPersistencia \
     ArchivoPersistencia 
@@ -1000,7 +1024,7 @@ El promedio recomendado es ponderado por créditos:
 
 promedioPeriodo = suma(notaFinalCurso \* creditosCurso) / suma(creditosCurso) 
 
-promedioAcumulado =n suma(notaFinalHistorica \* creditosCurso) / suma(creditosHistoricosConNota) 
+promedioAcumulado = suma(notaFinalHistorica \* creditosCurso) / suma(creditosHistoricosConNota) 
 
 La regla EBRA debe utilizar un parámetro institucional, porque el taller exige generar la alerta, pero no proporciona el umbral exacto.  
 

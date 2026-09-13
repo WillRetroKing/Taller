@@ -413,9 +413,9 @@ class PITAController:
         self._recrear_gestores()
 
     def cargar_datos_demo(self) -> None:
-        """Regenera la base de datos de demostración con datos iniciales completos de la UPC."""
+        """Regenera la base de datos de demostración con datos iniciales completos en el directorio de la universidad activa."""
         from scratch.generar_datos_iniciales import generar
-        generar()
+        generar(destino=self.directorio_datos)
         self.cargar_datos()
 
     def _crear_parametros_por_defecto(self) -> None:

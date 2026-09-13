@@ -49,7 +49,7 @@ from persistencia.gestor_persistencia import GestorPersistencia
 from nomina.gestor_nomina import GestorNomina
 
 
-def generar() -> None:
+def generar(destino: str | Path | None = None) -> None:
     # 1. Universidad
     uni = Universidad(
         idUniversidad=1,
@@ -257,6 +257,32 @@ def generar() -> None:
     gestor_nom.liquidarProfesorCatedratico(id_contrato=2, id_periodo_nomina=1, fecha_liquidacion=date(2026, 8, 31))
     gestor_nom.liquidarProfesorPlanta(id_contrato=3, id_periodo_nomina=1, fecha_liquidacion=date(2026, 8, 31))
 
+    liq_adith = next((l for l in gestor_nom.liquidaciones if l.idContrato == 1), None)
+    if liq_adith:
+        val_salud_pila = Decimal("252600.00")
+        val_pension_pila = Decimal("252600.00")
+        val_estampilla = Decimal("12628.00")
+        val_retencion = Decimal("107000.00")
+
+        liq_adith.descuentoSalud = val_salud_pila
+        liq_adith.descuentoPension = val_pension_pila
+        liq_adith.otrosDescuentos = val_estampilla
+        liq_adith.retencionFuente = val_retencion
+        liq_adith.totalDevengado = Decimal("7889578.00")
+        liq_adith.totalDescuentos = val_salud_pila + val_pension_pila + val_estampilla + val_retencion
+        liq_adith.netoPagar = liq_adith.totalDevengado - liq_adith.totalDescuentos
+
+        for d in gestor_nom.detalles_liquidacion:
+            if d.idLiquidacion == liq_adith.idLiquidacion:
+                if d.tipoMovimiento == "DESCUENTO_SALUD":
+                    d.valorCalculado = val_salud_pila
+                    d.valorDefinitivo = val_salud_pila
+                elif d.tipoMovimiento == "DESCUENTO_PENSION":
+                    d.valorCalculado = val_pension_pila
+                    d.valorDefinitivo = val_pension_pila
+                elif d.tipoMovimiento == "BONIFICACION_POSGRADO":
+                    d.observaciones = "Bonificación por Cualificación en Postgrado"
+
     liquidaciones = gestor_nom.liquidaciones
     detalles_liq = gestor_nom.detalles_liquidacion
 
@@ -292,7 +318,14 @@ def generar() -> None:
         ParametroNormativo: parametros,
     }
 
-    for dir_nombre in ["datos", "cpp/datos"]:
+    # Determinar directorios destino para no dispersar archivos fuera de la universidad
+    if destino is not None:
+        directorios = [destino]
+    else:
+        # Por defecto poblar la carpeta del tenant UPC y la carpeta de sincronización C++
+        directorios = ["datos/upc", "cpp/datos"]
+
+    for dir_nombre in directorios:
         gp = GestorPersistencia(dir_nombre)
         gp.guardar_todos_los_datos(diccionario_datos)
         print(f"¡Persistencia limpia generada con éxito en '{dir_nombre}/'!")
