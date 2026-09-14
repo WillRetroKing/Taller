@@ -1,0 +1,4 @@
+1|1|1|4.5|2026-03-16|Excelente desempeño|ACTIVO
+2|2|1|4.8|2026-04-26|Código óptimo|ACTIVO
+3|1|4|2.0|2026-03-16|Dificultades en algoritmos|ACTIVO
+4|2|4|2.4|2026-04-26|Bajo rendimiento|ACTIVO

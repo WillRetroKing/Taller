@@ -41,7 +41,7 @@ inline std::string to_string(EstadoAcademico val) {
     return "";
 }
 
-inline EstadoAcademico estado_academico_from_string(const std::string& s) {
+inline std::optional<EstadoAcademico> estado_academico_from_string(const std::string& s) {
     if (s == "ASPIRANTE") return EstadoAcademico::ASPIRANTE;
     if (s == "ADMITIDO") return EstadoAcademico::ADMITIDO;
     if (s == "MATRICULADO") return EstadoAcademico::MATRICULADO;
@@ -51,7 +51,8 @@ inline EstadoAcademico estado_academico_from_string(const std::string& s) {
     if (s == "EBRA") return EstadoAcademico::EBRA;
     if (s == "GRADUADO") return EstadoAcademico::GRADUADO;
     if (s == "RETIRADO") return EstadoAcademico::RETIRADO;
-    return EstadoAcademico::SUSPENDIDO;
+    if (s == "SUSPENDIDO") return EstadoAcademico::SUSPENDIDO;
+    return std::nullopt;
 }
 
 enum class TipoProfesor {
@@ -71,11 +72,12 @@ inline std::string to_string(TipoProfesor val) {
     return "";
 }
 
-inline TipoProfesor tipo_profesor_from_string(const std::string& s) {
+inline std::optional<TipoProfesor> tipo_profesor_from_string(const std::string& s) {
     if (s == "PLANTA") return TipoProfesor::PLANTA;
     if (s == "OCASIONAL") return TipoProfesor::OCASIONAL;
     if (s == "CATEDRATICO") return TipoProfesor::CATEDRATICO;
-    return TipoProfesor::CATEDRATICO_AD_HONOREM;
+    if (s == "CATEDRATICO_AD_HONOREM" || s == "AD_HONOREM") return TipoProfesor::CATEDRATICO_AD_HONOREM;
+    return std::nullopt;
 }
 
 enum class Dedicacion {
@@ -93,10 +95,11 @@ inline std::string to_string(Dedicacion val) {
     return "";
 }
 
-inline Dedicacion dedicacion_from_string(const std::string& s) {
-    if (s == "TIEMPO_COMPLETO") return Dedicacion::TIEMPO_COMPLETO;
+inline std::optional<Dedicacion> dedicacion_from_string(const std::string& s) {
+    if (s == "TIEMPO_COMPLETO" || s == "EXCLUSIVA") return Dedicacion::TIEMPO_COMPLETO;
     if (s == "MEDIO_TIEMPO") return Dedicacion::MEDIO_TIEMPO;
-    return Dedicacion::HORA_CATEDRA;
+    if (s == "HORA_CATEDRA" || s == "CATEDRA") return Dedicacion::HORA_CATEDRA;
+    return std::nullopt;
 }
 
 enum class EstadoCurso {
@@ -124,7 +127,7 @@ inline std::string to_string(EstadoCurso val) {
     return "";
 }
 
-inline EstadoCurso estado_curso_from_string(const std::string& s) {
+inline std::optional<EstadoCurso> estado_curso_from_string(const std::string& s) {
     if (s == "MATRICULADO") return EstadoCurso::MATRICULADO;
     if (s == "EN_CURSO") return EstadoCurso::EN_CURSO;
     if (s == "CANCELADO") return EstadoCurso::CANCELADO;
@@ -132,7 +135,8 @@ inline EstadoCurso estado_curso_from_string(const std::string& s) {
     if (s == "REPROBADO") return EstadoCurso::REPROBADO;
     if (s == "RETIRADO") return EstadoCurso::RETIRADO;
     if (s == "HOMOLOGADO") return EstadoCurso::HOMOLOGADO;
-    return EstadoCurso::VALIDADO;
+    if (s == "VALIDADO") return EstadoCurso::VALIDADO;
+    return std::nullopt;
 }
 
 enum class CategoriaDocenteCodigo {
@@ -154,12 +158,13 @@ inline std::string to_string(CategoriaDocenteCodigo val) {
     return "";
 }
 
-inline CategoriaDocenteCodigo categoria_docente_from_string(const std::string& s) {
+inline std::optional<CategoriaDocenteCodigo> categoria_docente_from_string(const std::string& s) {
     if (s == "AUXILIAR") return CategoriaDocenteCodigo::AUXILIAR;
     if (s == "ASISTENTE") return CategoriaDocenteCodigo::ASISTENTE;
     if (s == "ASOCIADO") return CategoriaDocenteCodigo::ASOCIADO;
     if (s == "TITULAR") return CategoriaDocenteCodigo::TITULAR;
-    return CategoriaDocenteCodigo::NO_CATEGORIZADO;
+    if (s == "NO_CATEGORIZADO") return CategoriaDocenteCodigo::NO_CATEGORIZADO;
+    return std::nullopt;
 }
 
 enum class TipoFactor {
@@ -189,7 +194,7 @@ inline std::string to_string(TipoFactor val) {
     return "";
 }
 
-inline TipoFactor tipo_factor_from_string(const std::string& s) {
+inline std::optional<TipoFactor> tipo_factor_from_string(const std::string& s) {
     if (s == "TITULO_ACADEMICO") return TipoFactor::TITULO_ACADEMICO;
     if (s == "CATEGORIA_DOCENTE") return TipoFactor::CATEGORIA_DOCENTE;
     if (s == "EXPERIENCIA") return TipoFactor::EXPERIENCIA;
@@ -198,7 +203,8 @@ inline TipoFactor tipo_factor_from_string(const std::string& s) {
     if (s == "DESEMPENO_DESTACADO") return TipoFactor::DESEMPENO_DESTACADO;
     if (s == "POSGRADO") return TipoFactor::POSGRADO;
     if (s == "GRUPO_INVESTIGACION") return TipoFactor::GRUPO_INVESTIGACION;
-    return TipoFactor::SEMILLERO;
+    if (s == "SEMILLERO") return TipoFactor::SEMILLERO;
+    return std::nullopt;
 }
 
 enum class ParametroNormativoCodigo {
@@ -262,7 +268,7 @@ inline std::string to_string(ParametroNormativoCodigo val) {
     return "";
 }
 
-inline ParametroNormativoCodigo parametro_normativo_from_string(const std::string& s) {
+inline std::optional<ParametroNormativoCodigo> parametro_normativo_from_string(const std::string& s) {
     if (s == "SALARIO_MINIMO") return ParametroNormativoCodigo::SALARIO_MINIMO;
     if (s == "VALOR_PUNTO_SALARIAL") return ParametroNormativoCodigo::VALOR_PUNTO_SALARIAL;
     if (s == "VALOR_AUXILIO_TRANSPORTE_VIGENTE") return ParametroNormativoCodigo::VALOR_AUXILIO_TRANSPORTE_VIGENTE;
@@ -288,7 +294,8 @@ inline ParametroNormativoCodigo parametro_normativo_from_string(const std::strin
     if (s == "NOTA_MINIMA_APROBATORIA") return ParametroNormativoCodigo::NOTA_MINIMA_APROBATORIA;
     if (s == "PROMEDIO_MINIMO_EBRA") return ParametroNormativoCodigo::PROMEDIO_MINIMO_EBRA;
     if (s == "APLICA_EXONERACION_LEY_1819") return ParametroNormativoCodigo::APLICA_EXONERACION_LEY_1819;
-    return ParametroNormativoCodigo::MAXIMO_CREDITOS_PERIODO;
+    if (s == "MAXIMO_CREDITOS_PERIODO") return ParametroNormativoCodigo::MAXIMO_CREDITOS_PERIODO;
+    return std::nullopt;
 }
 
 // ==========================================

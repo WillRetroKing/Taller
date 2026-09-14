@@ -1,0 +1,7 @@
+1|CC|1025789456|Brayan|Stiven|Castro|Peña|2002-06-10|Transversal 45 #12-30|3145678901|brayan@gmail.com|bcastrop@unad.edu.co|Bogota|2022-02-01|ACTIVO
+2|CC|1026890123|Luisa|Fernanda|Osorio|Gil|2003-11-14|Calle 80 #68-45|3178901234|luisa@gmail.com|losoriog@unad.edu.co|Bogota|2023-02-01|ACTIVO
+3|CC|1027901234|Andrés|Felipe|Rojas|Téllez|2001-03-28|Cra 68 #26-10|3214567890|andres@gmail.com|arojast@unad.edu.co|Bogota|2021-08-01|ACTIVO
+4|CC|52987456|Diana|Carolina|Morales|Duque|1983-07-19|Sede Nacional José Celestino Mutis|3167891234|diana@gmail.com|dmoralesd@unad.edu.co|Bogota|2012-04-01|ACTIVO
+5|CC|19876543|Álvaro|Enrique|Vargas|Niño|1976-01-12|Edificio Académico UNAD|3156789012|alvaro@gmail.com|avargasn@unad.edu.co|Bogota|2008-03-15|ACTIVO
+6|CC|79654321|Gabriel|Antonio|Morales|Zapata|1987-09-05|Calle 140 #19-40|3001239876|gabriel@gmail.com|gmorales@unad.edu.co|Bogota|2019-02-01|ACTIVO
+7|CC|51789456|Sandra|Milena|Caicedo|Guzmán|1981-12-03|Av. Américas #50-20|3134567890|sandra@gmail.com|scaicedo@unad.edu.co|Bogota|2011-06-01|ACTIVO

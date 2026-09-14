@@ -61,37 +61,65 @@ std::optional<std::string> GestorPersistencia::parseOptionalString(const std::st
 
 std::optional<EstadoAcademico> GestorPersistencia::parseOptionalEstadoAcademico(const std::string& s) {
     if (s.empty()) return std::nullopt;
-    return estado_academico_from_string(s);
+    auto val = estado_academico_from_string(s);
+    if (!val.has_value()) {
+        std::cerr << "[ADVERTENCIA PERSISTENCIA] Valor no reconocido para EstadoAcademico: '" << s << "'" << std::endl;
+    }
+    return val;
 }
 
 std::optional<TipoProfesor> GestorPersistencia::parseOptionalTipoProfesor(const std::string& s) {
     if (s.empty()) return std::nullopt;
-    return tipo_profesor_from_string(s);
+    auto val = tipo_profesor_from_string(s);
+    if (!val.has_value()) {
+        std::cerr << "[ADVERTENCIA PERSISTENCIA] Valor no reconocido para TipoProfesor: '" << s << "'" << std::endl;
+    }
+    return val;
 }
 
 std::optional<Dedicacion> GestorPersistencia::parseOptionalDedicacion(const std::string& s) {
     if (s.empty()) return std::nullopt;
-    return dedicacion_from_string(s);
+    auto val = dedicacion_from_string(s);
+    if (!val.has_value()) {
+        std::cerr << "[ADVERTENCIA PERSISTENCIA] Valor no reconocido para Dedicacion: '" << s << "'" << std::endl;
+    }
+    return val;
 }
 
 std::optional<EstadoCurso> GestorPersistencia::parseOptionalEstadoCurso(const std::string& s) {
     if (s.empty()) return std::nullopt;
-    return estado_curso_from_string(s);
+    auto val = estado_curso_from_string(s);
+    if (!val.has_value()) {
+        std::cerr << "[ADVERTENCIA PERSISTENCIA] Valor no reconocido para EstadoCurso: '" << s << "'" << std::endl;
+    }
+    return val;
 }
 
 std::optional<CategoriaDocenteCodigo> GestorPersistencia::parseOptionalCategoriaDocente(const std::string& s) {
     if (s.empty()) return std::nullopt;
-    return categoria_docente_from_string(s);
+    auto val = categoria_docente_from_string(s);
+    if (!val.has_value()) {
+        std::cerr << "[ADVERTENCIA PERSISTENCIA] Valor no reconocido para CategoriaDocenteCodigo: '" << s << "'" << std::endl;
+    }
+    return val;
 }
 
 std::optional<TipoFactor> GestorPersistencia::parseOptionalTipoFactor(const std::string& s) {
     if (s.empty()) return std::nullopt;
-    return tipo_factor_from_string(s);
+    auto val = tipo_factor_from_string(s);
+    if (!val.has_value()) {
+        std::cerr << "[ADVERTENCIA PERSISTENCIA] Valor no reconocido para TipoFactor: '" << s << "'" << std::endl;
+    }
+    return val;
 }
 
 std::optional<ParametroNormativoCodigo> GestorPersistencia::parseOptionalParametroNormativo(const std::string& s) {
     if (s.empty()) return std::nullopt;
-    return parametro_normativo_from_string(s);
+    auto val = parametro_normativo_from_string(s);
+    if (!val.has_value()) {
+        std::cerr << "[ADVERTENCIA PERSISTENCIA] Valor no reconocido para ParametroNormativoCodigo: '" << s << "'" << std::endl;
+    }
+    return val;
 }
 
 std::string GestorPersistencia::serializarUniversidad(const Universidad& e) {

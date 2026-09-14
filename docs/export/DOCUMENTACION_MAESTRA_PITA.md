@@ -6,7 +6,7 @@
 > **Programa:** Ingeniería de Sistemas
 > **Asignatura:** Estructura de Datos
 > **Actividad:** Taller 1, Listas
-> **Versión documental:** 1.8 (ver historial en el Anexo C)
+> **Versión documental:** 1.9 (ver historial en el Anexo C)
 > **Fecha:** Septiembre de 2026
 
 ---
@@ -25,10 +25,10 @@
 
 ### Integrantes
 
-- **Estudiante 1:** Por definir
-- **Estudiante 2:** Por definir
-- **Estudiante 3:** Por definir
-- **Grupo:** Por definir
+- **Estudiante 1:** William Andrés Peñaranda Oñate
+- **Estudiante 2:** Edinson José Olivero Rojas
+- **Estudiante 3:** Donaldo David Noriega Palomino
+- **Grupo:** Por confirmar
 - **Docente:** Adith Pérez
 
 ---
@@ -1811,6 +1811,9 @@ $ python -m pytest test_pita.py test_multi_universidades.py test_aislamiento_uni
 - [ ] Prueba cruzada de persistencia: guardar desde Python y cargar en C++ con el mismo tenant (requiere decidir la codificación neutral de `parametros_utilizados`).
 - [ ] Guardado atómico: escribir en archivo temporal y reemplazar de forma controlada.
 - [ ] Diagramas: entidades y relaciones, arquitectura, flujo de matrícula y flujo de nómina.
+- [x] Validación estricta en deserialización de enumeraciones (C++): las funciones `*_from_string` en `cpp/dominio/modelo_datos.h` devuelven `std::optional<T>` retornando `std::nullopt` ante texto no reconocido en vez de asignar valores por defecto silenciosos, y los métodos `parseOptional...` en `gestor_persistencia.cpp` registran advertencias explícitas en consola ante valores desconocidos.
+- [x] Manejo defensivo en resolución de cursos para ofertas: en `gestores_academicos.cpp`, todos los llamadores de `GestorMatriculas::cursoDeOferta` (`cumplePrerrequisitos`, `matricularEstudiante`, `calcularPromedioPeriodo`, `cancelarCurso` y `calcularPromedioAcumulado`) cuentan con bloques `try/catch` para capturar cualquier inconsistencia referencial en ofertas/cursos y registrar una advertencia en lugar de interrumpir abruptamente la ejecución.
+- [x] Limpieza de parámetros en liquidación C++: eliminado el parámetro no utilizado `esAdHonorem` en `ensamblarLiquidacion` (`gestor_nomina.h` / `gestor_nomina.cpp`), cuyo efecto financiero ya es procesado en el cómputo previo de salario base e IBC.
 
 > Completado en esta fase: revisión del código C++ y Python, confirmación de clases, listas, formato de persistencia y cálculos; matriz diseño-código; diccionario de datos generado desde el código con ejemplos reales y validaciones; suite de 48 pruebas en verde; limpieza de marcadores; migración a Word con diseño final.
 
@@ -1939,3 +1942,4 @@ Por definir
 | 1.6 | 2026-09-12 | Equipo PITA | Actualización de secciones informativas al estado final: la introducción ya refleja que el documento está contrastado con el código (no "se documentará"); la nota de alcance indica que la versión Word se genera desde este archivo; la sección 27 pasa de "Conclusiones preliminares" a "Conclusiones" con los resultados reales (paridad C++/Python, 48 pruebas en verde, lista enlazada propia, parametrización como aprendizaje clave y limitaciones acotadas). |
 | 1.7 | 2026-09-12 | Equipo PITA | Deduplicación con el diccionario de datos: las listas de atributos de la sección 9 (93 viñetas) se eliminaron del documento maestro y se reemplazaron por referencias al diccionario; se conservaron las descripciones y notas de decisión de cada entidad; las secciones 9.4 a 9.6 pasaron de listas de nombres a descripciones de una línea por entidad. |
 | 1.8 | 2026-09-12 | Equipo PITA | Cierre de inconsistencias internas: conteo de pruebas actualizado a 48/48; limitaciones reformuladas al estado real (guardado no atómico, `parametros_utilizados` no portable, valores por vigencia); sección 26 reescrita con solo el trabajo pendiente real (datos de integrantes, referencias, capturas de GUI y mejoras opcionales) y registro de lo completado; el tipo del documento ya no dice "en construcción". |
+| 1.9 | 2026-09-13 | Equipo PITA | Registro de integrantes (Peñaranda, Olivero, Noriega) y preparación del paquete de entrega según el enunciado: fuentes con iniciales WP-EO-DN, archivo de identificación, documentos Word finales y archivo de persistencia de muestra. |

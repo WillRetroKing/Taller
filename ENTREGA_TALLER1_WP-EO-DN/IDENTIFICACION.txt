@@ -1,0 +1,24 @@
+UNIVERSIDAD POPULAR DEL CESAR
+Facultad de Ingenierias y Tecnologicas - Ingenieria de Sistemas
+Estructura de Datos - Taller 1: Listas (Sistema PITA)
+2026
+
+INTEGRANTES
+  1. William Andres Penaranda Onate
+  2. Edinson Jose Olivero Rojas
+  3. Donaldo David Noriega Palomino
+
+DOCENTE
+  Adith Perez
+
+CONTENIDO DEL PAQUETE
+  WP-EO-DN.py                       Punto de entrada Python (ejecuta el sistema completo)
+  WP-EO-DN.cpp                      Programa principal C++ (verificador y arranque)
+  WP-EO-DN_Documentacion_PITA.docx  Documento maestro: diseno, estrategia, reglas, pruebas
+  WP-EO-DN_Diccionario_Datos.docx   Diccionario de datos (30 entidades, 607 atributos)
+  persistencia/                     Muestra real de los archivos de datos (tenant UPC)
+  PROYECTO_COMPLETO_PYTHON.zip      Proyecto Python completo (modelo, gestores, GUI, pruebas)
+  PROYECTO_COMPLETO_CPP.zip         Proyecto C++ completo (sin carpeta build)
+
+VIDEO
+  Enlace de YouTube: [agregar enlace al video de sustentacion, ~10 min]

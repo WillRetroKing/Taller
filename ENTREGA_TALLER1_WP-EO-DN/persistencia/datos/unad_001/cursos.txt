@@ -1,0 +1,5 @@
+1|UNAD-101|Pensamiento Lógico y Divergente|Resolución de problemas y lógica matemática|3|3|0|6|40|3.0|ACTIVO
+2|UNAD-102|Herramientas Digitales para la Gestión|Competencias digitales y entornos virtuales|3|2|2|5|45|3.0|ACTIVO
+3|UNAD-103|Cátedra Unadista y Proyecto de Vida|Modelo pedagógico solidario y autonomía|3|3|0|6|50|3.0|ACTIVO
+4|UNAD-104|Algoritmos y Estructura de Software Virtual|Programación en Python y microservicios|4|3|2|7|35|3.0|ACTIVO
+5|UNAD-105|Psicopatología y Contextos Sociales|Diagnóstico y salud mental comunitaria|3|3|0|6|35|3.0|ACTIVO

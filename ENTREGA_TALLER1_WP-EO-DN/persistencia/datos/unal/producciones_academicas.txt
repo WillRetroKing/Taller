@@ -1,0 +1,2 @@
+1|1|ARTICULO|Deep Graph Neural Networks for Algorithmic Reasoning|2024-04-10|IEEE Transactions on Neural Networks|||15|||APROBADO||||A1||||||1||||||||1.0|||||||
+2|1|LIBRO|Fundamentos Matemáticos de la Inteligencia Artificial|2022-08-20|Editorial Universidad Nacional de Colombia|||20|||APROBADO||||A1||||||2||||||||0.8|||||||

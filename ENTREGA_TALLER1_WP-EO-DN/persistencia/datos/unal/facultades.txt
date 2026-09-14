@@ -1,0 +1,3 @@
+1|FAC-ING|Facultad de Ingeniería|Edificio 401 Julio Garavito|Ciudad Universitaria|3165000|ingenieria@unal.edu.co|4|1867-09-22|ACTIVO|2
+2|FAC-MED|Facultad de Medicina|Edificio 471 Medicina|Ciudad Universitaria|3165000|medicina@unal.edu.co|5|1867-09-22|ACTIVO|2
+3|FAC-FCH|Facultad de Ciencias Humanas|Edificio 224 Humanas|Ciudad Universitaria|3165000|humanas@unal.edu.co|6|1965-04-15|ACTIVO|2

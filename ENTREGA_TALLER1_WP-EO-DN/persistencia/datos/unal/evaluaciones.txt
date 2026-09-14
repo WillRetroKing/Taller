@@ -1,0 +1,5 @@
+1|1|Primer Parcial UNAL|PARCIAL|30|2026-03-15|Algoritmia y lógica|ACTIVO
+2|1|Segundo Parcial UNAL|PARCIAL|30|2026-04-25|POO y modularidad|ACTIVO
+3|1|Proyecto Final UNAL|FINAL|40|2026-06-10|Aplicativo funcional|ACTIVO
+4|2|Parcial Teórico Estructuras|PARCIAL|50|2026-03-20|Grafos y árboles|ACTIVO
+5|2|Examen Práctico Complejidad|FINAL|50|2026-06-15|Demostración NP|ACTIVO

@@ -1,0 +1,3 @@
+1|1|1|4.5|2026-03-02|Buen desarrollo fase 1|ACTIVO
+2|2|1|4.3|2026-05-02|Colaborativo aprobado|ACTIVO
+3|1|3|2.5|2026-03-02|Faltan referencias normativas|ACTIVO

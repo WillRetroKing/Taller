@@ -1,0 +1,5 @@
+1|1|LUNES|07:00|09:00|Edif. 401 Aula 202|Ciudad Universitaria|TEORICA|ACTIVO
+2|1|MIERCOLES|07:00|09:00|Edif. 401 Lab 105|Ciudad Universitaria|PRACTICA|ACTIVO
+3|2|MARTES|09:00|11:00|Edif. 401 Lab 105|Ciudad Universitaria|TEORICA|ACTIVO
+4|2|JUEVES|09:00|11:00|Edif. 401 Lab 105|Ciudad Universitaria|PRACTICA|ACTIVO
+5|3|VIERNES|08:00|13:00|Hospital Universitario (HUN)|Ciudad Universitaria|PRACTICA|ACTIVO

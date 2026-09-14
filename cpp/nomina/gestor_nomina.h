@@ -41,7 +41,6 @@ public:
         double descuentoIncumplimiento,
         TipoProfesor tipo,
         std::optional<double> horasPagables = std::nullopt,
-        bool esAdHonorem = false,
         bool incluirBonificaciones = true
     );
 

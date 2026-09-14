@@ -1,4 +1,5 @@
 #include "gestores_academicos.h"
+#include <iostream>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
@@ -296,9 +297,13 @@ DetalleMatricula& GestorMatriculas::matricularCurso(int idEstudiante, int idOfer
                 throw ErrorMatricula("El estudiante ya esta matriculado en esta oferta");
             }
             if (!d.estadoCurso.has_value() || *d.estadoCurso != EstadoCurso::CANCELADO) {
-                Curso* c = cursoDeOferta(*d.idOfertaCurso);
-                if (c && c->numeroCreditos.has_value()) {
-                    creditosActuales += *c->numeroCreditos;
+                try {
+                    Curso* c = cursoDeOferta(*d.idOfertaCurso);
+                    if (c && c->numeroCreditos.has_value()) {
+                        creditosActuales += *c->numeroCreditos;
+                    }
+                } catch (const std::exception& e) {
+                    std::cerr << "[ADVERTENCIA] Error al obtener curso de oferta en matricularEstudiante: " << e.what() << std::endl;
                 }
             }
         }
@@ -348,10 +353,14 @@ double GestorMatriculas::calcularPromedioPeriodo(int idMatricula) {
             if (!d.notaFinal.has_value() || (d.estadoCurso.has_value() && *d.estadoCurso == EstadoCurso::CANCELADO)) {
                 continue;
             }
-            Curso* c = cursoDeOferta(*d.idOfertaCurso);
-            int cred = c->numeroCreditos.value_or(0);
-            sumaNotas += *d.notaFinal * cred;
-            sumaCreditos += cred;
+            try {
+                Curso* c = cursoDeOferta(*d.idOfertaCurso);
+                int cred = c->numeroCreditos.value_or(0);
+                sumaNotas += *d.notaFinal * cred;
+                sumaCreditos += cred;
+            } catch (const std::exception& e) {
+                std::cerr << "[ADVERTENCIA] Error al obtener curso de oferta en calcularPromedioPeriodo: " << e.what() << std::endl;
+            }
         }
     }
 
@@ -420,8 +429,12 @@ DetalleMatricula& GestorMatriculas::cancelarCurso(int idEstudiante, int idOferta
     for (const auto& d : detalles) {
         if (d.idMatricula == matEncontrada->idMatricula &&
             (!d.estadoCurso.has_value() || *d.estadoCurso != EstadoCurso::CANCELADO)) {
-            Curso* c = cursoDeOferta(*d.idOfertaCurso);
-            totalCred += c->numeroCreditos.value_or(0);
+            try {
+                Curso* c = cursoDeOferta(*d.idOfertaCurso);
+                totalCred += c->numeroCreditos.value_or(0);
+            } catch (const std::exception& e) {
+                std::cerr << "[ADVERTENCIA] Error al obtener curso de oferta en cancelarCurso: " << e.what() << std::endl;
+            }
         }
     }
     matEncontrada->totalCreditos = totalCred;
@@ -448,10 +461,14 @@ double GestorMatriculas::calcularPromedioAcumulado(int idEstudiante) {
                     if (!d.notaFinal.has_value() || (d.estadoCurso.has_value() && *d.estadoCurso == EstadoCurso::CANCELADO)) {
                         continue;
                     }
-                    Curso* c = cursoDeOferta(*d.idOfertaCurso);
-                    int cred = c->numeroCreditos.value_or(0);
-                    sumaNotas += *d.notaFinal * cred;
-                    sumaCreditos += cred;
+                    try {
+                        Curso* c = cursoDeOferta(*d.idOfertaCurso);
+                        int cred = c->numeroCreditos.value_or(0);
+                        sumaNotas += *d.notaFinal * cred;
+                        sumaCreditos += cred;
+                    } catch (const std::exception& e) {
+                        std::cerr << "[ADVERTENCIA] Error al obtener curso de oferta en calcularPromedioAcumulado: " << e.what() << std::endl;
+                    }
                 }
             }
         }

@@ -1,0 +1,1 @@
+1|1|1|EBRA|Promedio acumulado menor a 3.0|2.7|3.0|2026-02-01|0|Notificado a Bienestar|ACTIVO

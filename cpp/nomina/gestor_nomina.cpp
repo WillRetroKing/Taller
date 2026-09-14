@@ -50,7 +50,6 @@ LiquidacionNomina MotorLiquidacionBase::ensamblarLiquidacion(
     double descuentoIncumplimiento,
     TipoProfesor tipo,
     std::optional<double> horasPagables,
-    bool esAdHonorem,
     bool incluirBonificaciones
 ) {
     if (ibc < 0.0) {
@@ -353,7 +352,7 @@ LiquidacionNomina LiquidadorPlanta::liquidar(
         contrato.horasSemanalesAsignadas, std::nullopt,
         0.0, 0.0,
         TipoProfesor::PLANTA,
-        std::nullopt, false, false
+        std::nullopt, false
     );
 
     liq.valorPuntoUsado = valorPunto;
@@ -399,7 +398,7 @@ LiquidacionNomina LiquidadorCatedratico::liquidar(
         horasAsignadas, horasCumplidas,
         0.0, 0.0,
         TipoProfesor::CATEDRATICO,
-        horasPagables, esAdHonorem
+        horasPagables
     );
 }
 
